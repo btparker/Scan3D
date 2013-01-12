@@ -7,7 +7,7 @@ void testApp::setup(){
     ofBackground(0);
     ofSetWindowTitle("3D SCAN ALL THE THINGS");
     ofSetWindowShape(1280,720);
-    
+    ofSetFrameRate(24);
     // Read the directory for the images
     // we know that they are named in seq
     ofDirectory dir;
