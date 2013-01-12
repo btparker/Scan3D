@@ -2,6 +2,41 @@
 
 //--------------------------------------------------------------
 void testApp::setup(){
+	loadSettings();
+}
+
+//--------------------------------------------------------------
+void testApp::loadSettings(){
+	/* Load settings file */
+	if(settings.loadFile("settings.xml")){
+		cout << "*** Loading settings file ***" << endl;
+		settings.pushTag("settings");
+
+			settings.pushTag("scene");
+
+				settings.pushTag("verticalPlane");
+					for(int i = 0; i < 4; i++){
+					    
+					}
+					settings.pushTag("pts");
+
+					settings.popTag(); // pop pts
+				settings.popTag(); // pop verticalPlane
+
+				settings.pushTag("horizontalPlane");
+					settings.pushTag("pts");
+
+					settings.popTag(); // pop pts
+ 				settings.popTag(); // pop horizontalPlane
+
+			settings.popTag(); // pop scene
+
+		settings.popTag(); // pop settings
+		cout << "*****************************" << endl;
+	}
+	else{
+		cout << "No settings file to load." << endl;
+	}
 }
 
 //--------------------------------------------------------------

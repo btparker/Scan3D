@@ -1,0 +1,36 @@
+<settings>
+    <scene>
+        <verticalPlane>
+            <pts>    
+                <pt>
+                    <x></x>
+                    <y></y>
+                </pt>
+                <pt>
+                    <x></x>
+                    <y></y>
+                </pt>
+                <pt>
+                    <x></x>
+                    <y></y>
+                </pt>
+            </pts>
+        </verticalPlane>
+        <horizontalPlane>
+            <pts>    
+                <pt>
+                    <x></x>
+                    <y></y>
+                </pt>
+                <pt>
+                    <x></x>
+                    <y></y>
+                </pt>
+                <pt>
+                    <x></x>
+                    <y></y>
+                </pt>
+            </pts>
+        </horizontalPlane>
+    </scene>
+</settings>

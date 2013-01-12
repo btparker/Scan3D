@@ -9,6 +9,7 @@ class testApp : public ofBaseApp{
 		void update();
 		void draw();
 
+		void loadSettings();
 		void keyPressed  (int key);
 		void keyReleased(int key);
 		void mouseMoved(int x, int y );
@@ -18,5 +19,9 @@ class testApp : public ofBaseApp{
 		void windowResized(int w, int h);
 		void dragEvent(ofDragInfo dragInfo);
 		void gotMessage(ofMessage msg);
+
+		//Calibration points for the planes the object rests on
+		ofPoint verticalPlanePts[4];
+		ofPoint horizontalPlanePts[4];
 		
 };
