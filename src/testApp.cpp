@@ -3,6 +3,44 @@
 //--------------------------------------------------------------
 void testApp::setup(){
 	loadSettings();
+    
+    ofBackground(0);
+    ofSetWindowTitle("3D SCAN ALL THE THINGS");
+    ofSetWindowShape(1280,720);
+    
+    // Read the directory for the images
+    // we know that they are named in seq
+    ofDirectory dir;
+    
+    int nFiles = dir.listDir("monkey_scan_1");
+    
+    if(nFiles) {
+        
+        for(int i=0; i<dir.numFiles(); i++) {
+            
+            // add the image to the vector
+            string filePath = dir.getPath(i);
+            colorImages.push_back(ofImage());
+            colorImages.back().loadImage(filePath);
+            
+            //Create a grayscale copy of each frame
+            gsImages.push_back(ofImage());
+            gsImages.back().clone(colorImages.back());
+            gsImages.back().setImageType(OF_IMAGE_GRAYSCALE);
+            
+        }
+        
+        //Now we create the difference image.
+        //for(i=1; i<dir.numFiles(); i++) {
+            //diffImages.push_back(ofImage());
+            
+        //}
+        
+    }
+    else printf("Could not find folder\n");
+    
+    frameIndex = 0;
+
 }
 
 //--------------------------------------------------------------
@@ -32,7 +70,6 @@ void testApp::loadSettings(){
 			settings.popTag(); // pop scene
 
 		settings.popTag(); // pop settings
-		cout << "*****************************" << endl;
 	}
 	else{
 		cout << "No settings file to load." << endl;
@@ -45,7 +82,20 @@ void testApp::update(){
 
 //--------------------------------------------------------------
 void testApp::draw(){
-
+    
+    // We need some images if not, return
+    if((int)colorImages.size() <= 0) {
+        ofSetColor(255);
+        ofDrawBitmapString("No Images...", 150, ofGetHeight()/2);
+        return;
+    }
+    
+    frameIndex = (frameIndex+1)%(int)colorImages.size();
+    
+    // draw the image sequence at the new frame count
+    ofSetColor(255);
+    gsImages[frameIndex].draw(0, 0);
+    
 }
 
 //--------------------------------------------------------------

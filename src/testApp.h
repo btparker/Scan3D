@@ -26,5 +26,13 @@ class testApp : public ofBaseApp{
 		//Calibration points for the planes the object rests on
 		ofPoint verticalPlanePts[4];
 		ofPoint horizontalPlanePts[4];
+    
+        //Image Vectors
+        vector <ofImage> colorImages;
+        vector <ofImage> gsImages;
+        vector <ofImage> diffImages;
+    
+        int frameIndex;
+
 		
 };
