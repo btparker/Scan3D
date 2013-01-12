@@ -10,3 +10,6 @@ bin/3dScanDebug.app
 3dScan.xcodeproj
 3dScan.xcodeproj/*
 3dScan.xcodeproj/project.xcworkspace/xcuserdata/tylerparker.xcuserdatad/UserInterfaceState.xcuserstate
+bin/3dScan
+bin/libs/*
+obj/*
