@@ -12,7 +12,7 @@ void testApp::setup(){
     // we know that they are named in seq
     ofDirectory dir;
     
-    int nFiles = dir.listDir("monkey_scan_1");
+    int nFiles = dir.listDir(imgDir);
     
     if(nFiles) {
         
@@ -49,6 +49,8 @@ void testApp::loadSettings(){
 	if(settings.loadFile("settings.xml")){
 		cout << "*** Loading settings file ***" << endl;
 		settings.pushTag("settings");
+
+			imgDir = settings.getValue("imgDir","");
 
 			settings.pushTag("scene");
 

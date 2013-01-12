@@ -22,6 +22,7 @@ class testApp : public ofBaseApp{
 		void gotMessage(ofMessage msg);
 
 		ofxXmlSettings settings;
+		string imgDir;
 
 		//Calibration points for the planes the object rests on
 		ofPoint verticalPlanePts[4];
