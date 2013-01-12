@@ -37,12 +37,10 @@ void testApp::setup(){
         }
         
         //Now we create the difference image.
-        /*
         for(int i=1; i<dir.numFiles(); i++) {
-            diffImages.push_back(ofImage());
-            
+            diffImages.push_back(ofxCvGrayscaleImage());
+            diffImages.back().absDiff(gsImages[i-1], gsImages[i]);
         }
-        */
         
     }
     else {
@@ -57,31 +55,42 @@ void testApp::setup(){
 void testApp::loadSettings(){
 	/* Load settings file */
 	if(settings.loadFile("settings.xml")){
-		cout << "*** Loading settings file ***" << endl;
+		cout << "*** Loading Settings File ***" << endl;
 		settings.pushTag("settings");
 
 			imgDir = settings.getValue("imgDir","");
+			cout << "   Loaded image directory: " << imgDir << endl;
 
 			settings.pushTag("scene");
 
 				settings.pushTag("verticalPlane");
-					for(int i = 0; i < 4; i++){
-					    
-					}
+					cout << "   Loaded vertical plane points as [TL,TR,BR,BL]:"<< endl;
 					settings.pushTag("pts");
+
+					for(int i = 0; i < 4; i++){
+					    verticalPlanePts[i].set(settings.getValue("x",0.0),settings.getValue("y",0.0));
+					    cout << "      [" << verticalPlanePts[i].x << ", " << verticalPlanePts[i].y << "]" << endl;
+					}
 
 					settings.popTag(); // pop pts
 				settings.popTag(); // pop verticalPlane
 
 				settings.pushTag("horizontalPlane");
+					cout << "   Loaded horizontal plane points as [TL,TR,BR,BL]:"<< endl;
 					settings.pushTag("pts");
 
+					for(int i = 0; i < 4; i++){
+					    horizontalPlanePts[i].set(settings.getValue("x",0.0),settings.getValue("y",0.0));
+					    cout << "      [" << horizontalPlanePts[i].x << ", " << horizontalPlanePts[i].y << "]" << endl;
+					}
+					
 					settings.popTag(); // pop pts
  				settings.popTag(); // pop horizontalPlane
 
 			settings.popTag(); // pop scene
 
 		settings.popTag(); // pop settings
+		cout << "*** Done Loading Settings ***" << endl;
 	}
 	else {
 		cout << "No settings file to load." << endl;
@@ -103,11 +112,11 @@ void testApp::draw(){
         return;
     }
     
-    frameIndex = (frameIndex+1)%(int)colorImages.size();
+    frameIndex = (frameIndex+1)%(int)diffImages.size();
     
     // draw the image sequence at the new frame count
     ofSetColor(255);
-    gsImages[frameIndex].draw(0, 0);
+    diffImages[frameIndex].draw(0, 0);
     
 }
 
