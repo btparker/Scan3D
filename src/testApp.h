@@ -32,7 +32,7 @@ class testApp : public ofBaseApp{
         //Image Vectors
         vector <ofxCvColorImage> colorImages;
         vector <ofxCvGrayscaleImage> gsImages;
-        vector <ofImage> diffImages;
+        vector <ofxCvGrayscaleImage> diffImages;
     
         int frameIndex;
 

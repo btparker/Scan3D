@@ -37,12 +37,10 @@ void testApp::setup(){
         }
         
         //Now we create the difference image.
-        /*
         for(int i=1; i<dir.numFiles(); i++) {
-            diffImages.push_back(ofImage());
-            
+            diffImages.push_back(ofxCvGrayscaleImage());
+            diffImages.back().absDiff(gsImages[i-1], gsImages[i]);
         }
-        */
         
     }
     else {
@@ -114,11 +112,11 @@ void testApp::draw(){
         return;
     }
     
-    frameIndex = (frameIndex+1)%(int)colorImages.size();
+    frameIndex = (frameIndex+1)%(int)diffImages.size();
     
     // draw the image sequence at the new frame count
     ofSetColor(255);
-    gsImages[frameIndex].draw(0, 0);
+    diffImages[frameIndex].draw(0, 0);
     
 }
 
