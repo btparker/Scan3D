@@ -1,5 +1,5 @@
 // tests.cpp
-#include "../src/whattotest.cpp"
+#include "../../src/whattotest.cpp"
 #include <gtest/gtest.h>
  
 TEST(SquareRootTest, PositiveNos) { 
