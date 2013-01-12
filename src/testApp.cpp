@@ -20,24 +20,34 @@ void testApp::setup(){
             
             // add the image to the vector
             string filePath = dir.getPath(i);
-            colorImages.push_back(ofImage());
-            colorImages.back().loadImage(filePath);
+            colorImages.push_back(ofxCvColorImage());
+            
+            ofImage frame;
+            frame.loadImage(filePath);
+            int width = frame.getWidth();
+            int height = frame.getHeight();
+            
+            colorImages.back().allocate(width,height);
+            colorImages.back().setFromPixels(frame.getPixels(),width,height);
             
             //Create a grayscale copy of each frame
-            gsImages.push_back(ofImage());
-            gsImages.back().clone(colorImages.back());
-            gsImages.back().setImageType(OF_IMAGE_GRAYSCALE);
+            gsImages.push_back(ofxCvGrayscaleImage());
+            gsImages.back() = colorImages.back();
             
         }
         
         //Now we create the difference image.
-        //for(i=1; i<dir.numFiles(); i++) {
-            //diffImages.push_back(ofImage());
+        /*
+        for(int i=1; i<dir.numFiles(); i++) {
+            diffImages.push_back(ofImage());
             
-        //}
+        }
+        */
         
     }
-    else printf("Could not find folder\n");
+    else {
+        cout << "Could not find folder\n" << endl;   
+    }
     
     frameIndex = 0;
 
@@ -73,13 +83,14 @@ void testApp::loadSettings(){
 
 		settings.popTag(); // pop settings
 	}
-	else{
+	else {
 		cout << "No settings file to load." << endl;
 	}
 }
 
 //--------------------------------------------------------------
 void testApp::update(){
+    
 }
 
 //--------------------------------------------------------------

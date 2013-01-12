@@ -2,6 +2,7 @@
 
 #include "ofMain.h"
 #include "ofxXmlSettings.h"
+#include "ofxOpenCv.h"
 
 class testApp : public ofBaseApp{
 
@@ -29,8 +30,8 @@ class testApp : public ofBaseApp{
 		ofPoint horizontalPlanePts[4];
     
         //Image Vectors
-        vector <ofImage> colorImages;
-        vector <ofImage> gsImages;
+        vector <ofxCvColorImage> colorImages;
+        vector <ofxCvGrayscaleImage> gsImages;
         vector <ofImage> diffImages;
     
         int frameIndex;
