@@ -1,0 +1,4 @@
+ofx3DModelLoader
+ofxXmlSettings
+ofxThreadedImageLoader
+ofxOpenCv
