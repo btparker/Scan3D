@@ -7,3 +7,5 @@ runTests
 .DS_Store
 bin/.DS_Store
 bin/3dScanDebug.app
+3dScan.xcodeproj
+3dScan.xcodeproj/*
