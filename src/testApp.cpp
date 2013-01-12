@@ -57,31 +57,42 @@ void testApp::setup(){
 void testApp::loadSettings(){
 	/* Load settings file */
 	if(settings.loadFile("settings.xml")){
-		cout << "*** Loading settings file ***" << endl;
+		cout << "*** Loading Settings File ***" << endl;
 		settings.pushTag("settings");
 
 			imgDir = settings.getValue("imgDir","");
+			cout << "   Loaded image directory: " << imgDir << endl;
 
 			settings.pushTag("scene");
 
 				settings.pushTag("verticalPlane");
-					for(int i = 0; i < 4; i++){
-					    
-					}
+					cout << "   Loaded vertical plane points as [TL,TR,BR,BL]:"<< endl;
 					settings.pushTag("pts");
+
+					for(int i = 0; i < 4; i++){
+					    verticalPlanePts[i].set(settings.getValue("x",0.0),settings.getValue("y",0.0));
+					    cout << "      [" << verticalPlanePts[i].x << ", " << verticalPlanePts[i].y << "]" << endl;
+					}
 
 					settings.popTag(); // pop pts
 				settings.popTag(); // pop verticalPlane
 
 				settings.pushTag("horizontalPlane");
+					cout << "   Loaded horizontal plane points as [TL,TR,BR,BL]:"<< endl;
 					settings.pushTag("pts");
 
+					for(int i = 0; i < 4; i++){
+					    horizontalPlanePts[i].set(settings.getValue("x",0.0),settings.getValue("y",0.0));
+					    cout << "      [" << horizontalPlanePts[i].x << ", " << horizontalPlanePts[i].y << "]" << endl;
+					}
+					
 					settings.popTag(); // pop pts
  				settings.popTag(); // pop horizontalPlane
 
 			settings.popTag(); // pop scene
 
 		settings.popTag(); // pop settings
+		cout << "*** Done Loading Settings ***" << endl;
 	}
 	else {
 		cout << "No settings file to load." << endl;
