@@ -57,32 +57,48 @@ void Scan3dApp::setup(){
         }
         cout << "done!" << endl;
         
-        
-        /*
-         
-         HOBO SAUCE - create the threshold image right here, brah!
-         
-         */
         cout << "** Creating threshold frames ... ";
-        ofxCvGrayscaleImage line;
-        line.allocate(width,height);
-        line.set(0);
         
-        unsigned char * pixels = gsImages.back().getPixels();
-        int firstWhiteFrame = 0;
-        int lastWhiteFrame = 0;
         
-        for (int r = 0; r < width; r++) {
-            for (int c = 0; c < height; c++) {
-                int index = c*width + r;
-                //if pixel is not black
-                if (pixels[index] != 0) {
-                    //Keep checking until the pixel is black again
-                    //Once it's black, break out, and go to next row
+        for(int i=0; i<dir.numFiles()-1; i++) {
+            unsigned char * threshPixels = threshImages[i].getPixels();
+            ofxCvGrayscaleImage edge;
+            edge.allocate(width,height);
+            edge.set(255);
+            unsigned char * edgePixels = edge.getPixels();
+            int firstWhitePixel = 0;
+            int lastWhitePixel = 0;
+            int midWhitePixel = 0;
+            
+            bool whiteDetected = false;
+            for (int y = 0; y < height; y++) {
+                whiteDetected = false;
+                
+                for (int x = 0; x < width; x++) {
+                    int index = y*width + x;
+                    //if pixel is not black
+                    if (threshPixels[index] != 0) {
+                        if(!whiteDetected){
+                            whiteDetected = true;
+                            firstWhitePixel = x;
+                        }
+                        else{
+                            lastWhitePixel = x;
+                        }
+                       
+                    }
+                    if(threshPixels[index] == 0 && whiteDetected){
+                        midWhitePixel = int((lastWhitePixel-firstWhitePixel)/2)+firstWhitePixel;
+                        index = y*width + midWhitePixel;
+                        edgePixels[index] = 0;
+                        break;
+                    }
                 }
+                //If we have found the white pixels, get the middle one
+                //Draw this to the new bwImages vector (for now).
             }
-            //If we have found the white pixels, get the middle one
-            //Draw this to the new bwImages vector (for now).
+            edge.setFromPixels(edgePixels,width,height);
+            edgeImages.push_back(edge);
         }
         cout << "great success!" << endl;
 
@@ -175,7 +191,7 @@ void Scan3dApp::draw(){
             threshImages[frameIndex].draw(0, 0);
             break;
         case EDGE:
-            //ofSetColor(0);
+            edgeImages[frameIndex].draw(0, 0);
             break;
         default:
             colorImages[frameIndex].draw(0, 0);

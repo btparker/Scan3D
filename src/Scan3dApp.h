@@ -34,7 +34,7 @@ class Scan3dApp : public ofBaseApp{
         vector <ofxCvGrayscaleImage> gsImages;
         vector <ofxCvGrayscaleImage> diffImages;
         vector <ofxCvGrayscaleImage> threshImages;
-    
+    	vector <ofxCvGrayscaleImage> edgeImages;
         int frameIndex;
 
         int displayState;
