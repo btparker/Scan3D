@@ -54,9 +54,35 @@ void Scan3dApp::setup(){
         }
         cout << "done!" << endl;
         
+        
+        /*
+         
+         HOBO SAUCE - create the threshold image right here, brah!
+         
+         */
+        ofxCvGrayscaleImage thresh;
+        thresh.allocate(width,height);
+        thresh.set(0);
+        
+        unsigned char * pixels = gsImages.back().getPixels();
+        int firstWhiteFrame = 0;
+        int lastWhiteFrame = 0;
+        
+        for (int r = 0; r < width; r++) {
+            for (int c = 0; c < height; c++) {
+                int index = c*width + r;
+                //if pixel is not black
+                //Keep checking until the pixel is black again
+                //Once it's black, break out, and go to next row
+            }
+            //If we have found the white pixels, get the middle one
+            //Draw this to the new bwImages vector (for now).
+        }
+
+        
     }
     else {
-        cout << "Could not find folder\n" << endl;   
+        cout << "Could not find folder\n" << endl;
     }
     
     frameIndex = 0;

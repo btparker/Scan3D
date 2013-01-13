@@ -33,6 +33,7 @@ class Scan3dApp : public ofBaseApp{
         vector <ofxCvColorImage> colorImages;
         vector <ofxCvGrayscaleImage> gsImages;
         vector <ofxCvGrayscaleImage> diffImages;
+        vector <ofxCvGrayscaleImage> bwImages;
     
         int frameIndex;
 
