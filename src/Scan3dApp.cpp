@@ -51,6 +51,9 @@ void Scan3dApp::setup(){
             gs = gsImages[i];
             gs -= gsImages[i-1];
             diffImages.push_back(gs);
+            
+            gs.threshold(30);
+            threshImages.push_back(gs);
         }
         cout << "done!" << endl;
         
@@ -60,9 +63,10 @@ void Scan3dApp::setup(){
          HOBO SAUCE - create the threshold image right here, brah!
          
          */
-        ofxCvGrayscaleImage thresh;
-        thresh.allocate(width,height);
-        thresh.set(0);
+        cout << "** Creating threshold frames ... ";
+        ofxCvGrayscaleImage line;
+        line.allocate(width,height);
+        line.set(0);
         
         unsigned char * pixels = gsImages.back().getPixels();
         int firstWhiteFrame = 0;
@@ -72,12 +76,15 @@ void Scan3dApp::setup(){
             for (int c = 0; c < height; c++) {
                 int index = c*width + r;
                 //if pixel is not black
-                //Keep checking until the pixel is black again
-                //Once it's black, break out, and go to next row
+                if (pixels[index] != 0) {
+                    //Keep checking until the pixel is black again
+                    //Once it's black, break out, and go to next row
+                }
             }
             //If we have found the white pixels, get the middle one
             //Draw this to the new bwImages vector (for now).
         }
+        cout << "great success!" << endl;
 
         
     }
@@ -165,7 +172,7 @@ void Scan3dApp::draw(){
             diffImages[frameIndex].draw(0, 0);
             break;
         case THRESH:
-            //ofSetColor(0);
+            threshImages[frameIndex].draw(0, 0);
             break;
         case EDGE:
             //ofSetColor(0);
