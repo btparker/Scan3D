@@ -4,6 +4,7 @@
 void Scan3dApp::setup(){
 	loadSettings();
     
+    displayState = COLOR;
     ofBackground(0);
     ofSetWindowTitle("3D SCAN ALL THE THINGS");
     ofSetWindowShape(1280,720);
@@ -126,13 +127,52 @@ void Scan3dApp::draw(){
     frameIndex = (frameIndex+1)%(int)diffImages.size();
     
     // draw the image sequence at the new frame count
-    ofSetColor(255);
-    diffImages[frameIndex].draw(0, 0);
+    //ofSetColor(255);
+    switch(displayState){
+        case COLOR:
+            colorImages[frameIndex].draw(0, 0);
+            break;
+        case GRAYSCALE:
+            gsImages[frameIndex].draw(0, 0);
+            break;
+        case DIFF:
+            diffImages[frameIndex].draw(0, 0);
+            break;
+        case THRESH:
+            //ofSetColor(0);
+            break;
+        case EDGE:
+            //ofSetColor(0);
+            break;
+        default:
+            colorImages[frameIndex].draw(0, 0);
+    }
+    
     
 }
 
 //--------------------------------------------------------------
 void Scan3dApp::keyPressed(int key){
+    switch(key){
+        case 49:
+            displayState = COLOR;
+            break;
+        case 50:
+            displayState = GRAYSCALE;
+            break;
+        case 51:
+            displayState = DIFF;
+            break;
+        case 52:
+            displayState = THRESH;
+            break;
+        case 53:
+            displayState = EDGE;
+            break;
+        default:
+            displayState = COLOR;
+            //nothing
+    }    
 
 }
 

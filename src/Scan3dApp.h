@@ -3,7 +3,7 @@
 #include "ofMain.h"
 #include "ofxXmlSettings.h"
 #include "ofxOpenCv.h"
-
+enum { COLOR, GRAYSCALE, DIFF, THRESH, EDGE};
 class Scan3dApp : public ofBaseApp{
 
 	public:
@@ -35,6 +35,8 @@ class Scan3dApp : public ofBaseApp{
         vector <ofxCvGrayscaleImage> diffImages;
     
         int frameIndex;
+
+        int displayState;
 
 		
 };
