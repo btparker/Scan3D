@@ -10,9 +10,12 @@ void testApp::setup(){
     ofSetFrameRate(24);
     // Read the directory for the images
     // we know that they are named in seq
-    ofDirectory dir;
-    
-    int nFiles = dir.listDir(imgDir);
+     ofDirectory dir(imgDir);
+
+    dir.listDir();
+	dir.sort();
+
+    nFiles = dir.numFiles();
     
     if(nFiles) {
         
