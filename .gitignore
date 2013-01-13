@@ -13,3 +13,16 @@ bin/3dScanDebug.app
 bin/3dScan
 bin/libs/*
 obj/*
+bin/Scan3DDebug.app
+bin/Scan3DDebug.app/*
+Scan3D.xcodeproj
+Scan3D.xcodeproj/*
+3dScan.xcodeproj/project.pbxproj
+
+3dScan.xcodeproj/project.xcworkspace/contents.xcworkspacedata
+
+3dScan.xcodeproj/xcshareddata/xcschemes/3dScan Debug.xcscheme
+
+3dScan.xcodeproj/xcshareddata/xcschemes/3dScan Release.xcscheme
+
+3dScan.xcodeproj/xcuserdata/tylerparker.xcuserdatad/xcschemes/xcschememanagement.plist
