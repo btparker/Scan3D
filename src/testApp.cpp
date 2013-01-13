@@ -15,7 +15,7 @@ void testApp::setup(){
     dir.listDir();
 	dir.sort();
 
-    nFiles = dir.numFiles();
+    int nFiles = dir.numFiles();
     
     if(nFiles) {
         
