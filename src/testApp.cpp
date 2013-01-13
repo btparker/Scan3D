@@ -16,34 +16,41 @@ void testApp::setup(){
 	dir.sort();
 
     int nFiles = dir.numFiles();
+    int width;
+    int height;
     
     if(nFiles) {
-        
+        cout << "** Loading image frames ... ";
         for(int i=0; i<dir.numFiles(); i++) {
             
             // add the image to the vector
             string filePath = dir.getPath(i);
-            colorImages.push_back(ofxCvColorImage());
-            
             ofImage frame;
             frame.loadImage(filePath);
-            int width = frame.getWidth();
-            int height = frame.getHeight();
-            
-            colorImages.back().allocate(width,height);
+            width = frame.getWidth();
+            height = frame.getHeight();
+            ofxCvColorImage colorImg;
+            colorImg.allocate(width,height);
+            colorImages.push_back(colorImg);
             colorImages.back().setFromPixels(frame.getPixels(),width,height);
             
             //Create a grayscale copy of each frame
-            gsImages.push_back(ofxCvGrayscaleImage());
+            ofxCvGrayscaleImage gs;
+        	gs.allocate(width,height);
+            gsImages.push_back(gs);
             gsImages.back() = colorImages.back();
             
         }
-        
+        cout << "done!" << endl;
+        cout << "** Creating difference frames ... ";
         //Now we create the difference image.
         for(int i=1; i<dir.numFiles(); i++) {
-            diffImages.push_back(ofxCvGrayscaleImage());
+        	ofxCvGrayscaleImage gs;
+        	gs.allocate(width,height);
+            diffImages.push_back(gs);
             diffImages.back().absDiff(gsImages[i-1], gsImages[i]);
         }
+        cout << "done!" << endl;
         
     }
     else {
@@ -58,7 +65,7 @@ void testApp::setup(){
 void testApp::loadSettings(){
 	/* Load settings file */
 	if(settings.loadFile("settings.xml")){
-		cout << "*** Loading Settings File ***" << endl;
+		cout << "** Loading Settings File **" << endl;
 		settings.pushTag("settings");
 
 			imgDir = settings.getValue("imgDir","");
@@ -93,7 +100,7 @@ void testApp::loadSettings(){
 			settings.popTag(); // pop scene
 
 		settings.popTag(); // pop settings
-		cout << "*** Done Loading Settings ***" << endl;
+		cout << "** Done Loading Settings **" << endl;
 	}
 	else {
 		cout << "No settings file to load." << endl;
