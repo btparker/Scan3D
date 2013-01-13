@@ -1,8 +1,6 @@
-3dScan
+Scan3D
 ======
 
-Collaborators:
-Greg,
 
 To run tests
 ============
