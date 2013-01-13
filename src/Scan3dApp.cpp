@@ -10,7 +10,7 @@ void Scan3dApp::setup(){
     ofSetFrameRate(30);
     // Read the directory for the images
     // we know that they are named in seq
-     ofDirectory dir(imgDir);
+    ofDirectory dir(imgDir);
 
     dir.listDir();
 	dir.sort();
@@ -46,9 +46,10 @@ void Scan3dApp::setup(){
         //Now we create the difference image.
         for(int i=1; i<dir.numFiles(); i++) {
         	ofxCvGrayscaleImage gs;
-        	gs.allocate(width,height);
+            gs.allocate(width,height);
+            gs = gsImages[i];
+            gs -= gsImages[i-1];
             diffImages.push_back(gs);
-            diffImages.back().absDiff(gsImages[i-1], gsImages[i]);
         }
         cout << "done!" << endl;
         
