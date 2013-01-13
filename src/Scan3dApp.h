@@ -4,7 +4,7 @@
 #include "ofxXmlSettings.h"
 #include "ofxOpenCv.h"
 
-class testApp : public ofBaseApp{
+class Scan3dApp : public ofBaseApp{
 
 	public:
 		void setup();

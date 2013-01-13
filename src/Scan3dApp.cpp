@@ -1,7 +1,7 @@
-#include "testApp.h"
+#include "Scan3dApp.h"
 
 //--------------------------------------------------------------
-void testApp::setup(){
+void Scan3dApp::setup(){
 	loadSettings();
     
     ofBackground(0);
@@ -62,7 +62,7 @@ void testApp::setup(){
 }
 
 //--------------------------------------------------------------
-void testApp::loadSettings(){
+void Scan3dApp::loadSettings(){
 	/* Load settings file */
 	if(settings.loadFile("settings.xml")){
 		cout << "** Loading Settings File **" << endl;
@@ -108,12 +108,12 @@ void testApp::loadSettings(){
 }
 
 //--------------------------------------------------------------
-void testApp::update(){
+void Scan3dApp::update(){
     
 }
 
 //--------------------------------------------------------------
-void testApp::draw(){
+void Scan3dApp::draw(){
     
     // We need some images if not, return
     if((int)colorImages.size() <= 0) {
@@ -131,46 +131,46 @@ void testApp::draw(){
 }
 
 //--------------------------------------------------------------
-void testApp::keyPressed(int key){
+void Scan3dApp::keyPressed(int key){
 
 }
 
 //--------------------------------------------------------------
-void testApp::keyReleased(int key){
+void Scan3dApp::keyReleased(int key){
 
 }
 
 //--------------------------------------------------------------
-void testApp::mouseMoved(int x, int y ){
+void Scan3dApp::mouseMoved(int x, int y ){
 
 }
 
 //--------------------------------------------------------------
-void testApp::mouseDragged(int x, int y, int button){
+void Scan3dApp::mouseDragged(int x, int y, int button){
 
 }
 
 //--------------------------------------------------------------
-void testApp::mousePressed(int x, int y, int button){
+void Scan3dApp::mousePressed(int x, int y, int button){
 
 }
 
 //--------------------------------------------------------------
-void testApp::mouseReleased(int x, int y, int button){
+void Scan3dApp::mouseReleased(int x, int y, int button){
 
 }
 
 //--------------------------------------------------------------
-void testApp::windowResized(int w, int h){
+void Scan3dApp::windowResized(int w, int h){
 
 }
 
 //--------------------------------------------------------------
-void testApp::gotMessage(ofMessage msg){
+void Scan3dApp::gotMessage(ofMessage msg){
 
 }
 
 //--------------------------------------------------------------
-void testApp::dragEvent(ofDragInfo dragInfo){ 
+void Scan3dApp::dragEvent(ofDragInfo dragInfo){ 
 
 }
