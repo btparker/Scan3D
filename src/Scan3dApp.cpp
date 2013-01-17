@@ -2,6 +2,17 @@
 
 //--------------------------------------------------------------
 void Scan3dApp::setup(){
+    //Initializing sobel kernels
+    sobelHorizontal[0][0] = -1; sobelHorizontal[0][1] = 0; sobelHorizontal[0][2] = 1;
+    sobelHorizontal[1][0] = -2; sobelHorizontal[1][1] = 0; sobelHorizontal[1][2] = 2;
+    sobelHorizontal[2][0] = -1; sobelHorizontal[2][1] = 0; sobelHorizontal[2][2] = 1;
+
+    sobelVertical[0][0] =  1; sobelVertical[0][1] =  2; sobelVertical[0][2] = 1;
+    sobelVertical[1][0] =  0; sobelVertical[1][1] =  0; sobelVertical[1][2] = 0;
+    sobelVertical[2][0] = -1; sobelVertical[2][1] = -2; sobelVertical[2][2] = -1;
+
+
+
 	loadSettings();
     
     displayState = COLOR;
@@ -19,17 +30,32 @@ void Scan3dApp::setup(){
     int nFiles = dir.numFiles();
     int width;
     int height;
+    string filePath;
+    ofImage frame;
+
+
     
     if(nFiles) {
+        filePath = dir.getPath(0);
+        ofImage firstFrame;
+        firstFrame.loadImage(filePath);
+        width = firstFrame.getWidth();
+        height = firstFrame.getHeight();
+        ofxCvColorImage colorFirstFrame;
+        colorFirstFrame.allocate(width,height);
+        colorFirstFrame.setFromPixels(firstFrame.getPixels(),width,height);
+        ofxCvGrayscaleImage gsFirstFrame;
+        gsFirstFrame.allocate(width,height);
+        gsFirstFrame = colorFirstFrame;
+        //cornerMap.allocate(width,height);
+        //cornerMap = computeGradientImage(gsFirstFrame,RIGHT);
+
         cout << "** Loading image frames ... ";
         for(int i=0; i<dir.numFiles(); i++) {
             
             // add the image to the vector
-            string filePath = dir.getPath(i);
-            ofImage frame;
+            filePath = dir.getPath(i);
             frame.loadImage(filePath);
-            width = frame.getWidth();
-            height = frame.getHeight();
             ofxCvColorImage colorImg;
             colorImg.allocate(width,height);
             colorImages.push_back(colorImg);
@@ -193,6 +219,9 @@ void Scan3dApp::draw(){
         case EDGE:
             edgeImages[frameIndex].draw(0, 0);
             break;
+         //case CORNER:
+            //cornerMap.draw(0, 0);
+            //break;
         default:
             colorImages[frameIndex].draw(0, 0);
     }
@@ -218,6 +247,9 @@ void Scan3dApp::keyPressed(int key){
         case 53:
             displayState = EDGE;
             break;
+        //case 54:
+            //displayState = CORNER;
+            //break;
         default:
             displayState = COLOR;
             //nothing
@@ -263,4 +295,65 @@ void Scan3dApp::gotMessage(ofMessage msg){
 //--------------------------------------------------------------
 void Scan3dApp::dragEvent(ofDragInfo dragInfo){ 
 
+}
+
+
+
+//--------------------------------------------------------------
+ofxCvGrayscaleImage Scan3dApp::computeGradientImage(ofxCvGrayscaleImage &input, int direction){
+    int sum, sumCell;
+    unsigned char* inputPixelData = input.getPixels();
+    
+    int heightVal = input.getHeight();
+    int widthVal = input.getWidth();
+
+    unsigned char* outputPixelData = new unsigned char[widthVal*heightVal];
+
+    for(int yPx = 0; yPx < heightVal; yPx++){
+        for(int xPx = 0; xPx < widthVal; xPx++){
+            sumCell = 0;
+            if(yPx == 0){
+                sum = 0;
+            }
+            else if(xPx == 0){
+                sum = 0;
+            }
+            else{
+                for(int i = -1; i <= 1; i++){
+                    for(int j = -1; j <= 1; j++){
+                        switch(direction){
+                            case LEFT:
+                                sumCell = sumCell + (int)inputPixelData[(yPx+j)*widthVal+xPx+i]*sobelVertical[i+1][j+1];
+                                break;
+                            case RIGHT:
+                                sumCell = sumCell + (int)inputPixelData[(yPx+j)*widthVal+xPx+i]*sobelVertical[1-i][j+1];
+                                break;
+                            case UP:
+                                sumCell = sumCell + (int)inputPixelData[(yPx+j)*widthVal+xPx+i]*sobelHorizontal[i+1][1-j];
+                                break;
+                            case DOWN:
+                                sumCell = sumCell + (int)inputPixelData[(yPx+j)*widthVal+xPx+i]*sobelHorizontal[i+1][j+1];
+                                break;
+                            
+                        }
+                    }
+                }
+                if(sumCell < 0){
+                    sumCell = 0;
+                }
+                sum = abs(sumCell);
+            }
+            if(sum > 255){
+                sum = 255;
+            }
+            if(sum < 0){
+                sum = 0;
+            }
+            outputPixelData[yPx*widthVal+xPx] = (unsigned char)(sum);
+        }
+    }
+    ofxCvGrayscaleImage out;
+    out.setFromPixels(outputPixelData,widthVal,heightVal);// = ofxCvGrayscaleImage(input);
+    //out = ofxCvGrayscaleImage(outImg);
+    return out;
 }

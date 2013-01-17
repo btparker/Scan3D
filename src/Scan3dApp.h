@@ -3,7 +3,9 @@
 #include "ofMain.h"
 #include "ofxXmlSettings.h"
 #include "ofxOpenCv.h"
-enum { COLOR, GRAYSCALE, DIFF, THRESH, EDGE};
+
+enum { COLOR, GRAYSCALE, DIFF, THRESH, EDGE};//, CORNER};
+enum { UP, DOWN, LEFT, RIGHT};
 class Scan3dApp : public ofBaseApp{
 
 	public:
@@ -22,6 +24,8 @@ class Scan3dApp : public ofBaseApp{
 		void dragEvent(ofDragInfo dragInfo);
 		void gotMessage(ofMessage msg);
 
+		ofxCvGrayscaleImage computeGradientImage(ofxCvGrayscaleImage &input, int direction);
+
 		ofxXmlSettings settings;
 		string imgDir;
 
@@ -39,5 +43,8 @@ class Scan3dApp : public ofBaseApp{
 
         int displayState;
 
-		
+        int sobelHorizontal[3][3];
+    	int sobelVertical[3][3];
+
+		//ofxCvGrayscaleImage cornerMap;
 };
