@@ -4,8 +4,8 @@
 #include "ofxXmlSettings.h"
 #include "ofxOpenCv.h"
 
-enum { COLOR, GRAYSCALE, DIFF, THRESH, EDGE};//, CORNER};
-enum { UP, DOWN, LEFT, RIGHT};
+enum { COLOR, GRAYSCALE, DIFF, THRESH, EDGE, CORNER};
+enum { UP, DOWN, LEFT, RIGHT, VERTICAL, HORIZONTAL, BOTH};
 class Scan3dApp : public ofBaseApp{
 
 	public:
@@ -46,5 +46,5 @@ class Scan3dApp : public ofBaseApp{
         int sobelHorizontal[3][3];
     	int sobelVertical[3][3];
 
-		//ofxCvGrayscaleImage cornerMap;
+		ofxCvGrayscaleImage cornerMap;
 };

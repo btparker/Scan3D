@@ -47,8 +47,8 @@ void Scan3dApp::setup(){
         ofxCvGrayscaleImage gsFirstFrame;
         gsFirstFrame.allocate(width,height);
         gsFirstFrame = colorFirstFrame;
-        //cornerMap.allocate(width,height);
-        //cornerMap = computeGradientImage(gsFirstFrame,RIGHT);
+        cornerMap.allocate(width,height);
+        cornerMap = computeGradientImage(gsFirstFrame,BOTH);
 
         cout << "** Loading image frames ... ";
         for(int i=0; i<dir.numFiles(); i++) {
@@ -219,9 +219,9 @@ void Scan3dApp::draw(){
         case EDGE:
             edgeImages[frameIndex].draw(0, 0);
             break;
-         //case CORNER:
-            //cornerMap.draw(0, 0);
-            //break;
+        case CORNER:
+            cornerMap.draw(0, 0);
+            break;
         default:
             colorImages[frameIndex].draw(0, 0);
     }
@@ -247,9 +247,9 @@ void Scan3dApp::keyPressed(int key){
         case 53:
             displayState = EDGE;
             break;
-        //case 54:
-            //displayState = CORNER;
-            //break;
+        case 54:
+            displayState = CORNER;
+            break;
         default:
             displayState = COLOR;
             //nothing
@@ -301,7 +301,7 @@ void Scan3dApp::dragEvent(ofDragInfo dragInfo){
 
 //--------------------------------------------------------------
 ofxCvGrayscaleImage Scan3dApp::computeGradientImage(ofxCvGrayscaleImage &input, int direction){
-    int sum, sumCell;
+    int sum, sumX,sumY;
     unsigned char* inputPixelData = input.getPixels();
     
     int heightVal = input.getHeight();
@@ -311,7 +311,8 @@ ofxCvGrayscaleImage Scan3dApp::computeGradientImage(ofxCvGrayscaleImage &input, 
 
     for(int yPx = 0; yPx < heightVal; yPx++){
         for(int xPx = 0; xPx < widthVal; xPx++){
-            sumCell = 0;
+            sumX = 0;
+            sumY = 0;
             if(yPx == 0){
                 sum = 0;
             }
@@ -322,26 +323,66 @@ ofxCvGrayscaleImage Scan3dApp::computeGradientImage(ofxCvGrayscaleImage &input, 
                 for(int i = -1; i <= 1; i++){
                     for(int j = -1; j <= 1; j++){
                         switch(direction){
-                            case LEFT:
-                                sumCell = sumCell + (int)inputPixelData[(yPx+j)*widthVal+xPx+i]*sobelVertical[i+1][j+1];
-                                break;
-                            case RIGHT:
-                                sumCell = sumCell + (int)inputPixelData[(yPx+j)*widthVal+xPx+i]*sobelVertical[1-i][j+1];
-                                break;
                             case UP:
-                                sumCell = sumCell + (int)inputPixelData[(yPx+j)*widthVal+xPx+i]*sobelHorizontal[i+1][1-j];
+                                sumY = sumY + (int)inputPixelData[(yPx+j)*widthVal+xPx+i]*sobelVertical[j+1][i+1];
                                 break;
                             case DOWN:
-                                sumCell = sumCell + (int)inputPixelData[(yPx+j)*widthVal+xPx+i]*sobelHorizontal[i+1][j+1];
+                                sumY = sumY + (int)inputPixelData[(yPx+j)*widthVal+xPx+i]*sobelVertical[1-j][i+1];
                                 break;
-                            
+                            case LEFT:
+                                sumX = sumX + (int)inputPixelData[(yPx+j)*widthVal+xPx+i]*sobelHorizontal[j+1][1-i];
+                                break;
+                            case RIGHT:
+                                sumX = sumX + (int)inputPixelData[(yPx+j)*widthVal+xPx+i]*sobelHorizontal[j+1][i+1];
+                                break;
+                            case VERTICAL:
+                                sumY = sumY + (int)inputPixelData[(yPx+j)*widthVal+xPx+i]*sobelVertical[j+1][i+1];
+                                break;
+                            case HORIZONTAL:
+                                sumX = sumX + (int)inputPixelData[(yPx+j)*widthVal+xPx+i]*sobelHorizontal[j+1][i+1];
+                                break;
+                            case BOTH:
+                                sumY = sumY + (int)inputPixelData[(yPx+j)*widthVal+xPx+i]*sobelVertical[j+1][i+1];
+                                sumX = sumX + (int)inputPixelData[(yPx+j)*widthVal+xPx+i]*sobelHorizontal[j+1][i+1];
+                                break;
                         }
                     }
                 }
-                if(sumCell < 0){
-                    sumCell = 0;
+                switch(direction){
+                    case UP:
+                        if(sumY < 0){
+                            sumY = 0;
+                        }
+                        sum = sumY;
+                        break;
+                    case DOWN:
+                        if(sumY < 0){
+                            sumY = 0;
+                        }
+                        sum = sumY;
+                        break;
+                    case LEFT:
+                        if(sumX < 0){
+                            sumX = 0;
+                        }
+                        sum = sumX;
+                        break;
+                    case RIGHT:
+                        if(sumX < 0){
+                            sumX = 0;
+                        }
+                        sum = sumX;
+                        break;
+                    case VERTICAL:
+                        sum = abs(sumY);
+                        break;
+                    case HORIZONTAL:
+                        sum = abs(sumX);
+                        break;
+                    case BOTH:
+                        sum = abs(sumX)+abs(sumY);
+                        break;
                 }
-                sum = abs(sumCell);
             }
             if(sum > 255){
                 sum = 255;
@@ -353,7 +394,6 @@ ofxCvGrayscaleImage Scan3dApp::computeGradientImage(ofxCvGrayscaleImage &input, 
         }
     }
     ofxCvGrayscaleImage out;
-    out.setFromPixels(outputPixelData,widthVal,heightVal);// = ofxCvGrayscaleImage(input);
-    //out = ofxCvGrayscaleImage(outImg);
+    out.setFromPixels(outputPixelData,widthVal,heightVal);
     return out;
 }
