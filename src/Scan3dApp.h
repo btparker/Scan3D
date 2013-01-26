@@ -38,7 +38,7 @@ class Scan3dApp : public ofBaseApp{
         ofxCvColorImage previousColorFrame;
         ofxCvGrayscaleImage currentGrayscaleFrame;
 		ofxCvGrayscaleImage previousGrayscaleFrame;		
-        ofxCvGrayscaleImage diffImage;
+        ofxCvGrayscaleImage diffFrame;
         //ofxCvGrayscaleImage threshImages;
     	//ofxCvGrayscaleImage edgeImage;
         
