@@ -27,18 +27,21 @@ class Scan3dApp : public ofBaseApp{
 		ofxCvGrayscaleImage computeGradientImage(ofxCvGrayscaleImage &input, int direction);
 
 		ofxXmlSettings settings;
-		string imgDir;
+		string inputVideoFile;
 
 		//Calibration points for the planes the object rests on
 		ofPoint verticalPlanePts[4];
 		ofPoint horizontalPlanePts[4];
     
-        //Image Vectors
-        vector <ofxCvColorImage> colorImages;
-        vector <ofxCvGrayscaleImage> gsImages;
-        vector <ofxCvGrayscaleImage> diffImages;
-        vector <ofxCvGrayscaleImage> threshImages;
-    	vector <ofxCvGrayscaleImage> edgeImages;
+        //Images
+        ofxCvColorImage currentColorFrame;
+        ofxCvColorImage previousColorFrame;
+        ofxCvGrayscaleImage currentGrayscaleFrame;
+		ofxCvGrayscaleImage previousGrayscaleFrame;		
+        ofxCvGrayscaleImage diffImage;
+        //ofxCvGrayscaleImage threshImages;
+    	//ofxCvGrayscaleImage edgeImage;
+        
         int frameIndex;
 
         int displayState;
@@ -46,5 +49,5 @@ class Scan3dApp : public ofBaseApp{
         int sobelHorizontal[3][3];
     	int sobelVertical[3][3];
 
-		ofxCvGrayscaleImage cornerMap;
+		//ofxCvGrayscaleImage cornerMap;
 };

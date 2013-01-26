@@ -14,129 +14,64 @@ void Scan3dApp::setup(){
 
 
 	loadSettings();
-    
+
     displayState = COLOR;
     ofBackground(0);
     ofSetWindowTitle("3D SCAN ALL THE THINGS");
     ofSetWindowShape(1280,720);
     ofSetFrameRate(30);
-    // Read the directory for the images
-    // we know that they are named in seq
-    ofDirectory dir(imgDir);
-
-    dir.listDir();
-	dir.sort();
-
-    int nFiles = dir.numFiles();
-    int width;
-    int height;
-    string filePath;
-    ofImage frame;
-
-
     
-    if(nFiles) {
-        filePath = dir.getPath(0);
-        ofImage firstFrame;
-        firstFrame.loadImage(filePath);
-        width = firstFrame.getWidth();
-        height = firstFrame.getHeight();
-        ofxCvColorImage colorFirstFrame;
-        colorFirstFrame.allocate(width,height);
-        colorFirstFrame.setFromPixels(firstFrame.getPixels(),width,height);
-        ofxCvGrayscaleImage gsFirstFrame;
-        gsFirstFrame.allocate(width,height);
-        gsFirstFrame = colorFirstFrame;
-        cornerMap.allocate(width,height);
-        cornerMap = computeGradientImage(gsFirstFrame,BOTH);
-
-        cout << "** Loading image frames ... ";
-        for(int i=0; i<dir.numFiles(); i++) {
-            
-            // add the image to the vector
-            filePath = dir.getPath(i);
-            frame.loadImage(filePath);
-            ofxCvColorImage colorImg;
-            colorImg.allocate(width,height);
-            colorImages.push_back(colorImg);
-            colorImages.back().setFromPixels(frame.getPixels(),width,height);
-            
-            //Create a grayscale copy of each frame
-            ofxCvGrayscaleImage gs;
-        	gs.allocate(width,height);
-            gsImages.push_back(gs);
-            gsImages.back() = colorImages.back();
-            
-        }
-        cout << "done!" << endl;
-        cout << "** Creating difference frames ... ";
-        //Now we create the difference image.
-        for(int i=1; i<dir.numFiles(); i++) {
-        	ofxCvGrayscaleImage gs;
-            gs.allocate(width,height);
-            gs = gsImages[i];
-            gs -= gsImages[i-1];
-            diffImages.push_back(gs);
-            
-            gs.threshold(30);
-            threshImages.push_back(gs);
-        }
-        cout << "done!" << endl;
-        
-        cout << "** Creating threshold frames ... ";
-        
-        
-        for(int i=0; i<dir.numFiles()-1; i++) {
-            unsigned char * threshPixels = threshImages[i].getPixels();
-            ofxCvGrayscaleImage edge;
-            edge.allocate(width,height);
-            edge.set(255);
-            unsigned char * edgePixels = edge.getPixels();
-            int firstWhitePixel = 0;
-            int lastWhitePixel = 0;
-            int midWhitePixel = 0;
-            
-            bool whiteDetected = false;
-            for (int y = 0; y < height; y++) {
-                whiteDetected = false;
-                
-                for (int x = 0; x < width; x++) {
-                    int index = y*width + x;
-                    //if pixel is not black
-                    if (threshPixels[index] != 0) {
-                        if(!whiteDetected){
-                            whiteDetected = true;
-                            firstWhitePixel = x;
-                        }
-                        else{
-                            lastWhitePixel = x;
-                        }
-                       
-                    }
-                    if(threshPixels[index] == 0 && whiteDetected){
-                        midWhitePixel = int((lastWhitePixel-firstWhitePixel)/2)+firstWhitePixel;
-                        index = y*width + midWhitePixel;
-                        edgePixels[index] = 0;
-                        break;
-                    }
-                }
-                //If we have found the white pixels, get the middle one
-                //Draw this to the new bwImages vector (for now).
-            }
-            edge.setFromPixels(edgePixels,width,height);
-            edgeImages.push_back(edge);
-        }
-        cout << "great success!" << endl;
-
-        
-    }
-    else {
-        cout << "Could not find folder\n" << endl;
-    }
     
-    frameIndex = 0;
+    //threshImage = computeThresholdImage(diffImage);
 
 }
+
+/**
+void computeThresholdImage(){
+    unsigned char * threshPixels;
+    threshPixels = new unsigned char[img.width * img.height *3 ];
+     = threshImages[i].getPixels();
+    ofxCvGrayscaleImage edge;
+    edge.allocate(width,height);
+    edge.set(255);
+    unsigned char * edgePixels = edge.getPixels();
+    int firstWhitePixel = 0;
+    int lastWhitePixel = 0;
+    int midWhitePixel = 0;
+    
+    bool whiteDetected = false;
+    for (int y = 0; y < height; y++) {
+        whiteDetected = false;
+        
+        for (int x = 0; x < width; x++) {
+            int index = y*width + x;
+            //if pixel is not black
+            if (threshPixels[index] != 0) {
+                if(!whiteDetected){
+                    whiteDetected = true;
+                    firstWhitePixel = x;
+                }
+                else{
+                    lastWhitePixel = x;
+                }
+               
+            }
+            if(threshPixels[index] == 0 && whiteDetected){
+                midWhitePixel = int((lastWhitePixel-firstWhitePixel)/2)+firstWhitePixel;
+                index = y*width + midWhitePixel;
+                edgePixels[index] = 0;
+                break;
+            }
+        }
+        //If we have found the white pixels, get the middle one
+        //Draw this to the new bwImages vector (for now).
+    }
+    edge.setFromPixels(edgePixels,width,height);
+    edgeImages.push_back(edge);
+    edge.clear();
+    thre
+}
+**/
 
 //--------------------------------------------------------------
 void Scan3dApp::loadSettings(){
@@ -186,44 +121,42 @@ void Scan3dApp::loadSettings(){
 
 //--------------------------------------------------------------
 void Scan3dApp::update(){
-    
+    previousColorFrame = currentColorFrame;
+    currentColorFrame = getCurrentFrame();
+    previousGrayscaleFrame = previousColorFrame;
+    currentGrayscaleFrame = currentColorFrame;
+    diffFrame = currentGrayscaleFrame;
+    diffFrame -= previousGrayscaleFrame;
 }
 
 //--------------------------------------------------------------
 void Scan3dApp::draw(){
     
-    // We need some images if not, return
-    if((int)colorImages.size() <= 0) {
-        ofSetColor(255);
-        ofDrawBitmapString("No Images...", 150, ofGetHeight()/2);
-        return;
-    }
-    
-    frameIndex = (frameIndex+1)%(int)diffImages.size();
-    
     // draw the image sequence at the new frame count
     //ofSetColor(255);
     switch(displayState){
         case COLOR:
-            colorImages[frameIndex].draw(0, 0);
+            currentColorFrame.draw(0, 0);
             break;
         case GRAYSCALE:
-            gsImages[frameIndex].draw(0, 0);
+            currentGrayscaleFrame.draw(0, 0);
             break;
         case DIFF:
-            diffImages[frameIndex].draw(0, 0);
+            diffFrame.draw(0, 0);
             break;
+        /**
         case THRESH:
-            threshImages[frameIndex].draw(0, 0);
+            threshFrame.draw(0, 0);
             break;
         case EDGE:
-            edgeImages[frameIndex].draw(0, 0);
+            edgeFrame.draw(0, 0);
             break;
         case CORNER:
             cornerMap.draw(0, 0);
             break;
+        **/
         default:
-            colorImages[frameIndex].draw(0, 0);
+            currentColorFrame.draw(0, 0);
     }
     
     
@@ -241,6 +174,7 @@ void Scan3dApp::keyPressed(int key){
         case 51:
             displayState = DIFF;
             break;
+        /**
         case 52:
             displayState = THRESH;
             break;
@@ -250,6 +184,7 @@ void Scan3dApp::keyPressed(int key){
         case 54:
             displayState = CORNER;
             break;
+        **/
         default:
             displayState = COLOR;
             //nothing
@@ -394,6 +329,8 @@ ofxCvGrayscaleImage Scan3dApp::computeGradientImage(ofxCvGrayscaleImage &input, 
         }
     }
     ofxCvGrayscaleImage out;
+    out.allocate(widthVal,heightVal);
     out.setFromPixels(outputPixelData,widthVal,heightVal);
+    delete outputPixelData;
     return out;
 }
