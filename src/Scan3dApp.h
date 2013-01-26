@@ -24,6 +24,8 @@ class Scan3dApp : public ofBaseApp{
 		void dragEvent(ofDragInfo dragInfo);
 		void gotMessage(ofMessage msg);
 
+		ofVideoPlayer vid;
+
 		ofxCvGrayscaleImage computeGradientImage(ofxCvGrayscaleImage &input, int direction);
 
 		ofxXmlSettings settings;

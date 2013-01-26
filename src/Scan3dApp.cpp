@@ -20,6 +20,17 @@ void Scan3dApp::setup(){
     ofSetWindowTitle("3D SCAN ALL THE THINGS");
     ofSetWindowShape(1280,720);
     ofSetFrameRate(30);
+
+    vid.loadMovie(inputVideoFile);
+    vid.play();
+    vid.update(); //to get height and width to load
+    currentColorFrame.allocate(vid.getWidth(),vid.getHeight());
+    previousColorFrame.allocate(vid.getWidth(),vid.getHeight());
+
+    currentGrayscaleFrame.allocate(vid.getWidth(),vid.getHeight());
+    previousGrayscaleFrame.allocate(vid.getWidth(),vid.getHeight());
+    
+    diffFrame.allocate(vid.getWidth(),vid.getHeight());
     
     
     //threshImage = computeThresholdImage(diffImage);
@@ -121,12 +132,27 @@ void Scan3dApp::loadSettings(){
 
 //--------------------------------------------------------------
 void Scan3dApp::update(){
-    previousColorFrame = currentColorFrame;
-    currentColorFrame = getCurrentFrame();
-    previousGrayscaleFrame = previousColorFrame;
-    currentGrayscaleFrame = currentColorFrame;
-    diffFrame = currentGrayscaleFrame;
-    diffFrame -= previousGrayscaleFrame;
+    vid.update();
+
+    if(vid.isFrameNew()){
+    
+        if(currentColorFrame){
+            previousColorFrame = currentColorFrame;
+        }
+        currentColorFrame.setFromPixels(myMovie.getPixels(),vid.getWidth(),vid.getHeight());
+
+        if(previousColorFrame){
+            previousGrayscaleFrame = previousColorFrame;
+        }
+        
+        currentGrayscaleFrame = currentColorFrame;
+
+        if(previousGrayscaleFrame){
+            diffFrame = currentGrayscaleFrame;
+            diffFrame -= previousGrayscaleFrame;  
+        }
+    }
+
 }
 
 //--------------------------------------------------------------
