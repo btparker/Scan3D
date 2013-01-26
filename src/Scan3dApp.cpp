@@ -21,7 +21,7 @@ void Scan3dApp::setup(){
     ofSetWindowShape(1280,720);
     ofSetFrameRate(30);
 
-    vid.loadMovie("/Users/tylerparker/Dropbox/Projects/Active/3D Scanning/oF/apps/myApps/Scan3D/bin/data/monkey_scan_2.mov");//inputVideoFile);
+    vid.loadMovie(inputVideoFile);
     vid.play();
     vid.update(); //to get height and width to load
     currentColorFrame.allocate(vid.getWidth(),vid.getHeight());
@@ -32,6 +32,7 @@ void Scan3dApp::setup(){
     
     diffFrame.allocate(vid.getWidth(),vid.getHeight());
     
+    //testing update
     
     //threshImage = computeThresholdImage(diffImage);
 
