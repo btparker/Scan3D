@@ -80,8 +80,8 @@ void Scan3dApp::loadSettings(){
 		cout << "** Loading Settings File **" << endl;
 		settings.pushTag("settings");
 
-			imgDir = settings.getValue("imgDir","");
-			cout << "   Loaded image directory: " << imgDir << endl;
+			inputVideoFile = settings.getValue("inputVideoFile","");
+			cout << "   Loaded image directory: " << inputVideoFile << endl;
 
 			settings.pushTag("scene");
 

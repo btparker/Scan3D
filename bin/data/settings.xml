@@ -1,5 +1,5 @@
 <settings>
-    <video>fingers.mov</video>
+    <inputVideoFile>fingers.mov</inputVideoFile>
     <scene>
         <verticalPlane>
             <pts>    
