@@ -138,7 +138,7 @@ void Scan3dApp::update(){
 
         previousColorFrame = currentColorFrame;
 
-        currentColorFrame.setFromPixels(myMovie.getPixels(),vid.getWidth(),vid.getHeight());
+        currentColorFrame.setFromPixels(vid.getPixels(),vid.getWidth(),vid.getHeight());
 
         
         previousGrayscaleFrame = previousColorFrame;
