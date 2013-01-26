@@ -135,22 +135,21 @@ void Scan3dApp::update(){
     vid.update();
 
     if(vid.isFrameNew()){
-    
-        if(currentColorFrame){
-            previousColorFrame = currentColorFrame;
-        }
+
+        previousColorFrame = currentColorFrame;
+
         currentColorFrame.setFromPixels(myMovie.getPixels(),vid.getWidth(),vid.getHeight());
 
-        if(previousColorFrame){
-            previousGrayscaleFrame = previousColorFrame;
-        }
+        
+        previousGrayscaleFrame = previousColorFrame;
+        
         
         currentGrayscaleFrame = currentColorFrame;
 
-        if(previousGrayscaleFrame){
-            diffFrame = currentGrayscaleFrame;
-            diffFrame -= previousGrayscaleFrame;  
-        }
+    
+        diffFrame = currentGrayscaleFrame;
+        diffFrame -= previousGrayscaleFrame;  
+
     }
 
 }
