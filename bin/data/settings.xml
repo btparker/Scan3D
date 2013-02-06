@@ -1,5 +1,8 @@
 <settings>
-    <inputVideoFile>monkey_scan_2.mov</inputVideoFile>
+    <input>
+        <type>VIDEO</type>
+        <src>monkey_scan_2.mov</src>
+    </input>
     <scene>
         <verticalPlane>
             <pts>    

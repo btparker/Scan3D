@@ -3,9 +3,11 @@
 #include "ofMain.h"
 #include "ofxXmlSettings.h"
 #include "ofxOpenCv.h"
+#include "cv.h"
 
 enum { COLOR, GRAYSCALE, DIFF, THRESH, EDGE, CORNER};
 enum { UP, DOWN, LEFT, RIGHT, VERTICAL, HORIZONTAL, BOTH};
+enum {VIDEO,NONE};
 class Scan3dApp : public ofBaseApp{
 
 	public:
@@ -26,8 +28,6 @@ class Scan3dApp : public ofBaseApp{
 
 		ofVideoPlayer vid;
 
-		ofxCvGrayscaleImage computeGradientImage(ofxCvGrayscaleImage &input, int direction);
-
 		ofxXmlSettings settings;
 		string inputVideoFile;
 
@@ -36,20 +36,13 @@ class Scan3dApp : public ofBaseApp{
 		ofPoint horizontalPlanePts[4];
     
         //Images
-        ofxCvColorImage currentColorFrame;
-        ofxCvColorImage previousColorFrame;
-        ofxCvGrayscaleImage currentGrayscaleFrame;
-		ofxCvGrayscaleImage previousGrayscaleFrame;		
-        ofxCvGrayscaleImage diffFrame;
-        //ofxCvGrayscaleImage threshImages;
-    	//ofxCvGrayscaleImage edgeImage;
-        
+        ofxCvColorImage colorFrame;
+        ofxCvGrayscaleImage grayscaleFrame;
+
         int frameIndex;
 
         int displayState;
+        int inputType;
 
-        int sobelHorizontal[3][3];
-    	int sobelVertical[3][3];
-
-		//ofxCvGrayscaleImage cornerMap;
+        int width,height;
 };
