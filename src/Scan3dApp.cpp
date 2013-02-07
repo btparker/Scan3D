@@ -3,7 +3,7 @@
 //--------------------------------------------------------------
 void Scan3dApp::setup(){
     loadSettings();
-
+    
     programState = SETUP;
     cout << "SETUP STATE (press SPACE to continue)" << endl;
     displayState = COLOR;
@@ -29,9 +29,15 @@ void Scan3dApp::setup(){
     maxImg.allocate(width,height);
     maxImg.set(0);
 
+    bufferOfImage.allocate(width,height,OF_IMAGE_COLOR);
+    bufferOfxCvColorImage.allocate(width,height);
+    bufferOfxCvGrayscaleImage.allocate(width,height);
     shadowThreshImg.allocate(width,height);
 
     ofSetWindowShape(width,height);
+
+    frameBufferSize = 100;
+    frames.resize(frameBufferSize,bufferOfxCvGrayscaleImage);
 }
 
 //--------------------------------------------------------------
@@ -92,6 +98,7 @@ void Scan3dApp::update(){
 
         case SETUP:
         {
+            frameIndex = 0;
             switch(inputType){
                 case VIDEO:
                     vid.firstFrame();
@@ -118,8 +125,28 @@ void Scan3dApp::update(){
                     }
                     break;
             }
+
+            //Uncomment to save out color frames
+            // bufferOfImage.setFromPixels(colorFrame.getPixelsRef());
+            // string filename = "output/grayscaleFrames/gsframe";
+            // filename += ofToString(frameIndex);
+            // filename += ".tiff";
+            // bufferOfImage.saveImage(filename);
                 
             grayscaleFrame = colorFrame;
+            if(frameIndex >= frames.capacity()){
+                frames.resize(2*frames.size(),bufferOfxCvGrayscaleImage);
+            }
+        
+            frames[frameIndex] = grayscaleFrame;
+
+            //Uncomment to save out grayscale frames
+            // bufferOfxCvColorImage = grayscaleFrame;
+            // bufferOfImage.setFromPixels(bufferOfxCvColorImage.getPixelsRef());
+            // string filename = "output/grayscaleFrames/gsframe";
+            // filename += ofToString(frameIndex);
+            // filename += ".tiff";
+            // bufferOfImage.saveImage(filename);
 
             //Update min/max images
             unsigned char* minImgPixels = minImg.getPixels();
@@ -138,6 +165,7 @@ void Scan3dApp::update(){
             minImg.setFromPixels(minImgPixels,width,height);
             maxImg.setFromPixels(maxImgPixels,width,height);
             
+            frameIndex++;
             break;
         }
         case PROCESSING:
@@ -154,6 +182,32 @@ void Scan3dApp::update(){
                 }  
             }
             shadowThreshImg.setFromPixels(shadowThreshImgPixels,width,height);
+
+            //Uncomment to save out min/max/shadowthresh frames
+            bufferOfxCvColorImage = minImg;
+            bufferOfImage.setFromPixels(bufferOfxCvColorImage.getPixelsRef());
+            bufferOfImage.saveImage("output/minImg.tiff");
+            bufferOfxCvColorImage = maxImg;
+            bufferOfImage.setFromPixels(bufferOfxCvColorImage.getPixelsRef());
+            bufferOfImage.saveImage("output/maxImg.tiff");
+            bufferOfxCvColorImage = shadowThreshImg;
+            bufferOfImage.setFromPixels(bufferOfxCvColorImage.getPixelsRef());
+            bufferOfImage.saveImage("output/shadowThreshImg.tiff");
+
+            diffFrames.resize(frames.size(),bufferOfxCvGrayscaleImage);
+
+            for(int i = 0; i < frames.size(); i++){
+                diffFrames[i] = frames[i];
+                diffFrames[i] -= shadowThreshImg;
+
+                //Uncomment to save out grayscale frames
+                bufferOfxCvColorImage = diffFrames[i];
+                bufferOfImage.setFromPixels(bufferOfxCvColorImage.getPixelsRef());
+                string filename = "output/diffFrames/diffFrame";
+                filename += ofToString(i);
+                filename += ".tiff";
+                bufferOfImage.saveImage(filename);
+            }
 
             programState = VISUALIZATION;
             cout << "VISUALIZATION STATE" << endl;
