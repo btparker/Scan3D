@@ -1,7 +1,7 @@
  Project Outline:
 
          1. Data Capture:
-                 1.1 Camera Calibration:
+                 
 
          2. Video Processing:
                 2.1 Spatial Shadow Edge Localization:
@@ -17,7 +17,15 @@
 
                 2.2 Temporal Edge Localization:
                  ☐ Using zero-crossings or difference images, create an image where for each pixel assign the shadow crossing time
- 
+
+         3. Calibration:
+                 3.1 Intrinsic Calibration:
+                 3.2 Extrinsic Calibration:
+
+         4. Reconstruction:
+
+
+
 Interface Features:
 
 Realtime Changes:

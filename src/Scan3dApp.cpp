@@ -4,6 +4,8 @@
 void Scan3dApp::setup(){
     loadSettings();
 
+    programState = SETUP;
+    cout << "SETUP STATE (press SPACE to continue)" << endl;
     displayState = COLOR;
     ofBackground(0);
     ofSetWindowTitle("3D SCAN ALL THE THINGS");
@@ -13,16 +15,22 @@ void Scan3dApp::setup(){
     switch(inputType){
         case VIDEO:
             vid.loadMovie(inputVideoFile);
-            vid.setLoopState(OF_LOOP_PALINDROME);
             vid.play();
             vid.update(); //to get height and width to load
             width = vid.getWidth();
             height = vid.getHeight();
+            
+            
             break;
     }
     
     colorFrame.allocate(width,height);
     grayscaleFrame.allocate(width,height);
+    minImg.allocate(width,height);
+    minImg.set(255);
+    maxImg.allocate(width,height);
+    maxImg.set(0);
+
     ofSetWindowShape(width,height);
 }
 
@@ -80,17 +88,69 @@ void Scan3dApp::loadSettings(){
 
 //--------------------------------------------------------------
 void Scan3dApp::update(){
-    switch(inputType){
-        case VIDEO:
-            vid.update();
-            if(vid.isFrameNew()){
-                colorFrame.setFromPixels(vid.getPixels(),vid.getWidth(),vid.getHeight());
-                grayscaleFrame = colorFrame;
+    switch(programState){
+
+        case SETUP:
+        {
+            switch(inputType){
+                case VIDEO:
+                    vid.firstFrame();
+                    vid.update();
+                    if(vid.isFrameNew()){
+                        colorFrame.setFromPixels(vid.getPixels(),vid.getWidth(),vid.getHeight());
+                    }
+                    break;
             }
+            //do nothing for now, waiting for spacebar
             break;
+        }
+        case CAPTURE:
+        {
+            switch(inputType){
+                case VIDEO:
+                    vid.update();
+                    if(vid.isFrameNew()){
+                        colorFrame.setFromPixels(vid.getPixels(),vid.getWidth(),vid.getHeight());
+                    }
+                    if(vid.getIsMovieDone()){
+                        programState = PROCESSING;
+                        cout << "PROCESSING STATE" << endl;
+                    }
+                    break;
+            }
+                
+            grayscaleFrame = colorFrame;
+
+            //Update min/max images
+            unsigned char* minImgPixels = minImg.getPixels();
+            unsigned char* maxImgPixels = maxImg.getPixels();
+            unsigned char* grayscaleFramePixels = grayscaleFrame.getPixels();
+            int i = 0;
+            for(int y = 0; y < height; y++){
+                for(int x = 0; x < width; x++){
+                    i = y*width+x;
+
+                }  
+            }
+
+            break;
+        }
+        case PROCESSING:
+        {    
+            programState = VISUALIZATION;
+            cout << "VISUALIZATION STATE" << endl;
+            break;
+        }
+        case VISUALIZATION:
+        {    
+            //do nothing
+            break;
+        }
+
     }
-        
-    grayscaleFrame = colorFrame;
+    
+
+
 
 }
 
@@ -114,6 +174,10 @@ void Scan3dApp::draw(){
 //--------------------------------------------------------------
 void Scan3dApp::keyPressed(int key){
     switch(key){
+        case 32:
+            cout << "CAPTURE STATE" << endl;
+            programState = CAPTURE;
+            break;
         case 49:
             displayState = COLOR;
             break;

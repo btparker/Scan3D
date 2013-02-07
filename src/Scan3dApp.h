@@ -5,6 +5,7 @@
 #include "ofxOpenCv.h"
 #include "cv.h"
 
+enum {SETUP, CAPTURE, PROCESSING,RECONSTRUCTION,VISUALIZATION};
 enum { COLOR, GRAYSCALE, DIFF, THRESH, EDGE, CORNER};
 enum { UP, DOWN, LEFT, RIGHT, VERTICAL, HORIZONTAL, BOTH};
 enum {VIDEO,NONE};
@@ -42,7 +43,12 @@ class Scan3dApp : public ofBaseApp{
         int frameIndex;
 
         int displayState;
+        int programState;
         int inputType;
 
         int width,height;
+
+        ofxCvGrayscaleImage minImg;
+        ofxCvGrayscaleImage maxImg;
+
 };
