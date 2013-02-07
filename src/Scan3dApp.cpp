@@ -29,6 +29,8 @@ void Scan3dApp::setup(){
     maxImg.allocate(width,height);
     maxImg.set(0);
 
+    shadowThreshImg.allocate(width,height);
+
     ofSetWindowShape(width,height);
 }
 
@@ -139,7 +141,20 @@ void Scan3dApp::update(){
             break;
         }
         case PROCESSING:
-        {    
+        {   
+            unsigned char* minImgPixels = minImg.getPixels();
+            unsigned char* maxImgPixels = maxImg.getPixels();
+            unsigned char* shadowThreshImgPixels = shadowThreshImg.getPixels();
+
+            int i = 0;
+            for(int y = 0; y < height; y++){
+                for(int x = 0; x < width; x++){
+                    i = y*width+x;
+                    shadowThreshImgPixels[i] = (int)((minImgPixels[i]+maxImgPixels[i])/2);
+                }  
+            }
+            shadowThreshImg.setFromPixels(shadowThreshImgPixels,width,height);
+
             programState = VISUALIZATION;
             cout << "VISUALIZATION STATE" << endl;
             break;
@@ -175,6 +190,9 @@ void Scan3dApp::draw(){
         case MAXIMAGE:
             maxImg.draw(0, 0);
             break;
+        case SHADOWTHRESHIMAGE:
+            shadowThreshImg.draw(0, 0);
+            break;
     }
     
     
@@ -198,6 +216,9 @@ void Scan3dApp::keyPressed(int key){
             break;
         case 52:
             displayState = MAXIMAGE;
+            break;
+        case 53:
+            displayState = SHADOWTHRESHIMAGE;
             break;
         case 'q':
             std::exit(1);

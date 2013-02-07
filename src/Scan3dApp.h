@@ -6,7 +6,7 @@
 #include "cv.h"
 
 enum {SETUP, CAPTURE, PROCESSING,RECONSTRUCTION,VISUALIZATION};
-enum { COLOR, GRAYSCALE, MINIMAGE, MAXIMAGE, DIFF, THRESH, EDGE, CORNER};
+enum { COLOR, GRAYSCALE, MINIMAGE, MAXIMAGE, SHADOWTHRESHIMAGE, DIFF, THRESH, EDGE, CORNER};
 enum { UP, DOWN, LEFT, RIGHT, VERTICAL, HORIZONTAL, BOTH};
 enum {VIDEO,NONE};
 class Scan3dApp : public ofBaseApp{
@@ -50,5 +50,6 @@ class Scan3dApp : public ofBaseApp{
 
         ofxCvGrayscaleImage minImg;
         ofxCvGrayscaleImage maxImg;
+        ofxCvGrayscaleImage shadowThreshImg;
 
 };

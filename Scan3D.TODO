@@ -5,9 +5,9 @@
 
          2. Video Processing:
                 2.1 Spatial Shadow Edge Localization:
-                 ☐ Create a minimum brightness image (for each pixel, keep the min value of the pixel over all frames)
-                 ☐ Create a maximum brightness image
-                 ☐ Create a shadow threshold image, the average of the min and max brightness images
+                 ✔ Create a minimum brightness image (for each pixel, keep the min value of the pixel over all frames) @done (13-02-06 21:48)
+                 ✔ Create a maximum brightness image @done (13-02-06 21:48)
+                 ✔ Create a shadow threshold image, the average of the min and max brightness images @done (13-02-06 22:06)
                  ☐ Create a difference images, for each frame subtract the shadow threshold image from the current frame
                  ☐ Compute zero-crossings for each difference image
                  ☐ Crop occlusion free section of vertical planar region 
