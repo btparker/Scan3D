@@ -19,8 +19,6 @@ void Scan3dApp::setup(){
             vid.update(); //to get height and width to load
             width = vid.getWidth();
             height = vid.getHeight();
-            
-            
             break;
     }
     
@@ -129,10 +127,15 @@ void Scan3dApp::update(){
             for(int y = 0; y < height; y++){
                 for(int x = 0; x < width; x++){
                     i = y*width+x;
-
+                    minImgPixels[i] = min(minImgPixels[i],grayscaleFramePixels[i]);
+                    maxImgPixels[i] = max(maxImgPixels[i],grayscaleFramePixels[i]);
                 }  
             }
 
+            //A tad inefficient, but this handles a bug where if you draw these it doesn't set new values
+            minImg.setFromPixels(minImgPixels,width,height);
+            maxImg.setFromPixels(maxImgPixels,width,height);
+            
             break;
         }
         case PROCESSING:
@@ -166,6 +169,12 @@ void Scan3dApp::draw(){
         case GRAYSCALE:
             grayscaleFrame.draw(0, 0);
             break;
+        case MINIMAGE:
+            minImg.draw(0, 0);
+            break;
+        case MAXIMAGE:
+            maxImg.draw(0, 0);
+            break;
     }
     
     
@@ -183,6 +192,15 @@ void Scan3dApp::keyPressed(int key){
             break;
         case 50:
             displayState = GRAYSCALE;
+            break;
+        case 51:
+            displayState = MINIMAGE;
+            break;
+        case 52:
+            displayState = MAXIMAGE;
+            break;
+        case 'q':
+            std::exit(1);
             break;
     }    
 
