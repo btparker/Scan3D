@@ -52,6 +52,7 @@ class Scan3dApp : public ofBaseApp{
         ofxCvGrayscaleImage minImg;
         ofxCvGrayscaleImage maxImg;
         ofxCvGrayscaleImage shadowThreshImg;
+	    ofxCvColorImage temporalImg;
 
         ofImage bufferOfImage;
         ofxCvColorImage bufferOfxCvColorImage;
@@ -60,6 +61,7 @@ class Scan3dApp : public ofBaseApp{
         vector<ofxCvGrayscaleImage> frames;
         vector<ofxCvGrayscaleImage> diffFrames;
         vector<ofxCvGrayscaleImage> zeroCrossingFrames;
+
 
 
         int frameBufferSize;

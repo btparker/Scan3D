@@ -30,6 +30,7 @@ void Scan3dApp::setup(){
     minImg.set(255);
     maxImg.allocate(width,height);
     maxImg.set(0);
+    temporalImg.allocate(width,height);
 
     bufferOfImage.allocate(width,height,OF_IMAGE_COLOR);
     bufferOfxCvColorImage.allocate(width,height);
@@ -175,6 +176,8 @@ void Scan3dApp::update(){
             unsigned char* minImgPixels = minImg.getPixels();
             unsigned char* maxImgPixels = maxImg.getPixels();
             unsigned char* shadowThreshImgPixels = shadowThreshImg.getPixels();
+            unsigned char* temporalImgPixels = temporalImg.getPixels();
+
 
             int i = 0;
             for(int y = 0; y < height; y++){
@@ -186,22 +189,23 @@ void Scan3dApp::update(){
             shadowThreshImg.setFromPixels(shadowThreshImgPixels,width,height);
 
             //Uncomment to save out min/max/shadowthresh frames
-            bufferOfxCvColorImage = minImg;
-            bufferOfImage.setFromPixels(bufferOfxCvColorImage.getPixelsRef());
-            bufferOfImage.saveImage("output/minImg.tiff");
-            bufferOfxCvColorImage = maxImg;
-            bufferOfImage.setFromPixels(bufferOfxCvColorImage.getPixelsRef());
-            bufferOfImage.saveImage("output/maxImg.tiff");
-            bufferOfxCvColorImage = shadowThreshImg;
-            bufferOfImage.setFromPixels(bufferOfxCvColorImage.getPixelsRef());
-            bufferOfImage.saveImage("output/shadowThreshImg.tiff");
+            // bufferOfxCvColorImage = minImg;
+            // bufferOfImage.setFromPixels(bufferOfxCvColorImage.getPixelsRef());
+            // bufferOfImage.saveImage("output/minImg.tiff");
+            // bufferOfxCvColorImage = maxImg;
+            // bufferOfImage.setFromPixels(bufferOfxCvColorImage.getPixelsRef());
+            // bufferOfImage.saveImage("output/maxImg.tiff");
+            // bufferOfxCvColorImage = shadowThreshImg;
+            // bufferOfImage.setFromPixels(bufferOfxCvColorImage.getPixelsRef());
+            // bufferOfImage.saveImage("output/shadowThreshImg.tiff");
 
             diffFrames.resize(frames.size(),bufferOfxCvGrayscaleImage);
             zeroCrossingFrames.resize(frames.size(),bufferOfxCvGrayscaleImage);
             
             int columnIndex = 0;
 
-
+            vector<int> columnIndices;
+            columnIndices.resize(height);
             for(int i = 0; i < frames.size(); i++){
                 diffFrames[i] = frames[i];
                 diffFrames[i] -= shadowThreshImg;
@@ -213,17 +217,30 @@ void Scan3dApp::update(){
                     unsigned char* diffFramePixels = diffFrames[i].getPixels();
                     unsigned char* zeroCrossingFramePixels = zeroCrossingFrames[i].getPixels();
                     
-                    int columnIndexMin = width;
                     for(int r = 0; r < height; r++){
-                        for(int c = columnIndex; c < width; c++){
+                        for(int c = columnIndices[r]; c < width; c++){
                             if(diffFramePixels[c+r*width] > zeroCrossingThreshold){
                                 zeroCrossingFramePixels[c+r*width] = 255;
-                                columnIndexMin = min(columnIndexMin,c);
+                                for(int j = columnIndices[r]; j < c; j++){
+                                    ofColor c1Color = ofColor::blue;
+                                    c1Color.lerp(ofColor::red,ofMap(i-1, 0, frames.size(), 0.0, 1.0));
+
+                                    ofColor c2Color = ofColor::blue;
+                                    c2Color.lerp(ofColor::red,ofMap(i, 0, frames.size(), 0.0, 1.0));
+
+                                    ofColor interColor = c1Color;
+                                    interColor.lerp(c2Color,ofMap(j,columnIndices[r],c,0.0,1.0));
+                                    
+                                    temporalImgPixels[3*(j+r*width)] = interColor[0];
+                                    temporalImgPixels[3*(j+r*width)+1] = interColor[1];
+                                    temporalImgPixels[3*(j+r*width)+2] = interColor[2];
+                                }
+                                columnIndices[r] = c;
                                 break;
                             }
                         }
                     }
-                    columnIndex = columnIndexMin;
+
                 }
                 
 
@@ -243,6 +260,11 @@ void Scan3dApp::update(){
                 // filename += ".tiff";
                 // bufferOfImage.saveImage(filename);
             }
+
+            //Uncomment to save out temporal image
+            bufferOfImage.setFromPixels(temporalImg.getPixelsRef());
+            bufferOfImage.saveImage("output/temporalImg.tiff");
+
 
             programState = VISUALIZATION;
             cout << "VISUALIZATION STATE" << endl;
