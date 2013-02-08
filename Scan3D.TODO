@@ -8,7 +8,7 @@
                  ✔ Create a minimum brightness image (for each pixel, keep the min value of the pixel over all frames) @done (13-02-06 21:48)
                  ✔ Create a maximum brightness image @done (13-02-06 21:48)
                  ✔ Create a shadow threshold image, the average of the min and max brightness images @done (13-02-06 22:06)
-                 ☐ Create a difference images, for each frame subtract the shadow threshold image from the current frame
+                 ✔ Create a difference images, for each frame subtract the shadow threshold image from the current frame @done (13-02-07 00:01)
                  ☐ Compute zero-crossings for each difference image
                  ☐ Crop occlusion free section of vertical planar region 
                  ☐ Crop occlusion free section of horizontal planar region

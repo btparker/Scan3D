@@ -5,6 +5,8 @@ void Scan3dApp::setup(){
     loadSettings();
     
     programState = SETUP;
+
+    zeroCrossingThreshold = 20;
     cout << "SETUP STATE (press SPACE to continue)" << endl;
     displayState = COLOR;
     ofBackground(0);
@@ -195,18 +197,51 @@ void Scan3dApp::update(){
             bufferOfImage.saveImage("output/shadowThreshImg.tiff");
 
             diffFrames.resize(frames.size(),bufferOfxCvGrayscaleImage);
+            zeroCrossingFrames.resize(frames.size(),bufferOfxCvGrayscaleImage);
+            
+            int columnIndex = 0;
+
 
             for(int i = 0; i < frames.size(); i++){
                 diffFrames[i] = frames[i];
                 diffFrames[i] -= shadowThreshImg;
+                if(i>0){
+                    bufferOfxCvGrayscaleImage = diffFrames[i];
+                    bufferOfxCvGrayscaleImage.absDiff(diffFrames[i-1]);
+                    diffFrames[i] -= bufferOfxCvGrayscaleImage;
 
-                //Uncomment to save out grayscale frames
-                bufferOfxCvColorImage = diffFrames[i];
-                bufferOfImage.setFromPixels(bufferOfxCvColorImage.getPixelsRef());
-                string filename = "output/diffFrames/diffFrame";
-                filename += ofToString(i);
-                filename += ".tiff";
-                bufferOfImage.saveImage(filename);
+                    unsigned char* diffFramePixels = diffFrames[i].getPixels();
+                    unsigned char* zeroCrossingFramePixels = zeroCrossingFrames[i].getPixels();
+                    
+                    int columnIndexMin = width;
+                    for(int r = 0; r < height; r++){
+                        for(int c = columnIndex; c < width; c++){
+                            if(diffFramePixels[c+r*width] > zeroCrossingThreshold){
+                                zeroCrossingFramePixels[c+r*width] = 255;
+                                columnIndexMin = min(columnIndexMin,c);
+                                break;
+                            }
+                        }
+                    }
+                    columnIndex = columnIndexMin;
+                }
+                
+
+                //Uncomment to save out diff frames
+                // bufferOfxCvColorImage = diffFrames[i];
+                // bufferOfImage.setFromPixels(bufferOfxCvColorImage.getPixelsRef());
+                // string filename = "output/diffFrames/diffFrame";
+                // filename += ofToString(i);
+                // filename += ".tiff";
+                // bufferOfImage.saveImage(filename);
+
+                //Uncomment to save out zero crossing frames
+                // bufferOfxCvColorImage = zeroCrossingFrames[i];
+                // bufferOfImage.setFromPixels(bufferOfxCvColorImage.getPixelsRef());
+                // string filename = "output/zeroCrossingFrames/zeroCrossingFrame";
+                // filename += ofToString(i);
+                // filename += ".tiff";
+                // bufferOfImage.saveImage(filename);
             }
 
             programState = VISUALIZATION;

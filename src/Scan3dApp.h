@@ -59,7 +59,10 @@ class Scan3dApp : public ofBaseApp{
 
         vector<ofxCvGrayscaleImage> frames;
         vector<ofxCvGrayscaleImage> diffFrames;
+        vector<ofxCvGrayscaleImage> zeroCrossingFrames;
+
 
         int frameBufferSize;
+        int zeroCrossingThreshold;
 
 };
