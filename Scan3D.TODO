@@ -10,10 +10,12 @@
                  ✔ Create a shadow threshold image, the average of the min and max brightness images @done (13-02-06 22:06)
                  ✔ Create a difference images, for each frame subtract the shadow threshold image from the current frame @done (13-02-07 00:01)
                  ✔ Compute zero-crossings for each difference image @done (13-02-07 22:54)
+                 ☐ Make zero crossings better by figuring out the equations for the line in the planar sections, and then only allow zero crossings BEFORE (or whatever, depeding on motion) those lines.
                  ☐ Crop occlusion free section of vertical planar region 
                  ☐ Crop occlusion free section of horizontal planar region
                  ☐ Create function that gives a best fit line (in the least squares sense) for zero crossing
                  ☐ Get best fit line equations for shadow line on both vertical and horizontal planes (using your occlusion free sections)
+                 ☐ Draw those lines as image sequences
 
                 2.2 Temporal Edge Localization:
                  ✔ Using zero-crossings or difference images, create an image where for each pixel assign the shadow crossing time (interpolate between zero crossings) @done (13-02-07 23:58)
