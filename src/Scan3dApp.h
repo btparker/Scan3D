@@ -26,6 +26,7 @@ class Scan3dApp : public ofBaseApp{
 		void windowResized(int w, int h);
 		void dragEvent(ofDragInfo dragInfo);
 		void gotMessage(ofMessage msg);
+		void drawSectionRectangles();
 
 		ofVideoPlayer vid;
 
@@ -62,9 +63,16 @@ class Scan3dApp : public ofBaseApp{
         vector<ofxCvGrayscaleImage> diffFrames;
         vector<ofxCvGrayscaleImage> zeroCrossingFrames;
 
-
-
         int frameBufferSize;
         int zeroCrossingThreshold;
+
+        ofRectangle topSection;
+		ofRectangle bottomSection;
+		
+		ofColor topSectionColor;
+		ofColor bottomSectionColor;
+
+		bool settingTopSection;
+		bool settingBottomSection;
 
 };

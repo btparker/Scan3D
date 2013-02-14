@@ -41,6 +41,29 @@ void Scan3dApp::setup(){
 
     frameBufferSize = 100;
     frames.resize(frameBufferSize,bufferOfxCvGrayscaleImage);
+
+    topSectionColor.r = 255;
+    topSectionColor.g = 155;
+    topSectionColor.b = 0;
+    topSectionColor.a = 100;
+
+    bottomSectionColor.r = 0;
+    bottomSectionColor.g = 200;
+    bottomSectionColor.b = 255;
+    bottomSectionColor.a = 100;
+    
+    topSection.x = 0;
+    topSection.y = 0;
+    topSection.width = 0;
+    topSection.height = 0;
+
+    bottomSection.x = 0;
+    bottomSection.y = 0;
+    bottomSection.width = 0;
+    bottomSection.height = 0;
+
+    settingTopSection = false;
+    settingBottomSection = false;
 }
 
 //--------------------------------------------------------------
@@ -288,6 +311,10 @@ void Scan3dApp::draw(){
     
     // draw the image sequence at the new frame count
     //ofSetColor(255);
+    
+
+    ofSetColor(255);
+
     switch(displayState){
         case COLOR:
             colorFrame.draw(0, 0);
@@ -305,8 +332,24 @@ void Scan3dApp::draw(){
             shadowThreshImg.draw(0, 0);
             break;
     }
-    
-    
+
+    switch(programState){
+        case SETUP:
+            drawSectionRectangles();
+            break;
+    }
+}
+
+//--------------------------------------------------------------
+void Scan3dApp::drawSectionRectangles(){
+    ofEnableAlphaBlending();
+    ofSetColor(topSectionColor);
+    ofRect(topSection);
+
+    ofSetColor(bottomSectionColor);
+    ofRect(bottomSection);
+
+    ofDisableAlphaBlending();
 }
 
 //--------------------------------------------------------------
@@ -350,17 +393,51 @@ void Scan3dApp::mouseMoved(int x, int y ){
 
 //--------------------------------------------------------------
 void Scan3dApp::mouseDragged(int x, int y, int button){
+    if(settingTopSection){
+        topSection.setWidth(x-topSection.x);
+        topSection.setHeight(y-topSection.y);
+    }
+    else if(settingBottomSection){
 
+        bottomSection.setWidth(x-bottomSection.x);
+        bottomSection.setHeight(y-bottomSection.y);
+
+        if(bottomSection.width > topSection.width){
+            bottomSection.width = topSection.width;
+        }
+    }
 }
 
 //--------------------------------------------------------------
 void Scan3dApp::mousePressed(int x, int y, int button){
-
+    if(topSection.width == 0){
+        topSection.setPosition(x,y);
+        settingTopSection = true;
+    }
+    else if(bottomSection.width == 0){
+        if(x < topSection.x){
+            bottomSection.setPosition(topSection.x,y);
+        }
+        else if(x > (topSection.x+topSection.width)){
+            bottomSection.setPosition((topSection.x+topSection.width),y);
+        }
+        else{
+            int tx = x - topSection.x;
+            topSection.x = x;
+            topSection.width -= tx;
+            bottomSection.setPosition(x,y);     
+        }
+        
+        settingTopSection = false;
+        settingBottomSection = true;
+    }
 }
 
 //--------------------------------------------------------------
 void Scan3dApp::mouseReleased(int x, int y, int button){
-
+    if(topSection.width > bottomSection.width && bottomSection.width > 0){
+        topSection.width = bottomSection.width;
+    }
 }
 
 //--------------------------------------------------------------
