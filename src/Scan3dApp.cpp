@@ -88,6 +88,9 @@ void Scan3dApp::setup(){
 }
 
 //--------------------------------------------------------------
+/**
+    Loads settings from 'settings.xml', located in the data folder of the project
+*/
 void Scan3dApp::loadSettings(){
 	/* Load settings file */
 	if(settings.loadFile("settings.xml")){
@@ -320,7 +323,6 @@ void Scan3dApp::update(){
             bufferOfImage.setFromPixels(temporalImg.getPixelsRef());
             bufferOfImage.saveImage("output/temporalImg.tiff");
 
-
             programState = VISUALIZATION;
             cout << "VISUALIZATION STATE" << endl;
             break;
@@ -333,10 +335,6 @@ void Scan3dApp::update(){
         }
 
     }
-    
-
-
-
 }
 
 //--------------------------------------------------------------
@@ -376,6 +374,9 @@ void Scan3dApp::draw(){
 }
 
 //--------------------------------------------------------------
+/**
+    Draws the section rectangles as a color overlay
+*/
 void Scan3dApp::drawSectionRectangles(){
     ofEnableAlphaBlending();
     ofSetColor(topSectionColor);
@@ -386,12 +387,54 @@ void Scan3dApp::drawSectionRectangles(){
 
     ofDisableAlphaBlending();
 }
-/**
-//--------------------------------------------------------------
-void Scan3dApp::computePointsFromPixels(){
 
+//--------------------------------------------------------------
+/**
+    Computes the pixel coordinates of the first white pixel in each row of an image
+
+    @param img The (likely zero-crossing) image that has white pixels
+    @param roi (optional) A rectangle that defines the region of interest to look over img 
+    @returns vector<ofPoint> A vector of white pixel coordinates found in the image (or image subregion)
+*/
+vector<ofPoint> Scan3dApp::computeZeroCrossingCoordinates(ofxCvGrayscaleImage img, ofRectangle roi){
+    
+    int roi_x0 = 0;
+    int roi_y0 = 0;
+
+    int roi_x1 = img.width;
+    int roi_y1 = img.height;
+
+    if(roi.isEmpty()){
+        roi_x0 = roi.x;
+        roi_y0 = roi.y;
+        
+        roi_x1 = roi.x+roi.width;
+        roi_y1 = roi.y+roi.height;
+           
+    }
+
+    ofPoint pt;
+
+    vector<ofPoint> zeroCrossingCoordinates;
+    zeroCrossingCoordinates.resize(roi_y1-roi_y0,pt); //size it to the height of the image region
+
+    unsigned char* imgPixels = img.getPixels();
+    int i;
+    // Loop over image (entire or roi)
+    for(int r = roi_y0; r < roi_y1; r++){
+        for(int c = roi_x0; c < roi_x1; c++){
+            i = c+r*img.width;
+            if(imgPixels[i] > 0){
+                pt.set(c,r);
+                zeroCrossingCoordinates[r-roi_y0] = pt;
+                break;
+            }
+        }    
+    }
+
+    return zeroCrossingCoordinates;
 }
-**/
+
 //--------------------------------------------------------------
 void Scan3dApp::keyPressed(int key){
     switch(key){

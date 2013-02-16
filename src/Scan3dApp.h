@@ -27,6 +27,7 @@ class Scan3dApp : public ofBaseApp{
 		void dragEvent(ofDragInfo dragInfo);
 		void gotMessage(ofMessage msg);
 		void drawSectionRectangles();
+		vector<ofPoint> computeZeroCrossingCoordinates(ofxCvGrayscaleImage img, ofRectangle roi);
 
 		ofVideoPlayer vid;
 
