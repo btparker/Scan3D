@@ -3,6 +3,10 @@
 //--------------------------------------------------------------
 void Scan3dApp::setup(){
     loadSettings();
+
+    messageBarText = "";
+    messageBarHeight = 50;
+    messageBarFont.loadFont("HelveticaNeueLTStd-Lt.otf", 25);
     
     programState = SETUP;
 
@@ -11,7 +15,6 @@ void Scan3dApp::setup(){
     displayState = COLOR;
     ofBackground(0);
     ofSetWindowTitle("3D SCAN ALL THE THINGS");
-    ofSetWindowShape(1280,720);
     ofSetFrameRate(30);
 
     switch(inputType){
@@ -37,7 +40,7 @@ void Scan3dApp::setup(){
     bufferOfxCvGrayscaleImage.allocate(width,height);
     shadowThreshImg.allocate(width,height);
 
-    ofSetWindowShape(width,height);
+    ofSetWindowShape(width,height+messageBarHeight);
 
     frameBufferSize = 100;
     frames.resize(frameBufferSize,bufferOfxCvGrayscaleImage);
@@ -64,6 +67,24 @@ void Scan3dApp::setup(){
 
     settingTopSection = false;
     settingBottomSection = false;
+
+    CvPoint * points=(CvPoint*)malloc( 4 * sizeof(points[0]));
+
+    points[0].x = 5; points[0].y = 0; 
+    points[1].x = 6; points[1].y = 1; 
+    points[2].x = 7; points[2].y = 2; 
+    points[3].x = 8; points[3].y = 3; 
+
+    /**
+    CvMat point_mat = cvMat( 1, 4, CV_32SC2, points );
+    float testPar[4];// to store the results
+
+    cvFitLine(&point_mat,CV_DIST_HUBER ,0,0.01,0.01,testPar);
+
+    cout << testPar[0] << " " << testPar[1] << " " << testPar[2] << " " << testPar[3] <<endl;
+
+    free(points);
+    **/
 }
 
 //--------------------------------------------------------------
@@ -124,6 +145,15 @@ void Scan3dApp::update(){
 
         case SETUP:
         {
+            if(topSection.width == 0 || settingTopSection){
+                messageBarText = "Setup: click and drag top rectangle";
+            }
+            else if(bottomSection.width == 0 || settingBottomSection){
+                messageBarText = "Setup: click and drag bottom rectangle";
+            }
+            else{
+                messageBarText = "Setup: press spacebar to continue";
+            }
             frameIndex = 0;
             switch(inputType){
                 case VIDEO:
@@ -139,6 +169,7 @@ void Scan3dApp::update(){
         }
         case CAPTURE:
         {
+            messageBarText = "Capture: scanning ...";
             switch(inputType){
                 case VIDEO:
                     vid.update();
@@ -196,6 +227,7 @@ void Scan3dApp::update(){
         }
         case PROCESSING:
         {   
+            messageBarText = "Processing";
             unsigned char* minImgPixels = minImg.getPixels();
             unsigned char* maxImgPixels = maxImg.getPixels();
             unsigned char* shadowThreshImgPixels = shadowThreshImg.getPixels();
@@ -295,6 +327,7 @@ void Scan3dApp::update(){
         }
         case VISUALIZATION:
         {    
+            messageBarText = "Visualizing";
             //do nothing
             break;
         }
@@ -312,8 +345,10 @@ void Scan3dApp::draw(){
     // draw the image sequence at the new frame count
     //ofSetColor(255);
     
-
+    ofBackground(60);
     ofSetColor(255);
+
+    messageBarFont.drawString(messageBarText,10,height+messageBarHeight-15);
 
     switch(displayState){
         case COLOR:
@@ -351,7 +386,12 @@ void Scan3dApp::drawSectionRectangles(){
 
     ofDisableAlphaBlending();
 }
+/**
+//--------------------------------------------------------------
+void Scan3dApp::computePointsFromPixels(){
 
+}
+**/
 //--------------------------------------------------------------
 void Scan3dApp::keyPressed(int key){
     switch(key){
@@ -438,6 +478,8 @@ void Scan3dApp::mouseReleased(int x, int y, int button){
     if(topSection.width > bottomSection.width && bottomSection.width > 0){
         topSection.width = bottomSection.width;
     }
+    settingTopSection = false;
+    settingBottomSection = false;
 }
 
 //--------------------------------------------------------------

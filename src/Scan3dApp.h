@@ -75,4 +75,10 @@ class Scan3dApp : public ofBaseApp{
 		bool settingTopSection;
 		bool settingBottomSection;
 
+		int messageBarHeight;
+
+		string messageBarText;
+
+		ofTrueTypeFont messageBarFont;
+
 };
