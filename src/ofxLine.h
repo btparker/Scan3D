@@ -13,6 +13,7 @@ class ofxLine{
 		void set(float vx,float vy, float x0, float y0);
 		ofPoint intersection(ofxLine line);
 		bool isParallelTo(ofxLine line);
+		bool drawLineInRegion(ofRectangle roi);
 };
 
 #endif

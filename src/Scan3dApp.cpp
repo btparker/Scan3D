@@ -376,7 +376,7 @@ void Scan3dApp::drawSectionRectangles(){
 
     @param img The (likely zero-crossing) image that has white pixels
     @param roi (optional) A rectangle that defines the region of interest to look over img 
-    @returns Line a line generated from the zero crossings
+    @returns ofxLine a line generated from the zero crossings
 */
 ofxLine Scan3dApp::computeLineEquationFromZeroCrossings(ofxCvGrayscaleImage img, ofRectangle roi){
     
