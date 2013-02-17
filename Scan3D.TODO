@@ -12,8 +12,7 @@
                  ✔ Compute zero-crossings for each difference image @done (13-02-07 22:54)
                  ✔ Crop occlusion free section of vertical planar region @done (13-02-16 17:50)
                  ✔ Crop occlusion free section of horizontal planar region @done (13-02-16 17:50)
-                 ☐ Create function that returns point coordinates of white pixels in a ROI of an image
-                 ☐ Create function that gives a best fit line (in the least squares sense) for zero crossing
+                 ✔ Create function that gives a best fit line (in the least squares sense) for zero crossing @done (13-02-16 22:02)
                  ☐ Get best fit line equations for shadow line on both vertical and horizontal planes (using your occlusion free sections)
                  ☐ Draw those lines as image sequences
 

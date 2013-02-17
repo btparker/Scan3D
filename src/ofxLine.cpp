@@ -32,7 +32,7 @@ void ofxLine::set(float vx,float vy, float x0, float y0){
 	dir.y = vy;
 
 	pt.x = x0;
-	pt.y = y0;
+	pt.y = y0; 
 }
 
 //--------------------------------------------------------------
@@ -97,20 +97,48 @@ bool ofxLine::isParallelTo(ofxLine line){
 
 //--------------------------------------------------------------
 /**
-    Draws line in a subregion
+    Computes if line is in and potentially draws line from region
 
     @param roi The region of interest to draw the line in
+    @param boolean drawLine Whether to draw line or not
     @returns bool If the line does not cross the region, 
     	returns false and does not draw. Otherwise, returns true
 */
-bool ofxLine::drawLineInRegion(ofRectangle roi){
+bool ofxLine::drawLineInRegion(ofRectangle roi, bool drawLine){
 	ofxLine top(1, 0, 0, roi.y);
 	ofxLine bottom(1, 0, 0, roi.y + roi.height);
 	ofxLine left(0, 1, roi.x, 0);
 	ofxLine right(0, 1, roi.x + roi.width, 0);
 
+	/*
+
+	if(!top.isParallelTo(bottom)){
+		ofLogFatalError() << "Top not parralel to bottom";
+	}
+
+	if(!left.isParallelTo(right)){
+		ofLogFatalError() << "Left not parralel to right";
+	}
+
+	if(top.intersection(left).x != roi.x || top.intersection(left).y != roi.y){
+		ofLogFatalError() << "Top/Left not equal to roi tl corner";
+	}
+
+	if(right.intersection(bottom).x != (roi.x + roi.width)|| right.intersection(bottom).y != (roi.y + roi.height)){
+		ofLogFatalError() << "Bottom/Right not equal to roi br corner";
+	}
+	*/
+
 	ofPoint linePt0;
 	ofPoint linePt1;
+
+	bool isPt0Set = false;
+	bool isPt1Set = false;
+
+	bool topCrossed = false;
+	bool leftCrossed = false;
+	bool bottomCrossed = false;
+	bool rightCrossed = false;
 
 	if(isParallelTo(top)){
 		linePt0 = intersection(left);
@@ -127,29 +155,82 @@ bool ofxLine::drawLineInRegion(ofRectangle roi){
 		ofPoint rI = intersection(right);
 
 		if(tI.x <= (roi.x+roi.width) && tI.x >= (roi.x)){
-			linePt0 = tI;
+			topCrossed = true;
+			if(!isPt0Set){
+				linePt0 = tI;
+				isPt0Set = true;
+			}
+			else{
+				linePt1 = tI;
+				isPt1Set = true;
+			}
 		}
-		else if(lI.y <= (roi.y+roi.height) && lI.y >= (roi.y)){
-			linePt0 = lI;
-		}
-		else{
-			return false;
+
+		if(lI.y <= (roi.y+roi.height) && lI.y >= (roi.y)){
+			leftCrossed = true;
+			if(!isPt0Set){
+				linePt0 = lI;
+				isPt0Set = true;
+			}
+			else{
+				linePt1 = lI;
+				isPt1Set = true;
+			}
 		}
 
 		if(bI.x <= (roi.x+roi.width) && bI.x >= (roi.x)){
-			linePt0 = bI;
+			bottomCrossed = true;
+			if(!isPt0Set){
+				linePt0 = bI;
+				isPt0Set = true;
+			}
+			else{
+				linePt1 = bI;
+				isPt1Set = true;
+			}
 		}
-		else if(rI.y <= (roi.y+roi.height) && rI.y >= (roi.y)){
-			linePt0 = rI;
-		}
-		else{
-			return false;
+
+		if(rI.y <= (roi.y+roi.height) && rI.y >= (roi.y)){
+			rightCrossed = true;
+			if(!isPt0Set){
+				linePt0 = rI;
+				isPt0Set = true;
+			}
+			else{
+				linePt1 = rI;
+				isPt1Set = true;
+			}
 		}
 
 
 	}
 
-	ofLine(linePt0,linePt1);
+	bool returnValue = isPt0Set && isPt1Set;
+	if(drawLine && returnValue){
+		ofLine(linePt0,linePt1);
+	}
 
-	return true;
+	return returnValue;
+}
+
+//--------------------------------------------------------------
+/**
+    Determines if line crosses region
+
+    @param roi The region of interest to draw the line in
+    @returns bool If the line does not cross the region, 
+    	returns false and does not draw. Otherwise, returns true
+*/
+bool ofxLine::isLineInRegion(ofRectangle roi){
+	return drawLineInRegion(roi, false);
+}
+
+//--------------------------------------------------------------
+/**
+    Draws line, cropped to region
+
+    @param roi The region of interest to draw the line in
+*/
+void ofxLine::drawLineInRegion(ofRectangle roi){
+	drawLineInRegion(roi, true);
 }

@@ -9,7 +9,7 @@
 enum {SETUP, CAPTURE, PROCESSING,RECONSTRUCTION,VISUALIZATION};
 enum { COLOR, GRAYSCALE, MINIMAGE, MAXIMAGE, SHADOWTHRESHIMAGE, DIFF, THRESH, EDGE, CORNER};
 enum { UP, DOWN, LEFT, RIGHT, VERTICAL, HORIZONTAL, BOTH};
-enum {VIDEO,NONE};
+enum {VIDEO,IMAGE_SEQUENCE,NONE};
 
 
 
@@ -21,6 +21,7 @@ class Scan3dApp : public ofBaseApp{
 		void draw();
 
 		void loadSettings();
+		void saveSettings();
 		void keyPressed  (int key);
 		void keyReleased(int key);
 		void mouseMoved(int x, int y );
@@ -31,7 +32,8 @@ class Scan3dApp : public ofBaseApp{
 		void dragEvent(ofDragInfo dragInfo);
 		void gotMessage(ofMessage msg);
 		void drawSectionRectangles();
-		ofxLine computeLineEquationFromZeroCrossings(ofxCvGrayscaleImage img, ofRectangle roi);
+		ofxLine computeLineFromZeroCrossings(ofxCvGrayscaleImage img, ofRectangle roi);
+		bool isPointInRegion(ofPoint pt, ofRectangle roi);
 
 		ofVideoPlayer vid;
 
@@ -54,26 +56,27 @@ class Scan3dApp : public ofBaseApp{
 
         int width,height;
 
-
         ofxCvGrayscaleImage minImg;
         ofxCvGrayscaleImage maxImg;
         ofxCvColorImage maxColorImg;
         ofxCvGrayscaleImage shadowThreshImg;
 	    ofxCvColorImage temporalImg;
+	    ofxCvGrayscaleImage diffFrame;
+	    ofxCvGrayscaleImage previousDiffFrame;
+	    ofxCvGrayscaleImage zeroCrossingFrame;
 
         ofImage bufferOfImage;
         ofxCvColorImage bufferOfxCvColorImage;
         ofxCvGrayscaleImage bufferOfxCvGrayscaleImage;
 
         vector<ofxCvGrayscaleImage> frames;
-        vector<ofxCvGrayscaleImage> diffFrames;
-        vector<ofxCvGrayscaleImage> zeroCrossingFrames;
 
         int frameBufferSize;
         int zeroCrossingThreshold;
 
         ofRectangle topSection;
 		ofRectangle bottomSection;
+		ofRectangle fullSection;
 		
 		ofColor topSectionColor;
 		ofColor bottomSectionColor;
@@ -89,4 +92,15 @@ class Scan3dApp : public ofBaseApp{
 		ofTrueTypeFont messageBarFont;
 		ofTrueTypeFont messageBarSubTextFont;
 
+		ofxLine topLine;
+		ofxLine bottomLine;
+		ofxLine testLine;
+
+		string filename;
+
+		vector<int> columnIndices;
+
+		ofDirectory dir;
+
+        
 };
