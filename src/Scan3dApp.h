@@ -4,11 +4,15 @@
 #include "ofxXmlSettings.h"
 #include "ofxOpenCv.h"
 #include "cv.h"
+#include "ofxLine.h"
 
 enum {SETUP, CAPTURE, PROCESSING,RECONSTRUCTION,VISUALIZATION};
 enum { COLOR, GRAYSCALE, MINIMAGE, MAXIMAGE, SHADOWTHRESHIMAGE, DIFF, THRESH, EDGE, CORNER};
 enum { UP, DOWN, LEFT, RIGHT, VERTICAL, HORIZONTAL, BOTH};
 enum {VIDEO,NONE};
+
+
+
 class Scan3dApp : public ofBaseApp{
 
 	public:
@@ -27,7 +31,7 @@ class Scan3dApp : public ofBaseApp{
 		void dragEvent(ofDragInfo dragInfo);
 		void gotMessage(ofMessage msg);
 		void drawSectionRectangles();
-		vector<ofPoint> computeZeroCrossingCoordinates(ofxCvGrayscaleImage img, ofRectangle roi);
+		ofxLine computeLineEquationFromZeroCrossings(ofxCvGrayscaleImage img, ofRectangle roi);
 
 		ofVideoPlayer vid;
 

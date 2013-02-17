@@ -76,14 +76,7 @@ void Scan3dApp::setup(){
     points[3].x = 8; points[3].y = 3; 
 
     /**
-    CvMat point_mat = cvMat( 1, 4, CV_32SC2, points );
-    float testPar[4];// to store the results
-
-    cvFitLine(&point_mat,CV_DIST_HUBER ,0,0.01,0.01,testPar);
-
-    cout << testPar[0] << " " << testPar[1] << " " << testPar[2] << " " << testPar[3] <<endl;
-
-    free(points);
+    
     **/
 }
 
@@ -390,14 +383,16 @@ void Scan3dApp::drawSectionRectangles(){
 
 //--------------------------------------------------------------
 /**
-    Computes the pixel coordinates of the first white pixel in each row of an image
+    Computes the best fit line of the pixel coordinates of the zero crossings in an image
 
     @param img The (likely zero-crossing) image that has white pixels
     @param roi (optional) A rectangle that defines the region of interest to look over img 
-    @returns vector<ofPoint> A vector of white pixel coordinates found in the image (or image subregion)
+    @returns Line a line generated from the zero crossings
 */
-vector<ofPoint> Scan3dApp::computeZeroCrossingCoordinates(ofxCvGrayscaleImage img, ofRectangle roi){
+ofxLine Scan3dApp::computeLineEquationFromZeroCrossings(ofxCvGrayscaleImage img, ofRectangle roi){
     
+    
+
     int roi_x0 = 0;
     int roi_y0 = 0;
 
@@ -413,10 +408,10 @@ vector<ofPoint> Scan3dApp::computeZeroCrossingCoordinates(ofxCvGrayscaleImage im
            
     }
 
-    ofPoint pt;
 
-    vector<ofPoint> zeroCrossingCoordinates;
-    zeroCrossingCoordinates.resize(roi_y1-roi_y0,pt); //size it to the height of the image region
+    CvPoint * points=(CvPoint*)malloc( roi_y1-roi_y0 * sizeof(points[0]));
+
+    
 
     unsigned char* imgPixels = img.getPixels();
     int i;
@@ -425,14 +420,25 @@ vector<ofPoint> Scan3dApp::computeZeroCrossingCoordinates(ofxCvGrayscaleImage im
         for(int c = roi_x0; c < roi_x1; c++){
             i = c+r*img.width;
             if(imgPixels[i] > 0){
-                pt.set(c,r);
-                zeroCrossingCoordinates[r-roi_y0] = pt;
+                points[r-roi_y0].x = c;
+                points[r-roi_y0].y = r;
                 break;
             }
         }    
     }
 
-    return zeroCrossingCoordinates;
+    CvMat point_mat = cvMat( 1, roi_y1-roi_y0, CV_32SC2, points);
+    float result[4];// to store the results
+
+    cvFitLine(&point_mat,CV_DIST_HUBER ,0,0.01,0.01,result);
+
+    ofxLine line;
+    line.set(result[0],result[1],result[2],result[3]);
+
+
+    free(points);
+
+    return line;
 }
 
 //--------------------------------------------------------------
