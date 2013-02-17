@@ -57,6 +57,7 @@ class Scan3dApp : public ofBaseApp{
 
         ofxCvGrayscaleImage minImg;
         ofxCvGrayscaleImage maxImg;
+        ofxCvColorImage maxColorImg;
         ofxCvGrayscaleImage shadowThreshImg;
 	    ofxCvColorImage temporalImg;
 
@@ -83,7 +84,9 @@ class Scan3dApp : public ofBaseApp{
 		int messageBarHeight;
 
 		string messageBarText;
+		string messageBarSubText;
 
 		ofTrueTypeFont messageBarFont;
+		ofTrueTypeFont messageBarSubTextFont;
 
 };

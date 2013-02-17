@@ -5,8 +5,10 @@ void Scan3dApp::setup(){
     loadSettings();
 
     messageBarText = "";
-    messageBarHeight = 50;
-    messageBarFont.loadFont("HelveticaNeueLTStd-Lt.otf", 25);
+    messageBarSubText = "";
+    messageBarHeight = 70;
+    messageBarFont.loadFont("HelveticaNeueLTStd-Bd.otf", 20);
+    messageBarSubTextFont.loadFont("HelveticaNeueLTStd-Lt.otf", 15);
     
     programState = SETUP;
 
@@ -28,6 +30,7 @@ void Scan3dApp::setup(){
     }
     
     colorFrame.allocate(width,height);
+    maxColorImg.allocate(width,height);
     grayscaleFrame.allocate(width,height);
     minImg.allocate(width,height);
     minImg.set(255);
@@ -44,6 +47,7 @@ void Scan3dApp::setup(){
 
     frameBufferSize = 100;
     frames.resize(frameBufferSize,bufferOfxCvGrayscaleImage);
+    
 
     topSectionColor.r = 255;
     topSectionColor.g = 155;
@@ -130,14 +134,16 @@ void Scan3dApp::update(){
 
         case SETUP:
         {
+            messageBarText = "SETUP";
             if(topSection.width == 0 || settingTopSection){
-                messageBarText = "Setup: click and drag top rectangle";
+                
+                messageBarSubText = "Click and drag top rectangle";
             }
             else if(bottomSection.width == 0 || settingBottomSection){
-                messageBarText = "Setup: click and drag bottom rectangle";
+                messageBarSubText = "Click and drag bottom rectangle";
             }
             else{
-                messageBarText = "Setup: press spacebar to continue";
+                messageBarSubText = "Press spacebar to commence scanning";
             }
             frameIndex = 0;
             switch(inputType){
@@ -154,7 +160,27 @@ void Scan3dApp::update(){
         }
         case CAPTURE:
         {
-            messageBarText = "Capture: scanning ...";
+            messageBarText = "SCANNING";
+            switch(displayState){
+                case COLOR:
+                    messageBarText += "  (COLOR)";
+                    break;
+                case GRAYSCALE:
+                    messageBarText += "  (GRAYSCALE)";
+                    break;
+                case MINIMAGE:
+                    messageBarText += "  (MIN)";
+                    break;
+                case MAXIMAGE:
+                    messageBarText += "  (MAX)";
+                    break;
+                case SHADOWTHRESHIMAGE:
+                    messageBarText += "  (SHADOW THRESH)";
+                    break;
+            }
+
+            messageBarSubText = "Press [1, 2, 3, 4, 5] for [COLOR, GRAYSCALE, MIN, MAX, SHADOW THRESH] display";
+            
             switch(inputType){
                 case VIDEO:
                     vid.update();
@@ -162,8 +188,12 @@ void Scan3dApp::update(){
                         colorFrame.setFromPixels(vid.getPixels(),vid.getWidth(),vid.getHeight());
                     }
                     if(vid.getIsMovieDone()){
+                        colorFrame = maxColorImg;
+                        messageBarText = "PROCESSING";
+                        messageBarSubText = "";
                         programState = PROCESSING;
                         cout << "PROCESSING STATE" << endl;
+                        frameIndex = 0;
                     }
                     break;
             }
@@ -193,40 +223,40 @@ void Scan3dApp::update(){
             //Update min/max images
             unsigned char* minImgPixels = minImg.getPixels();
             unsigned char* maxImgPixels = maxImg.getPixels();
+            unsigned char* maxColorImgPixels = maxColorImg.getPixels();
             unsigned char* grayscaleFramePixels = grayscaleFrame.getPixels();
+            unsigned char* colorFramePixels = colorFrame.getPixels();
+            unsigned char* shadowThreshImgPixels = shadowThreshImg.getPixels();
+
             int i = 0;
             for(int y = 0; y < height; y++){
                 for(int x = 0; x < width; x++){
                     i = y*width+x;
                     minImgPixels[i] = min(minImgPixels[i],grayscaleFramePixels[i]);
                     maxImgPixels[i] = max(maxImgPixels[i],grayscaleFramePixels[i]);
+                    shadowThreshImgPixels[i] = (int)((minImgPixels[i]+maxImgPixels[i])/2);
+                    maxColorImgPixels[3*i] = max(maxColorImgPixels[3*i],colorFramePixels[3*i]);
+                    maxColorImgPixels[3*i+1] = max(maxColorImgPixels[3*i+1],colorFramePixels[3*i+1]);
+                    maxColorImgPixels[3*i+2] = max(maxColorImgPixels[3*i+2],colorFramePixels[3*i+2]);
                 }  
             }
 
             //A tad inefficient, but this handles a bug where if you draw these it doesn't set new values
             minImg.setFromPixels(minImgPixels,width,height);
             maxImg.setFromPixels(maxImgPixels,width,height);
+            shadowThreshImg.setFromPixels(shadowThreshImgPixels,width,height);
+            maxColorImg.setFromPixels(maxColorImgPixels,width,height);
             
             frameIndex++;
             break;
         }
         case PROCESSING:
-        {   
-            messageBarText = "Processing";
-            unsigned char* minImgPixels = minImg.getPixels();
-            unsigned char* maxImgPixels = maxImg.getPixels();
-            unsigned char* shadowThreshImgPixels = shadowThreshImg.getPixels();
+        {     
             unsigned char* temporalImgPixels = temporalImg.getPixels();
+            unsigned char* shadowThreshImgPixels = shadowThreshImg.getPixels();            
 
+            grayscaleFrame = frames[frameIndex];
 
-            int i = 0;
-            for(int y = 0; y < height; y++){
-                for(int x = 0; x < width; x++){
-                    i = y*width+x;
-                    shadowThreshImgPixels[i] = (int)((minImgPixels[i]+maxImgPixels[i])/2);
-                }  
-            }
-            shadowThreshImg.setFromPixels(shadowThreshImgPixels,width,height);
 
             //Uncomment to save out min/max/shadowthresh frames
             // bufferOfxCvColorImage = minImg;
@@ -246,72 +276,77 @@ void Scan3dApp::update(){
 
             vector<int> columnIndices;
             columnIndices.resize(height);
-            for(int i = 0; i < frames.size(); i++){
-                diffFrames[i] = frames[i];
-                diffFrames[i] -= shadowThreshImg;
-                if(i>0){
-                    bufferOfxCvGrayscaleImage = diffFrames[i];
-                    bufferOfxCvGrayscaleImage.absDiff(diffFrames[i-1]);
-                    diffFrames[i] -= bufferOfxCvGrayscaleImage;
 
-                    unsigned char* diffFramePixels = diffFrames[i].getPixels();
-                    unsigned char* zeroCrossingFramePixels = zeroCrossingFrames[i].getPixels();
-                    
-                    for(int r = 0; r < height; r++){
-                        for(int c = columnIndices[r]; c < width; c++){
-                            if(diffFramePixels[c+r*width] > zeroCrossingThreshold){
-                                zeroCrossingFramePixels[c+r*width] = 255;
-                                for(int j = columnIndices[r]; j < c; j++){
-                                    ofColor c1Color = ofColor::blue;
-                                    c1Color.lerp(ofColor::red,ofMap(i-1, 0, frames.size(), 0.0, 1.0));
+            diffFrames[frameIndex] = frames[frameIndex];
+            diffFrames[frameIndex] -= shadowThreshImg;
+            if(frameIndex>0){
+                bufferOfxCvGrayscaleImage = diffFrames[frameIndex];
+                bufferOfxCvGrayscaleImage.absDiff(diffFrames[frameIndex-1]);
+                diffFrames[frameIndex] -= bufferOfxCvGrayscaleImage;
 
-                                    ofColor c2Color = ofColor::blue;
-                                    c2Color.lerp(ofColor::red,ofMap(i, 0, frames.size(), 0.0, 1.0));
+                unsigned char* diffFramePixels = diffFrames[frameIndex].getPixels();
+                unsigned char* zeroCrossingFramePixels = zeroCrossingFrames[frameIndex].getPixels();
+                
+                for(int r = 0; r < height; r++){
+                    for(int c = columnIndices[r]; c < width; c++){
+                        if(diffFramePixels[c+r*width] > zeroCrossingThreshold){
+                            zeroCrossingFramePixels[c+r*width] = 255;
+                            for(int j = columnIndices[r]; j < c; j++){
+                                ofColor c1Color = ofColor::blue;
+                                c1Color.lerp(ofColor::red,ofMap(frameIndex-1, 0, frames.size(), 0.0, 1.0));
 
-                                    ofColor interColor = c1Color;
-                                    interColor.lerp(c2Color,ofMap(j,columnIndices[r],c,0.0,1.0));
-                                    
-                                    temporalImgPixels[3*(j+r*width)] = interColor[0];
-                                    temporalImgPixels[3*(j+r*width)+1] = interColor[1];
-                                    temporalImgPixels[3*(j+r*width)+2] = interColor[2];
-                                }
-                                columnIndices[r] = c;
-                                break;
+                                ofColor c2Color = ofColor::blue;
+                                c2Color.lerp(ofColor::red,ofMap(frameIndex, 0, frames.size(), 0.0, 1.0));
+
+                                ofColor interColor = c1Color;
+                                interColor.lerp(c2Color,ofMap(j,columnIndices[r],c,0.0,1.0));
+                                
+                                temporalImgPixels[3*(j+r*width)] = interColor[0];
+                                temporalImgPixels[3*(j+r*width)+1] = interColor[1];
+                                temporalImgPixels[3*(j+r*width)+2] = interColor[2];
                             }
+                            columnIndices[r] = c;
+                            break;
                         }
                     }
-
                 }
-                
+            
 
-                //Uncomment to save out diff frames
-                // bufferOfxCvColorImage = diffFrames[i];
-                // bufferOfImage.setFromPixels(bufferOfxCvColorImage.getPixelsRef());
-                // string filename = "output/diffFrames/diffFrame";
-                // filename += ofToString(i);
-                // filename += ".tiff";
-                // bufferOfImage.saveImage(filename);
+            //Uncomment to save out diff frames
+            // bufferOfxCvColorImage = diffFrames[i];
+            // bufferOfImage.setFromPixels(bufferOfxCvColorImage.getPixelsRef());
+            // string filename = "output/diffFrames/diffFrame";
+            // filename += ofToString(i);
+            // filename += ".tiff";
+            // bufferOfImage.saveImage(filename);
 
-                //Uncomment to save out zero crossing frames
-                // bufferOfxCvColorImage = zeroCrossingFrames[i];
-                // bufferOfImage.setFromPixels(bufferOfxCvColorImage.getPixelsRef());
-                // string filename = "output/zeroCrossingFrames/zeroCrossingFrame";
-                // filename += ofToString(i);
-                // filename += ".tiff";
-                // bufferOfImage.saveImage(filename);
+            //Uncomment to save out zero crossing frames
+            // bufferOfxCvColorImage = zeroCrossingFrames[i];
+            // bufferOfImage.setFromPixels(bufferOfxCvColorImage.getPixelsRef());
+            // string filename = "output/zeroCrossingFrames/zeroCrossingFrame";
+            // filename += ofToString(i);
+            // filename += ".tiff";
+            // bufferOfImage.saveImage(filename);
+
             }
 
-            //Uncomment to save out temporal image
-            bufferOfImage.setFromPixels(temporalImg.getPixelsRef());
-            bufferOfImage.saveImage("output/temporalImg.tiff");
+            frameIndex++;
+            if(frameIndex == frames.size()-1){
+                //Uncomment to save out temporal image
+                bufferOfImage.setFromPixels(temporalImg.getPixelsRef());
+                bufferOfImage.saveImage("output/temporalImg.tiff");
 
-            programState = VISUALIZATION;
-            cout << "VISUALIZATION STATE" << endl;
+                programState = VISUALIZATION;
+                cout << "VISUALIZATION STATE" << endl;
+            }
+       
             break;
         }
         case VISUALIZATION:
         {    
-            messageBarText = "Visualizing";
+            messageBarText = "VISUALIZATION";
+            messageBarSubText = "";
+
             //do nothing
             break;
         }
@@ -328,7 +363,8 @@ void Scan3dApp::draw(){
     ofBackground(60);
     ofSetColor(255);
 
-    messageBarFont.drawString(messageBarText,10,height+messageBarHeight-15);
+    messageBarFont.drawString(messageBarText,10,height+messageBarHeight/2-5);
+    messageBarSubTextFont.drawString(messageBarSubText,10,height+messageBarHeight-15);
 
     switch(displayState){
         case COLOR:
@@ -434,8 +470,9 @@ ofxLine Scan3dApp::computeLineEquationFromZeroCrossings(ofxCvGrayscaleImage img,
 void Scan3dApp::keyPressed(int key){
     switch(key){
         case 32:
-            cout << "CAPTURE STATE" << endl;
-            programState = CAPTURE;
+            if(programState ==  SETUP){
+                programState = CAPTURE;
+            }
             break;
         case 49:
             displayState = COLOR;
