@@ -67,17 +67,6 @@ void Scan3dApp::setup(){
 
     settingTopSection = false;
     settingBottomSection = false;
-
-    CvPoint * points=(CvPoint*)malloc( 4 * sizeof(points[0]));
-
-    points[0].x = 5; points[0].y = 0; 
-    points[1].x = 6; points[1].y = 1; 
-    points[2].x = 7; points[2].y = 2; 
-    points[3].x = 8; points[3].y = 3; 
-
-    /**
-    
-    **/
 }
 
 //--------------------------------------------------------------
