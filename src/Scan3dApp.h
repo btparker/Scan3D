@@ -7,6 +7,7 @@
 #include "ofxLine.h"
 
 enum {SETUP, CAPTURE, PROCESSING,RECONSTRUCTION,VISUALIZATION};
+enum {SETUP_TOP_SECTION, SETUP_BOTTOM_SECTION, SETUP_T_TL, SETUP_T_TR, SETUP_T_BL, SETUP_T_BR, SETUP_B_TL, SETUP_B_TR, SETUP_B_BL, SETUP_B_BR, WAITING};
 enum { COLOR, GRAYSCALE, MINIMAGE, MAXIMAGE, SHADOWTHRESHIMAGE, DIFF, THRESH, EDGE, CORNER};
 enum { UP, DOWN, LEFT, RIGHT, VERTICAL, HORIZONTAL, BOTH};
 enum {VIDEO,IMAGE_SEQUENCE,NONE};
@@ -32,8 +33,10 @@ class Scan3dApp : public ofBaseApp{
 		void dragEvent(ofDragInfo dragInfo);
 		void gotMessage(ofMessage msg);
 		void drawSectionRectangles();
+		void drawMarkerPoints();
 		ofxLine computeLineFromZeroCrossings(ofxCvGrayscaleImage img, ofRectangle roi);
 		bool isPointInRegion(ofPoint pt, ofRectangle roi);
+		ofPoint getNearestCorner(ofxCvGrayscaleImage img, int windowSize, int x, int y);
 
 		ofVideoPlayer vid;
 
@@ -52,6 +55,7 @@ class Scan3dApp : public ofBaseApp{
 
         int displayState;
         int programState;
+        int programSubState;
         int inputType;
 
         int width,height;

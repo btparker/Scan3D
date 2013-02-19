@@ -1,11 +1,9 @@
 #include "Scan3dApp.h"
+using namespace cv;
 
 //--------------------------------------------------------------
 void Scan3dApp::setup(){
     loadSettings();
-
-
-    
 
     messageBarText = "";
     messageBarSubText = "";
@@ -85,6 +83,7 @@ void Scan3dApp::setup(){
     settingBottomSection = false;
 
     columnIndices.resize(height);
+
 }
 
 //--------------------------------------------------------------
@@ -118,39 +117,43 @@ void Scan3dApp::loadSettings(){
 
 				settings.pushTag("verticalPlane");
                     settings.pushTag("section");
-                        topSection.x = settings.getValue("x",0.0);
-                        topSection.y = settings.getValue("y",0.0);
-                        topSection.width = settings.getValue("width",0.0);
-                        topSection.height = settings.getValue("height",0.0);
+                        settings.pushTag("pixelpts");
+                            topSection.x = settings.getValue("x",0.0);
+                            topSection.y = settings.getValue("y",0.0);
+                            topSection.width = settings.getValue("width",0.0);
+                            topSection.height = settings.getValue("height",0.0);
+                        settings.popTag();
                     settings.popTag(); // pop section
 					cout << "   Loaded vertical plane points as [TL,TR,BR,BL]:"<< endl;
-					settings.pushTag("pts");
-
-					for(int i = 0; i < 4; i++){
-					    verticalPlanePts[i].set(settings.getValue("x",0.0),settings.getValue("y",0.0));
-					    cout << "      [" << verticalPlanePts[i].x << ", " << verticalPlanePts[i].y << "]" << endl;
-					}
-
-					settings.popTag(); // pop pts
+                    for(int i = 0; i < 4; i++){
+                        settings.pushTag("marker"+ofToString(i));
+        					settings.pushTag("pixelpt");
+        					    verticalPlanePts[i].set(settings.getValue("x",0.0),settings.getValue("y",0.0));
+        					    cout << "      [" << verticalPlanePts[i].x << ", " << verticalPlanePts[i].y << "]" << endl;
+        					settings.popTag(); // pop pts
+                        settings.popTag(); // pop markers
+                    }
 				settings.popTag(); // pop verticalPlane
 
 				settings.pushTag("horizontalPlane");
                     settings.pushTag("section");
-                        bottomSection.x = settings.getValue("x",0.0);
-                        bottomSection.y = settings.getValue("y",0.0);
-                        bottomSection.width = settings.getValue("width",0.0);
-                        bottomSection.height = settings.getValue("height",0.0);
+                        settings.pushTag("pixelpts");
+                            bottomSection.x = settings.getValue("x",0.0);
+                            bottomSection.y = settings.getValue("y",0.0);
+                            bottomSection.width = settings.getValue("width",0.0);
+                            bottomSection.height = settings.getValue("height",0.0);
+                        settings.popTag();
                     settings.popTag(); // pop section
 					cout << "   Loaded horizontal plane points as [TL,TR,BR,BL]:"<< endl;
-					settings.pushTag("pts");
-
-					for(int i = 0; i < 4; i++){
-					    horizontalPlanePts[i].set(settings.getValue("x",0.0),settings.getValue("y",0.0));
-					    cout << "      [" << horizontalPlanePts[i].x << ", " << horizontalPlanePts[i].y << "]" << endl;
-					}
-					
-					settings.popTag(); // pop pts
- 				settings.popTag(); // pop horizontalPlane
+                    for(int i = 0; i < 4; i++){
+    					settings.pushTag("marker"+ofToString(i));
+                            settings.pushTag("pixelpt");
+        					    horizontalPlanePts[i].set(settings.getValue("x",0.0),settings.getValue("y",0.0));
+        					    cout << "      [" << horizontalPlanePts[i].x << ", " << horizontalPlanePts[i].y << "]" << endl;
+    					   settings.popTag(); // pop pts
+                        settings.popTag(); // pop markers
+                    }   
+                settings.popTag(); // pop verticalPlane
 
 			settings.popTag(); // pop scene
 
@@ -193,41 +196,50 @@ void Scan3dApp::saveSettings(){
             settings.pushTag("verticalPlane");
                 settings.addTag("section");
                 settings.pushTag("section");
-                    settings.setValue("x",topSection.x);
-                    settings.setValue("y",topSection.y);
-                    settings.setValue("width",topSection.width);
-                    settings.setValue("height",topSection.height);
+                    settings.addTag("pixelpts");
+                    settings.pushTag("pixelpts");
+                        settings.setValue("x",topSection.x);
+                        settings.setValue("y",topSection.y);
+                        settings.setValue("width",topSection.width);
+                        settings.setValue("height",topSection.height);
+                    settings.popTag(); // pop pixelpts
                 settings.popTag(); // pop section
                 cout << "   Setting vertical plane points as [TL,TR,BR,BL]:"<< endl;
-
-                settings.addTag("pts");
-                settings.pushTag("pts");
-
                 for(int i = 0; i < 4; i++){
-                    settings.setValue("x",verticalPlanePts[i].x); settings.setValue("y",verticalPlanePts[i].y);
-                    cout << "      [" << verticalPlanePts[i].x << ", " << verticalPlanePts[i].y << "]" << endl;
+                    settings.addTag("marker"+ofToString(i));
+                    settings.pushTag("marker"+ofToString(i));
+                        settings.addTag("pixelpt");
+                        settings.pushTag("pixelpt");
+                            settings.setValue("x",verticalPlanePts[i].x); settings.setValue("y",verticalPlanePts[i].y);
+                            cout << "      [" << verticalPlanePts[i].x << ", " << verticalPlanePts[i].y << "]" << endl;
+                        settings.popTag(); // pop pixelpts
+                    settings.popTag(); // pop markers
                 }
-
-                settings.popTag(); // pop pts
             settings.popTag(); // pop verticalPlane
 
             settings.addTag("horizontalPlane");
             settings.pushTag("horizontalPlane");
                 settings.addTag("section");
                 settings.pushTag("section");
-                    settings.setValue("x",bottomSection.x);
-                    settings.setValue("y",bottomSection.y);
-                    settings.setValue("width",bottomSection.width);
-                    settings.setValue("height",bottomSection.height);
+                    settings.addTag("pixelpts");
+                    settings.pushTag("pixelpts");
+                        settings.setValue("x",bottomSection.x);
+                        settings.setValue("y",bottomSection.y);
+                        settings.setValue("width",bottomSection.width);
+                        settings.setValue("height",bottomSection.height);
+                    settings.popTag(); // pop pixelpts
                 settings.popTag(); // pop section
                 cout << "   Setting horizontal plane points as [TL,TR,BR,BL]:"<< endl;
-                settings.addTag("pts");
-                settings.pushTag("pts");
                 for(int i = 0; i < 4; i++){
-                    settings.setValue("x",horizontalPlanePts[i].x); settings.setValue("y",horizontalPlanePts[i].y);
-                    cout << "      [" << horizontalPlanePts[i].x << ", " << horizontalPlanePts[i].y << "]" << endl;
+                    settings.addTag("marker"+ofToString(i));
+                    settings.pushTag("marker"+ofToString(i));
+                        settings.addTag("pixelpt");
+                        settings.pushTag("pixelpt");
+                            settings.setValue("x",horizontalPlanePts[i].x); settings.setValue("y",horizontalPlanePts[i].y);
+                            cout << "      [" << horizontalPlanePts[i].x << ", " << horizontalPlanePts[i].y << "]" << endl;
+                        settings.popTag(); // pop pixelpt
+                    settings.popTag(); // pop marker
                 }
-                settings.popTag(); // pop pts
             settings.popTag(); // pop horizontalPlane
 
         settings.popTag(); // pop scene
@@ -244,16 +256,42 @@ void Scan3dApp::update(){
         case SETUP:
         {
             messageBarText = "SETUP";
-            if(topSection.width == 0 || settingTopSection){
-                
-                messageBarSubText = "Click and drag top rectangle";
+            switch(programSubState){
+                case SETUP_TOP_SECTION:
+                    messageBarSubText = "Click and drag top rectangle";
+                    break;
+                case  SETUP_BOTTOM_SECTION:
+                    messageBarSubText = "Click and drag bottom rectangle";
+                    break;
+                case  SETUP_T_TL:
+                    messageBarSubText = "Click to select the top left marker on the vertical backplane";
+                    break;
+                case  SETUP_T_TR:
+                    messageBarSubText = "Click to select the top right marker on the vertical backplane";
+                    break;
+                case  SETUP_T_BR:
+                    messageBarSubText = "Click to select the bottom right marker on the vertical backplane";
+                    break;
+                case  SETUP_T_BL:
+                    messageBarSubText = "Click to select the bottom left marker on the vertical backplane";
+                    break;
+                case  SETUP_B_TL:
+                    messageBarSubText = "Click to select the top left marker on the horizontal backplane";
+                    break;
+                case  SETUP_B_TR:
+                    messageBarSubText = "Click to select the top right marker on the horizontal backplane";
+                    break;
+                case  SETUP_B_BL:
+                    messageBarSubText = "Click to select the bottom right marker on the horizontal backplane";
+                    break;
+                case SETUP_B_BR:
+                    messageBarSubText = "Click to select the bottom left marker on the horizontal backplane";
+                    break;
+                case WAITING:
+                    messageBarSubText = "Press spacebar to commence scanning";
+                    break;
             }
-            else if(bottomSection.width == 0 || settingBottomSection){
-                messageBarSubText = "Click and drag bottom rectangle";
-            }
-            else{
-                messageBarSubText = "Press spacebar to commence scanning";
-            }
+
             frameIndex = 0;
             switch(inputType){
                 case VIDEO:
@@ -524,25 +562,23 @@ void Scan3dApp::draw(){
             maxImg.draw(0, 0);
             break;
         case SHADOWTHRESHIMAGE:
-            shadowThreshImg.draw(0, 0);
+            temporalImg.draw(0, 0);
             break;
     }
 
     switch(programState){
         case SETUP:
-            ofSetLineWidth(2);
-            ofNoFill();
             drawSectionRectangles();
+            drawMarkerPoints();
             break;
         case CAPTURE:
-            ofSetLineWidth(2);
-            ofNoFill();
             drawSectionRectangles();
+            drawMarkerPoints();
             break; 
         case PROCESSING:
-            ofSetLineWidth(2);
-            ofNoFill();
+            
             drawSectionRectangles();
+            drawMarkerPoints();
 
             fullSection.x = 0;
             fullSection.y = 0;
@@ -570,14 +606,10 @@ void Scan3dApp::draw(){
             
             break;
     }
-    /*
-    ofSetColor(0,255,0);
-    ofSetLineWidth(1);
-    ofPoint pt = bottomLine.intersection(topLine);
-    testLine.set(1,0,pt.x,pt.y);
-    testLine.drawLineInRegion(fullSection);
-    */
 }
+
+
+
 
 
 //--------------------------------------------------------------
@@ -589,7 +621,10 @@ void Scan3dApp::draw(){
     @returns bool
 */
 bool Scan3dApp::isPointInRegion(ofPoint pt, ofRectangle roi){
-    return pt.x >= roi.x && pt.x <= (roi.x + roi.width) && pt.y >= roi.y && pt.y <= (roi.y + roi.height);
+    return  pt.x >= roi.x && 
+            pt.x <= (roi.x + roi.width) && 
+            pt.y >= roi.y && 
+            pt.y <= (roi.y + roi.height);
 }
 
 
@@ -598,6 +633,8 @@ bool Scan3dApp::isPointInRegion(ofPoint pt, ofRectangle roi){
     Draws the section rectangles as a color overlay
 */
 void Scan3dApp::drawSectionRectangles(){
+    ofSetLineWidth(2);
+    ofNoFill();
     ofEnableAlphaBlending();
     ofSetColor(topSectionColor);
     ofRect(topSection);
@@ -606,6 +643,29 @@ void Scan3dApp::drawSectionRectangles(){
     ofRect(bottomSection);
 
     ofDisableAlphaBlending();
+}
+
+//--------------------------------------------------------------
+/**
+    Draws the marker points
+*/
+void Scan3dApp::drawMarkerPoints(){
+    
+    ofSetColor(topSectionColor);
+    ofSetLineWidth(1);
+    for(int i = 0; i < 4; i++){
+        ofLine(verticalPlanePts[i].x-15,verticalPlanePts[i].y,verticalPlanePts[i].x+15,verticalPlanePts[i].y);
+        ofLine(verticalPlanePts[i].x,verticalPlanePts[i].y-15,verticalPlanePts[i].x,verticalPlanePts[i].y+15);
+    }
+
+    ofSetColor(bottomSectionColor);
+    ofSetLineWidth(1);
+    for(int i = 0; i < 4; i++){
+        ofLine(horizontalPlanePts[i].x-15,horizontalPlanePts[i].y,horizontalPlanePts[i].x+15,horizontalPlanePts[i].y);
+        ofLine(horizontalPlanePts[i].x,horizontalPlanePts[i].y-15,horizontalPlanePts[i].x,horizontalPlanePts[i].y+15);
+    }
+
+    
 }
 
 //--------------------------------------------------------------
@@ -657,6 +717,34 @@ ofxLine Scan3dApp::computeLineFromZeroCrossings(ofxCvGrayscaleImage img, ofRecta
     return line;
 }
 
+
+//--------------------------------------------------------------
+/**
+    
+
+    @param img 
+    @param windowSize
+    @param x 
+    @param y 
+    @returns ofPoint
+*/
+ofPoint Scan3dApp::getNearestCorner(ofxCvGrayscaleImage img, int windowSize, int x, int y){
+    Point2f cvPt(x,y);
+    vector<Point2f> cvPts;
+    cvPts.resize(1,cvPt);
+    Size winSize = Size( windowSize, windowSize );
+    Size zeroZone = Size( -1, -1 );
+    Mat imgMat(img.getCvImage());
+    TermCriteria criteria = TermCriteria( CV_TERMCRIT_EPS + CV_TERMCRIT_ITER, 40, 0.001 );
+    cornerSubPix(imgMat, cvPts, winSize, zeroZone, criteria);
+    ofPoint cornerPt;
+    cornerPt.x = cvPts[0].x;
+    cornerPt.y = cvPts[0].y;
+    return cornerPt;
+}
+
+
+
 //--------------------------------------------------------------
 void Scan3dApp::keyPressed(int key){
     switch(key){
@@ -687,7 +775,6 @@ void Scan3dApp::keyPressed(int key){
             std::exit(1);
             break;
     }    
-
 }
 
 //--------------------------------------------------------------
@@ -702,53 +789,94 @@ void Scan3dApp::mouseMoved(int x, int y ){
 
 //--------------------------------------------------------------
 void Scan3dApp::mouseDragged(int x, int y, int button){
-    if(settingTopSection){
-        topSection.setWidth(x-topSection.x);
-        topSection.setHeight(y-topSection.y);
-    }
-    else if(settingBottomSection){
+    if(programState == SETUP){
+        switch(programSubState){
+            case SETUP_TOP_SECTION:
+                topSection.setWidth(x-topSection.x);
+                topSection.setHeight(y-topSection.y);
+                break;
+            case  SETUP_BOTTOM_SECTION:
+                bottomSection.setWidth(x-bottomSection.x);
+                bottomSection.setHeight(y-bottomSection.y);
 
-        bottomSection.setWidth(x-bottomSection.x);
-        bottomSection.setHeight(y-bottomSection.y);
-
-        if(bottomSection.width > topSection.width){
-            bottomSection.width = topSection.width;
+                if(bottomSection.width > topSection.width){
+                    bottomSection.width = topSection.width;
+                }
+                break;
         }
     }
 }
 
 //--------------------------------------------------------------
 void Scan3dApp::mousePressed(int x, int y, int button){
-    if(topSection.width == 0){
-        topSection.setPosition(x,y);
-        settingTopSection = true;
-    }
-    else if(bottomSection.width == 0){
-        if(x < topSection.x){
-            bottomSection.setPosition(topSection.x,y);
+     if(programState == SETUP){
+        switch(programSubState){
+            case SETUP_TOP_SECTION:
+                topSection.setPosition(x,y);
+                break;
+            case  SETUP_BOTTOM_SECTION:
+                if(x < topSection.x){
+                    bottomSection.setPosition(topSection.x,y);
+                }
+                else if(x > (topSection.x+topSection.width)){
+                    bottomSection.setPosition((topSection.x+topSection.width),y);
+                }
+                else{
+                    int tx = x - topSection.x;
+                    topSection.x = x;
+                    topSection.width -= tx;
+                    bottomSection.setPosition(x,y);     
+                }
+                break;
         }
-        else if(x > (topSection.x+topSection.width)){
-            bottomSection.setPosition((topSection.x+topSection.width),y);
-        }
-        else{
-            int tx = x - topSection.x;
-            topSection.x = x;
-            topSection.width -= tx;
-            bottomSection.setPosition(x,y);     
-        }
-        
-        settingTopSection = false;
-        settingBottomSection = true;
     }
 }
 
 //--------------------------------------------------------------
 void Scan3dApp::mouseReleased(int x, int y, int button){
-    if(topSection.width > bottomSection.width && bottomSection.width > 0){
-        topSection.width = bottomSection.width;
+    if(programState == SETUP){
+        switch(programSubState){
+            case SETUP_TOP_SECTION:
+                programSubState = SETUP_BOTTOM_SECTION;
+                break;
+            case  SETUP_BOTTOM_SECTION:
+                topSection.width = bottomSection.width;
+                programSubState = SETUP_T_TL;
+                break;
+            case  SETUP_T_TL:                
+                verticalPlanePts[0] = getNearestCorner(grayscaleFrame,10,x,y);
+                programSubState = SETUP_T_TR;
+                break;
+            case  SETUP_T_TR:
+                verticalPlanePts[1] = getNearestCorner(grayscaleFrame,10,x,y);
+                programSubState = SETUP_T_BR;
+                break;
+            case  SETUP_T_BR:
+                verticalPlanePts[2] = getNearestCorner(grayscaleFrame,10,x,y);
+                programSubState = SETUP_T_BL;
+                break;
+            case  SETUP_T_BL:
+                verticalPlanePts[3] = getNearestCorner(grayscaleFrame,10,x,y);
+                programSubState = SETUP_B_TL;
+                break;
+            case  SETUP_B_TL:
+                horizontalPlanePts[0] = getNearestCorner(grayscaleFrame,10,x,y);
+                programSubState = SETUP_B_TR;
+                break;
+            case  SETUP_B_TR:
+                horizontalPlanePts[1] = getNearestCorner(grayscaleFrame,10,x,y);
+                programSubState = SETUP_B_BL;
+                break;
+            case  SETUP_B_BL:
+                horizontalPlanePts[2] = getNearestCorner(grayscaleFrame,10,x,y);
+                programSubState = SETUP_B_BR;
+                break;
+            case SETUP_B_BR:
+                horizontalPlanePts[3] = getNearestCorner(grayscaleFrame,10,x,y);
+                programSubState = WAITING;
+                break;       
+        }
     }
-    settingTopSection = false;
-    settingBottomSection = false;
 }
 
 //--------------------------------------------------------------

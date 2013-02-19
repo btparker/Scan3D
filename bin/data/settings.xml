@@ -1,32 +1,76 @@
 <settings>
     <input>
         <type>IMAGE_SEQUENCE</type>
-        <src>monkey_scan</src>
+        <src>/home/btparker/Dropbox/Projects/Active/3D Scanning/oF/apps/myApps/Scan3D/bin/data/monkey_scan</src>
     </input>
     <scene>
         <verticalPlane>
             <section>
-                <x>15.000000000</x>
-                <y>5.000000000</y>
-                <width>1250.000000000</width>
-                <height>120.000000000</height>
+                <pixelpts>
+                    <x>87.000000000</x>
+                    <y>12.000000000</y>
+                    <width>1102.000000000</width>
+                    <height>85.000000000</height>
+                </pixelpts>
             </section>
-            <pts>
-                <x>0.000000000</x>
-                <y>0.000000000</y>
-            </pts>
+            <marker0>
+                <pixelpt>
+                    <x>461.072662354</x>
+                    <y>139.259521484</y>
+                </pixelpt>
+            </marker0>
+            <marker1>
+                <pixelpt>
+                    <x>833.136596680</x>
+                    <y>139.285751343</y>
+                </pixelpt>
+            </marker1>
+            <marker2>
+                <pixelpt>
+                    <x>817.385253906</x>
+                    <y>354.364074707</y>
+                </pixelpt>
+            </marker2>
+            <marker3>
+                <pixelpt>
+                    <x>475.665802002</x>
+                    <y>354.394897461</y>
+                </pixelpt>
+            </marker3>
         </verticalPlane>
         <horizontalPlane>
             <section>
-                <x>15.000000000</x>
-                <y>599.000000000</y>
-                <width>1250.000000000</width>
-                <height>112.000000000</height>
+                <pixelpts>
+                    <x>87.000000000</x>
+                    <y>618.000000000</y>
+                    <width>1102.000000000</width>
+                    <height>92.000000000</height>
+                </pixelpts>
             </section>
-            <pts>
-                <x>0.000000000</x>
-                <y>0.000000000</y>
-            </pts>
+            <marker0>
+                <pixelpt>
+                    <x>473.037780762</x>
+                    <y>433.448791504</y>
+                </pixelpt>
+            </marker0>
+            <marker1>
+                <pixelpt>
+                    <x>819.899108887</x>
+                    <y>433.405151367</y>
+                </pixelpt>
+            </marker1>
+            <marker2>
+                <pixelpt>
+                    <x>850.093750000</x>
+                    <y>580.665100098</y>
+                </pixelpt>
+            </marker2>
+            <marker3>
+                <pixelpt>
+                    <x>445.338867188</x>
+                    <y>580.671264648</y>
+                </pixelpt>
+            </marker3>
         </horizontalPlane>
     </scene>
 </settings>
