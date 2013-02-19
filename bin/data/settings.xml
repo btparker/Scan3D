@@ -7,16 +7,16 @@
         <verticalPlane>
             <section>
                 <pixelpts>
-                    <x>87.000000000</x>
-                    <y>12.000000000</y>
-                    <width>1102.000000000</width>
-                    <height>85.000000000</height>
+                    <x>76.000000000</x>
+                    <y>21.000000000</y>
+                    <width>1115.000000000</width>
+                    <height>99.000000000</height>
                 </pixelpts>
             </section>
             <marker0>
                 <pixelpt>
-                    <x>461.072662354</x>
-                    <y>139.259521484</y>
+                    <x>461.072631836</x>
+                    <y>139.259536743</y>
                 </pixelpt>
             </marker0>
             <marker1>
@@ -27,47 +27,47 @@
             </marker1>
             <marker2>
                 <pixelpt>
-                    <x>817.385253906</x>
-                    <y>354.364074707</y>
+                    <x>817.385192871</x>
+                    <y>354.364410400</y>
                 </pixelpt>
             </marker2>
             <marker3>
                 <pixelpt>
-                    <x>475.665802002</x>
-                    <y>354.394897461</y>
+                    <x>475.661743164</x>
+                    <y>354.353454590</y>
                 </pixelpt>
             </marker3>
         </verticalPlane>
         <horizontalPlane>
             <section>
                 <pixelpts>
-                    <x>87.000000000</x>
-                    <y>618.000000000</y>
-                    <width>1102.000000000</width>
-                    <height>92.000000000</height>
+                    <x>76.000000000</x>
+                    <y>617.000000000</y>
+                    <width>1115.000000000</width>
+                    <height>70.000000000</height>
                 </pixelpts>
             </section>
             <marker0>
                 <pixelpt>
-                    <x>473.037780762</x>
-                    <y>433.448791504</y>
+                    <x>473.037445068</x>
+                    <y>433.448822021</y>
                 </pixelpt>
             </marker0>
             <marker1>
                 <pixelpt>
-                    <x>819.899108887</x>
+                    <x>819.899047852</x>
                     <y>433.405151367</y>
                 </pixelpt>
             </marker1>
             <marker2>
                 <pixelpt>
-                    <x>850.093750000</x>
-                    <y>580.665100098</y>
+                    <x>850.093933105</x>
+                    <y>580.665222168</y>
                 </pixelpt>
             </marker2>
             <marker3>
                 <pixelpt>
-                    <x>445.338867188</x>
+                    <x>445.338836670</x>
                     <y>580.671264648</y>
                 </pixelpt>
             </marker3>

@@ -23,6 +23,7 @@ class Scan3dApp : public ofBaseApp{
 
 		void loadSettings();
 		void saveSettings();
+		void clearSettings();
 		void keyPressed  (int key);
 		void keyReleased(int key);
 		void mouseMoved(int x, int y );

@@ -116,7 +116,11 @@ void Scan3dApp::loadSettings(){
 			settings.pushTag("scene");
 
 				settings.pushTag("verticalPlane");
+
                     settings.pushTag("section");
+                        if(settings.tagExists("pixelpts")){
+                            programSubState = SETUP_BOTTOM_SECTION;
+                        }
                         settings.pushTag("pixelpts");
                             topSection.x = settings.getValue("x",0.0);
                             topSection.y = settings.getValue("y",0.0);
@@ -125,8 +129,12 @@ void Scan3dApp::loadSettings(){
                         settings.popTag();
                     settings.popTag(); // pop section
 					cout << "   Loaded vertical plane points as [TL,TR,BR,BL]:"<< endl;
+
                     for(int i = 0; i < 4; i++){
                         settings.pushTag("marker"+ofToString(i));
+                            if(settings.tagExists("pixelpt")){
+                                programSubState = SETUP_B_TL;
+                            }
         					settings.pushTag("pixelpt");
         					    verticalPlanePts[i].set(settings.getValue("x",0.0),settings.getValue("y",0.0));
         					    cout << "      [" << verticalPlanePts[i].x << ", " << verticalPlanePts[i].y << "]" << endl;
@@ -137,6 +145,9 @@ void Scan3dApp::loadSettings(){
 
 				settings.pushTag("horizontalPlane");
                     settings.pushTag("section");
+                        if(settings.tagExists("pixelpts")){
+                            programSubState = SETUP_T_TL;
+                        }
                         settings.pushTag("pixelpts");
                             bottomSection.x = settings.getValue("x",0.0);
                             bottomSection.y = settings.getValue("y",0.0);
@@ -147,6 +158,9 @@ void Scan3dApp::loadSettings(){
 					cout << "   Loaded horizontal plane points as [TL,TR,BR,BL]:"<< endl;
                     for(int i = 0; i < 4; i++){
     					settings.pushTag("marker"+ofToString(i));
+                            if(settings.tagExists("pixelpt")){
+                                programSubState = WAITING;
+                            }
                             settings.pushTag("pixelpt");
         					    horizontalPlanePts[i].set(settings.getValue("x",0.0),settings.getValue("y",0.0));
         					    cout << "      [" << horizontalPlanePts[i].x << ", " << horizontalPlanePts[i].y << "]" << endl;
@@ -250,6 +264,20 @@ void Scan3dApp::saveSettings(){
 }
 
 //--------------------------------------------------------------
+void Scan3dApp::clearSettings(){
+   topSection.set(0,0,0,0);
+   bottomSection.set(0,0,0,0);
+   for(int i = 0; i < 4; i++){
+        verticalPlanePts[i].x = 0;
+        verticalPlanePts[i].y = 0;
+        horizontalPlanePts[i].x = 0;
+        horizontalPlanePts[i].y = 0;
+    }
+    programState = SETUP;
+    programSubState = SETUP_TOP_SECTION;
+}
+
+//--------------------------------------------------------------
 void Scan3dApp::update(){
     switch(programState){
 
@@ -258,37 +286,37 @@ void Scan3dApp::update(){
             messageBarText = "SETUP";
             switch(programSubState){
                 case SETUP_TOP_SECTION:
-                    messageBarSubText = "Click and drag top rectangle";
+                    messageBarSubText = "Click and drag top rectangle (or press c to clear settings and start over)";
                     break;
                 case  SETUP_BOTTOM_SECTION:
-                    messageBarSubText = "Click and drag bottom rectangle";
+                    messageBarSubText = "Click and drag bottom rectangle (or press c to clear settings and start over)";
                     break;
                 case  SETUP_T_TL:
-                    messageBarSubText = "Click to select the top left marker on the vertical backplane";
+                    messageBarSubText = "Click to select the top left marker on the vertical backplane (or press c to clear settings and start over)";
                     break;
                 case  SETUP_T_TR:
-                    messageBarSubText = "Click to select the top right marker on the vertical backplane";
+                    messageBarSubText = "Click to select the top right marker on the vertical backplane (or press c to clear settings and start over)";
                     break;
                 case  SETUP_T_BR:
-                    messageBarSubText = "Click to select the bottom right marker on the vertical backplane";
+                    messageBarSubText = "Click to select the bottom right marker on the vertical backplane (or press c to clear settings and start over)";
                     break;
                 case  SETUP_T_BL:
-                    messageBarSubText = "Click to select the bottom left marker on the vertical backplane";
+                    messageBarSubText = "Click to select the bottom left marker on the vertical backplane (or press c to clear settings and start over)";
                     break;
                 case  SETUP_B_TL:
-                    messageBarSubText = "Click to select the top left marker on the horizontal backplane";
+                    messageBarSubText = "Click to select the top left marker on the horizontal backplane (or press c to clear settings and start over)";
                     break;
                 case  SETUP_B_TR:
-                    messageBarSubText = "Click to select the top right marker on the horizontal backplane";
+                    messageBarSubText = "Click to select the top right marker on the horizontal backplane (or press c to clear settings and start over)";
                     break;
                 case  SETUP_B_BL:
-                    messageBarSubText = "Click to select the bottom right marker on the horizontal backplane";
+                    messageBarSubText = "Click to select the bottom right marker on the horizontal backplane (or press c to clear settings and start over)";
                     break;
                 case SETUP_B_BR:
-                    messageBarSubText = "Click to select the bottom left marker on the horizontal backplane";
+                    messageBarSubText = "Click to select the bottom left marker on the horizontal backplane (or press c to clear settings and start over)";
                     break;
                 case WAITING:
-                    messageBarSubText = "Press spacebar to commence scanning";
+                    messageBarSubText = "Press spacebar to commence scanning (or press c to clear settings and start over)";                    
                     break;
             }
 
@@ -773,6 +801,11 @@ void Scan3dApp::keyPressed(int key){
             break;
         case 'q':
             std::exit(1);
+            break;
+        case 'c':
+            if(programState == SETUP){
+                clearSettings();    
+            }
             break;
     }    
 }
