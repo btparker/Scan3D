@@ -6,7 +6,7 @@
 #include "cv.h"
 #include "ofxLine.h"
 
-enum {SETUP, CAPTURE, PROCESSING,RECONSTRUCTION,VISUALIZATION};
+enum {CAMERA_CALIBRATION, SETUP, CAPTURE, PROCESSING,RECONSTRUCTION,VISUALIZATION};
 
 
 enum Setup{TOP_SECTION, BOTTOM_SECTION, T_TL, T_TR, T_BL, T_BR, B_TL, B_TR, B_BL, B_BR, WAITING};
@@ -26,14 +26,16 @@ class Scan3dApp : public ofBaseApp{
 	public:
 		void setup();
 		void update();
+		void camCalUpdate();
 		void setupUpdate();
 		void captureUpdate();
 		void processingUpdate();
 		void visualizationUpdate();
 
 		void draw();
-		void captureDraw();
+		void camCalDraw();
 		void setupDraw();
+		void captureDraw();
 		void processingDraw();
 		void visualizationDraw();
 
@@ -73,7 +75,7 @@ class Scan3dApp : public ofBaseApp{
         int displayState;
         int programState;
         int setupSubState;
-        int camCalSubState;
+        int camCalSubstate;
         int inputType;
 
         int width,height;
@@ -123,6 +125,30 @@ class Scan3dApp : public ofBaseApp{
 		vector<int> columnIndices;
 
 		ofDirectory dir;
+
+		// Calibration Variables (Adapted for use from Learning OpenCV Computer Vision with the OpenCV Library)
+
+		ofDirectory camCalDir;
+
+		int camCalFrame;
+		int boardXCount, boardYCount;
+		int numBoards;
+		int boardPatternSize;
+		float boardSquareSize; //in mm
+		int successes;
+		CvSize boardNumInternalCornersCV;
+
+		CvMat* image_points;
+		CvMat* object_points;
+		CvMat* point_counts;
+		CvMat* intrinsic_matrix;
+		CvMat* distortion_coeffs;
+
+		CvPoint2D32f* corners;
+		int corner_count;
+
+
+
 
         
 };

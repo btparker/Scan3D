@@ -20,7 +20,7 @@ void Scan3dApp::setup(){
     messageBarSubTextFont.loadFont("HelveticaNeueLTStd-Lt.otf", 15);
 
     //Setting and notifying states
-    programState = SETUP;
+    //programState = SETUP;
     cout << "SETUP STATE (press SPACE to continue)" << endl;
     displayState = COLOR;
 
@@ -88,6 +88,24 @@ void Scan3dApp::setup(){
 
     columnIndices.resize(height);
 
+    frameIndex = 0;
+
+    // Calibration Variables (Adapted for use from Learning OpenCV Computer Vision with the OpenCV Library)
+    camCalFrame = 0;
+    boardXCount = 9;
+    boardYCount = 7;
+    numBoards = camCalDir.numFiles();
+    successes = 0;
+    boardPatternSize = (boardXCount-1) * (boardYCount-1);
+    boardSquareSize = 30.0; // in mm
+    boardNumInternalCornersCV = cvSize( boardXCount-1, boardYCount-1 );
+
+    image_points = cvCreateMat(numBoards*boardPatternSize,2,CV_32FC1);
+    object_points = cvCreateMat(numBoards*boardPatternSize,3,CV_32FC1);
+    point_counts = cvCreateMat(numBoards,1,CV_32SC1);
+    intrinsic_matrix = cvCreateMat(3,3,CV_32FC1);
+    distortion_coeffs = cvCreateMat(5,1,CV_32FC1);
+    corners = new CvPoint2D32f[ boardPatternSize ];
 }
 
 //--------------------------------------------------------------
@@ -118,6 +136,24 @@ void Scan3dApp::loadSettings(){
 
     			
                 settings.popTag(); //pop input
+                settings.pushTag("calibration");
+                    settings.pushTag("intrinsiccam");
+                        camCalDir = ofDirectory(settings.getValue("src",""));
+                        if(settings.tagExists("file")){
+                            //load the distortion matrix
+                            programState = SETUP;
+                        }
+                        else{
+                            camCalDir.listDir();
+                            camCalDir.sort();
+
+                            cout << "   Using camera calibration sequence folder: " << camCalDir.path() << endl;
+                            programState = CAMERA_CALIBRATION;
+                            camCalSubstate = TL;
+
+                        }
+                    settings.popTag();
+                settings.popTag();
                 settings.pushTag("misc");
                     zeroCrossingThreshold = settings.getValue("zeroCrossingThreshold", 20);
                 settings.popTag();// pop misc
@@ -218,6 +254,13 @@ void Scan3dApp::saveSettings(){
                 }
             
             settings.popTag(); //pop input
+            settings.addTag("calibration");
+            settings.pushTag("calibration");
+                settings.addTag("intrinsiccam");
+                settings.pushTag("intrinsiccam");
+                    settings.setValue("src",camCalDir.path());
+                settings.popTag(); //pop intrinsiccam
+            settings.popTag(); //pop calibration
             settings.addTag("misc");
             settings.pushTag("misc");
                 settings.setValue("zeroCrossingThreshold", zeroCrossingThreshold);
@@ -299,6 +342,9 @@ void Scan3dApp::clearSettings(){
 //--------------------------------------------------------------
 void Scan3dApp::update(){
     switch(programState){
+        case CAMERA_CALIBRATION:
+            camCalUpdate();
+            break;
         case SETUP:
         {
             setupUpdate();
@@ -321,6 +367,119 @@ void Scan3dApp::update(){
         }
 
     }
+}
+void Scan3dApp::camCalUpdate(){
+    messageBarText = "CAMERA CALIBRATION";
+    if(camCalFrame < numBoards){
+        bufferOfImage.loadImage(camCalDir.getPath(camCalFrame));
+        colorFrame.setFromPixels(bufferOfImage.getPixels(),width,height);
+        grayscaleFrame = colorFrame;
+
+        //(Adapted for use from Learning OpenCV Computer Vision with the OpenCV Library)
+        IplImage* image = colorFrame.getCvImage();
+        IplImage* gray_image = grayscaleFrame.getCvImage();
+
+         
+        //Find chessboard corners:
+        int found = cvFindChessboardCorners(
+            image, 
+            boardNumInternalCornersCV, 
+            corners, 
+            &corner_count,
+            CV_CALIB_CB_ADAPTIVE_THRESH | CV_CALIB_CB_FILTER_QUADS
+        );
+
+        
+       
+        //Get Subpixel accuracy on those corners
+
+        cvFindCornerSubPix(
+            gray_image, 
+            corners, 
+            corner_count,
+            cvSize(11,11),
+            cvSize(-1,-1), 
+            cvTermCriteria(
+                CV_TERMCRIT_EPS+CV_TERMCRIT_ITER, 
+                30, 
+                0.1 
+            )
+        );
+        //Draw it
+        cvDrawChessboardCorners(
+            image, 
+            boardNumInternalCornersCV, 
+            corners,
+            corner_count, 
+            found
+        );
+        
+       
+        // If we got a good board, add it to our data
+        if( corner_count == boardPatternSize ) {
+            int step = successes*boardPatternSize;
+            for( int i=step, j=0; j<boardPatternSize; ++i,++j ) {
+                CV_MAT_ELEM(*image_points, float,i,0) = corners[j].x;
+                CV_MAT_ELEM(*image_points, float,i,1) = corners[j].y;
+                CV_MAT_ELEM(*object_points,float,i,0) = j/boardXCount;
+                CV_MAT_ELEM(*object_points,float,i,1) = j%boardXCount;
+                CV_MAT_ELEM(*object_points,float,i,2) = 0.0f;
+            }
+            CV_MAT_ELEM(*point_counts, int,successes,0) = boardPatternSize;
+            successes++;
+        }
+
+        
+
+        colorFrame = image;
+        camCalFrame++;
+    }
+    else if(camCalFrame >= numBoards){
+        //ALLOCATE MATRICES ACCORDING TO HOW MANY CHESSBOARDS FOUND
+        CvMat* object_points2 = cvCreateMat(successes*boardPatternSize,3,CV_32FC1);
+        CvMat* image_points2 = cvCreateMat(successes*boardPatternSize,2,CV_32FC1);
+        CvMat* point_counts2 = cvCreateMat(successes,1,CV_32SC1);
+        //TRANSFER THE POINTS INTO THE CORRECT SIZE MATRICES
+       
+        for(int i = 0; i<successes*boardPatternSize; ++i) {
+            CV_MAT_ELEM( *image_points2, float, i, 0) = CV_MAT_ELEM( *image_points, float, i, 0);
+            CV_MAT_ELEM( *image_points2, float,i,1) = CV_MAT_ELEM( *image_points, float, i, 1);
+            CV_MAT_ELEM(*object_points2, float, i, 0) = CV_MAT_ELEM( *object_points, float, i, 0) ;
+            CV_MAT_ELEM( *object_points2, float, i, 1) = CV_MAT_ELEM( *object_points, float, i, 1) ;
+            CV_MAT_ELEM( *object_points2, float, i, 2) = CV_MAT_ELEM( *object_points, float, i, 2) ;
+        }
+        for(int i=0; i<successes; ++i){ //These are all the same number
+            CV_MAT_ELEM( *point_counts2, int, i, 0) = CV_MAT_ELEM( *point_counts, int, i, 0);
+        }
+        cvReleaseMat(&object_points);
+        cvReleaseMat(&image_points);
+        cvReleaseMat(&point_counts);
+        // At this point we have all of the chessboard corners we need.
+        // Initialize the intrinsic matrix such that the two focal
+        // lengths have a ratio of 1.0
+        //
+        CV_MAT_ELEM( *intrinsic_matrix, float, 0, 0 ) = 1.0f;
+        CV_MAT_ELEM( *intrinsic_matrix, float, 1, 1 ) = 1.0f;
+        /*
+        
+        //CALIBRATE THE CAMERA!
+        cvCalibrateCamera2(
+        object_points2, image_points2,
+        point_counts2, cvGetSize( image ),
+        intrinsic_matrix, distortion_coeffs,
+        NULL, NULL,0 //CV_CALIB_FIX_ASPECT_RATIO
+        );
+        */
+        // SAVE THE INTRINSICS AND DISTORTIONS
+        cvSave("Intrinsics.xml",intrinsic_matrix);
+        cvSave("Distortion.xml",distortion_coeffs);
+
+        programState = SETUP;
+    }
+    else{
+         programState = SETUP;
+    }
+    
 }
 
 void Scan3dApp::setupUpdate(){
@@ -364,7 +523,7 @@ void Scan3dApp::setupUpdate(){
     /*
         Initializing with first frame (either from image sequence or video)
     */
-    frameIndex = 0;
+    
     switch(inputType){
         case VIDEO:
             vid.firstFrame();
@@ -642,6 +801,10 @@ void Scan3dApp::draw(){
     }
 }
 
+void Scan3dApp::camCalDraw(){
+
+}
+
 void Scan3dApp::setupDraw(){
     drawSectionRectangles();
     drawMarkerPoints();
@@ -820,7 +983,10 @@ ofPoint Scan3dApp::getNearestCorner(ofxCvGrayscaleImage img, int windowSize, int
 void Scan3dApp::keyPressed(int key){
     switch(key){
         case 32: //SPACEBAR
-           if(programState ==  SETUP){
+            if(programState ==  CAMERA_CALIBRATION){
+                programState = SETUP;
+            }
+            else if(programState ==  SETUP){
                 saveSettings();
                 programState = CAPTURE;
             }
@@ -910,6 +1076,15 @@ void Scan3dApp::mousePressed(int x, int y, int button){
 
 //--------------------------------------------------------------
 void Scan3dApp::mouseReleased(int x, int y, int button){
+    /*
+    if(programState == CAMERA_CALIBRATION){
+        switch(camCalSubstate){
+            case  TL: 
+                camCalFrame++;
+                break;
+        }
+    }
+    else */
     if(programState == SETUP){
         switch(setupSubState){
             case TOP_SECTION:
