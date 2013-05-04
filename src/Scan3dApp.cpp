@@ -3,22 +3,26 @@ using namespace cv;
 
 //--------------------------------------------------------------
 void Scan3dApp::setup(){
+    ofBackground(0);
+    ofSetWindowTitle("3D SCAN ALL THE THINGS");
+    ofSetFrameRate(30);
+
+
     loadSettings();
 
+    /*
+        Initializing the text for the bottom message bar
+    */
     messageBarText = "";
     messageBarSubText = "";
     messageBarHeight = 70;
     messageBarFont.loadFont("HelveticaNeueLTStd-Bd.otf", 20);
     messageBarSubTextFont.loadFont("HelveticaNeueLTStd-Lt.otf", 15);
-    
-    programState = SETUP;
 
-    zeroCrossingThreshold = 20;
+    //Setting and notifying states
+    programState = SETUP;
     cout << "SETUP STATE (press SPACE to continue)" << endl;
     displayState = COLOR;
-    ofBackground(0);
-    ofSetWindowTitle("3D SCAN ALL THE THINGS");
-    ofSetFrameRate(30);
 
     switch(inputType){
         case VIDEO:
@@ -95,31 +99,36 @@ void Scan3dApp::loadSettings(){
 	if(settings.loadFile("settings.xml")){
 		cout << "** Loading Settings File **" << endl;
 		settings.pushTag("settings");
+            settings.pushTag("user");
+                settings.pushTag("input");
+                    string input = settings.getValue("type","NONE");
+                    if(input == "VIDEO"){
+                        inputType = VIDEO;
+                        inputVideoFile = settings.getValue("src","");
+                        cout << "   Using video: " << inputVideoFile << endl;
+                    }
+                    else if(input == "IMAGE_SEQUENCE"){
+                        inputType = IMAGE_SEQUENCE;
+                        dir = ofDirectory(settings.getValue("src",""));
+                        dir.listDir();
+                        dir.sort();
 
-            settings.pushTag("input");
-                string input = settings.getValue("type","NONE");
-                if(input == "VIDEO"){
-                    inputType = VIDEO;
-                    inputVideoFile = settings.getValue("src","");
-                    cout << "   Using video: " << inputVideoFile << endl;
-                }
-                else if(input == "IMAGE_SEQUENCE"){
-                    inputType = IMAGE_SEQUENCE;
-                    dir = ofDirectory(settings.getValue("src",""));
-                    dir.listDir();
-                    dir.sort();
+                        cout << "   Using image sequence folder: " << dir.path() << endl;
+                    }
 
-                    cout << "   Using image sequence folder: " << dir.path() << endl;
-                }
-			
-			settings.popTag(); //pop input
+    			
+                settings.popTag(); //pop input
+                settings.pushTag("misc");
+                    zeroCrossingThreshold = settings.getValue("zeroCrossingThreshold", 20);
+                settings.popTag();// pop misc
+            settings.popTag(); // pop user
 			settings.pushTag("scene");
 
 				settings.pushTag("verticalPlane");
 
                     settings.pushTag("section");
                         if(settings.tagExists("pixelpts")){
-                            programSubState = SETUP_BOTTOM_SECTION;
+                            setupSubState = BOTTOM_SECTION;
                         }
                         settings.pushTag("pixelpts");
                             topSection.x = settings.getValue("x",0.0);
@@ -133,7 +142,7 @@ void Scan3dApp::loadSettings(){
                     for(int i = 0; i < 4; i++){
                         settings.pushTag("marker"+ofToString(i));
                             if(settings.tagExists("pixelpt")){
-                                programSubState = SETUP_B_TL;
+                                setupSubState = B_TL;
                             }
         					settings.pushTag("pixelpt");
         					    verticalPlanePts[i].set(settings.getValue("x",0.0),settings.getValue("y",0.0));
@@ -146,7 +155,7 @@ void Scan3dApp::loadSettings(){
 				settings.pushTag("horizontalPlane");
                     settings.pushTag("section");
                         if(settings.tagExists("pixelpts")){
-                            programSubState = SETUP_T_TL;
+                            setupSubState = T_TL;
                         }
                         settings.pushTag("pixelpts");
                             bottomSection.x = settings.getValue("x",0.0);
@@ -159,7 +168,7 @@ void Scan3dApp::loadSettings(){
                     for(int i = 0; i < 4; i++){
     					settings.pushTag("marker"+ofToString(i));
                             if(settings.tagExists("pixelpt")){
-                                programSubState = WAITING;
+                                setupSubState = WAITING;
                             }
                             settings.pushTag("pixelpt");
         					    horizontalPlanePts[i].set(settings.getValue("x",0.0),settings.getValue("y",0.0));
@@ -170,6 +179,7 @@ void Scan3dApp::loadSettings(){
                 settings.popTag(); // pop verticalPlane
 
 			settings.popTag(); // pop scene
+            
 
 		settings.popTag(); // pop settings
 		cout << "** Done Loading Settings **" << endl;
@@ -177,6 +187,8 @@ void Scan3dApp::loadSettings(){
 	else {
 		cout << "No settings file to load." << endl;
 	}
+
+
 }
 
 //--------------------------------------------------------------
@@ -188,22 +200,29 @@ void Scan3dApp::saveSettings(){
     cout << "** Saving Settings File **" << endl;
     settings.addTag("settings");
     settings.pushTag("settings");
-        settings.addTag("input");
-        settings.pushTag("input");
+        settings.addTag("user");
+        settings.pushTag("user");
+            settings.addTag("input");
+            settings.pushTag("input");
+                
+                if(inputType == VIDEO){
+                    settings.setValue("type","VIDEO");
+                    inputVideoFile = settings.setValue("src",inputVideoFile);
+                    cout << "   Set video: " << inputVideoFile << endl;
+                }
+                else if(inputType == IMAGE_SEQUENCE){
+                    settings.setValue("type","IMAGE_SEQUENCE");
+                    inputType = IMAGE_SEQUENCE;
+                    settings.setValue("src",dir.path());
+                    cout << "   Set image sequence folder: " << dir.path() << endl;
+                }
             
-            if(inputType == VIDEO){
-                settings.setValue("type","VIDEO");
-                inputVideoFile = settings.setValue("src",inputVideoFile);
-                cout << "   Set video: " << inputVideoFile << endl;
-            }
-            else if(inputType == IMAGE_SEQUENCE){
-                settings.setValue("type","IMAGE_SEQUENCE");
-                inputType = IMAGE_SEQUENCE;
-                settings.setValue("src",dir.path());
-                cout << "   Set image sequence folder: " << dir.path() << endl;
-            }
-        
-        settings.popTag(); //pop input
+            settings.popTag(); //pop input
+            settings.addTag("misc");
+            settings.pushTag("misc");
+                settings.setValue("zeroCrossingThreshold", zeroCrossingThreshold);
+            settings.popTag();// pop misc
+        settings.popTag(); //pop user
         settings.addTag("scene");
         settings.pushTag("scene");
             settings.addTag("verticalPlane");
@@ -274,301 +293,314 @@ void Scan3dApp::clearSettings(){
         horizontalPlanePts[i].y = 0;
     }
     programState = SETUP;
-    programSubState = SETUP_TOP_SECTION;
+    setupSubState = TOP_SECTION;
 }
 
 //--------------------------------------------------------------
 void Scan3dApp::update(){
     switch(programState){
-
         case SETUP:
         {
-            messageBarText = "SETUP";
-            switch(programSubState){
-                case SETUP_TOP_SECTION:
-                    messageBarSubText = "Click and drag top rectangle (or press c to clear settings and start over)";
-                    break;
-                case  SETUP_BOTTOM_SECTION:
-                    messageBarSubText = "Click and drag bottom rectangle (or press c to clear settings and start over)";
-                    break;
-                case  SETUP_T_TL:
-                    messageBarSubText = "Click to select the top left marker on the vertical backplane (or press c to clear settings and start over)";
-                    break;
-                case  SETUP_T_TR:
-                    messageBarSubText = "Click to select the top right marker on the vertical backplane (or press c to clear settings and start over)";
-                    break;
-                case  SETUP_T_BR:
-                    messageBarSubText = "Click to select the bottom right marker on the vertical backplane (or press c to clear settings and start over)";
-                    break;
-                case  SETUP_T_BL:
-                    messageBarSubText = "Click to select the bottom left marker on the vertical backplane (or press c to clear settings and start over)";
-                    break;
-                case  SETUP_B_TL:
-                    messageBarSubText = "Click to select the top left marker on the horizontal backplane (or press c to clear settings and start over)";
-                    break;
-                case  SETUP_B_TR:
-                    messageBarSubText = "Click to select the top right marker on the horizontal backplane (or press c to clear settings and start over)";
-                    break;
-                case  SETUP_B_BL:
-                    messageBarSubText = "Click to select the bottom right marker on the horizontal backplane (or press c to clear settings and start over)";
-                    break;
-                case SETUP_B_BR:
-                    messageBarSubText = "Click to select the bottom left marker on the horizontal backplane (or press c to clear settings and start over)";
-                    break;
-                case WAITING:
-                    messageBarSubText = "Press spacebar to commence scanning (or press c to clear settings and start over)";                    
-                    break;
-            }
-
-            frameIndex = 0;
-            switch(inputType){
-                case VIDEO:
-                    vid.firstFrame();
-                    vid.update();
-                    if(vid.isFrameNew()){
-                        colorFrame.setFromPixels(vid.getPixels(),vid.getWidth(),vid.getHeight());
-                        grayscaleFrame = colorFrame;
-                    }
-                    break;
-                case IMAGE_SEQUENCE:
-                    bufferOfImage.loadImage(dir.getPath(frameIndex));
-                    colorFrame.setFromPixels(bufferOfImage.getPixels(),width,height);
-                    grayscaleFrame = colorFrame;
-                    break;
-            }
-            //do nothing for now, waiting for spacebar
+            setupUpdate();
             break;
         }
         case CAPTURE:
         {
-            messageBarText = "SCANNING";
-            switch(displayState){
-                case COLOR:
-                    messageBarText += "  (COLOR)";
-                    break;
-                case GRAYSCALE:
-                    messageBarText += "  (GRAYSCALE)";
-                    break;
-                case MINIMAGE:
-                    messageBarText += "  (MIN)";
-                    break;
-                case MAXIMAGE:
-                    messageBarText += "  (MAX)";
-                    break;
-                case SHADOWTHRESHIMAGE:
-                    messageBarText += "  (SHADOW THRESH)";
-                    break;
-            }
-
-            messageBarSubText = "Press [1, 2, 3, 4, 5] for [COLOR, GRAYSCALE, MIN, MAX, SHADOW THRESH] display";
-            
-            switch(inputType){
-                case VIDEO:
-                    vid.update();
-                    if(vid.isFrameNew()){
-                        colorFrame.setFromPixels(vid.getPixels(),vid.getWidth(),vid.getHeight());
-                    }
-                    if(vid.getIsMovieDone()){
-                        colorFrame = maxColorImg;
-                        messageBarText = "PROCESSING";
-                        messageBarSubText = "";
-                        programState = PROCESSING;
-                        cout << "PROCESSING STATE" << endl;
-                        frameIndex = 0;
-                        
-                    }
-                    break;
-                case IMAGE_SEQUENCE:
-                    if(frameIndex < dir.numFiles()){
-                        bufferOfImage.loadImage(dir.getPath(frameIndex));
-                        colorFrame.setFromPixels(bufferOfImage.getPixels(),width,height);
-                    }
-                    else{
-                        colorFrame = maxColorImg;
-                        messageBarText = "PROCESSING";
-                        messageBarSubText = "";
-                        programState = PROCESSING;
-                        cout << "PROCESSING STATE" << endl;
-                        frameIndex = 0;
-                        
-                    }
-                    break;
-
-            }
-
-            //Uncomment to save out color frames
-            // bufferOfImage.setFromPixels(colorFrame.getPixelsRef());
-            // filename = "output/grayscaleFrames/gsframe";
-            // filename += ofToString(frameIndex);
-            // filename += ".tiff";
-            // bufferOfImage.saveImage(filename);
-                
-            grayscaleFrame = colorFrame;
-            if(frameIndex >= frames.capacity()){
-                frames.resize(2*frames.size(),bufferOfxCvGrayscaleImage);
-            }
-        
-            frames[frameIndex] = grayscaleFrame;
-
-            //Uncomment to save out grayscale frames
-            // bufferOfxCvColorImage = grayscaleFrame;
-            // bufferOfImage.setFromPixels(bufferOfxCvColorImage.getPixelsRef());
-            // filename = "output/grayscaleFrames/gsframe";
-            // filename += ofToString(frameIndex);
-            // filename += ".tiff";
-            // bufferOfImage.saveImage(filename);
-
-            //Update min/max images
-            unsigned char* minImgPixels = minImg.getPixels();
-            unsigned char* maxImgPixels = maxImg.getPixels();
-            unsigned char* maxColorImgPixels = maxColorImg.getPixels();
-            unsigned char* grayscaleFramePixels = grayscaleFrame.getPixels();
-            unsigned char* colorFramePixels = colorFrame.getPixels();
-            unsigned char* shadowThreshImgPixels = shadowThreshImg.getPixels();
-
-            int i = 0;
-            for(int y = 0; y < height; y++){
-                for(int x = 0; x < width; x++){
-                    i = y*width+x;
-                    minImgPixels[i] = min(minImgPixels[i],grayscaleFramePixels[i]);
-                    maxImgPixels[i] = max(maxImgPixels[i],grayscaleFramePixels[i]);
-                    shadowThreshImgPixels[i] = (int)((minImgPixels[i]+maxImgPixels[i])/2);
-                    maxColorImgPixels[3*i] = max(maxColorImgPixels[3*i],colorFramePixels[3*i]);
-                    maxColorImgPixels[3*i+1] = max(maxColorImgPixels[3*i+1],colorFramePixels[3*i+1]);
-                    maxColorImgPixels[3*i+2] = max(maxColorImgPixels[3*i+2],colorFramePixels[3*i+2]);
-                }  
-            }
-
-            //A tad inefficient, but this handles a bug where if you draw these it doesn't set new values
-            minImg.setFromPixels(minImgPixels,width,height);
-            maxImg.setFromPixels(maxImgPixels,width,height);
-            shadowThreshImg.setFromPixels(shadowThreshImgPixels,width,height);
-            maxColorImg.setFromPixels(maxColorImgPixels,width,height);
-            
-            frameIndex++;
+            captureUpdate();
             break;
         }
         case PROCESSING:
         {     
-            unsigned char* temporalImgPixels = temporalImg.getPixels(); 
-
-            grayscaleFrame = frames[frameIndex];
-            zeroCrossingFrame.set(0);
-            diffFrame.set(0);
-            previousDiffFrame.set(0);
-
-            if(frameIndex>0){
-                previousDiffFrame = frames[frameIndex-1];
-                previousDiffFrame -= shadowThreshImg;
-            }
-
-            diffFrame = frames[frameIndex];
-            diffFrame -= shadowThreshImg;
-
-            if(frameIndex>0){
-                bufferOfxCvGrayscaleImage = diffFrame;
-                bufferOfxCvGrayscaleImage.absDiff(previousDiffFrame);
-                diffFrame -= bufferOfxCvGrayscaleImage;
-
-                unsigned char* diffFramePixels = diffFrame.getPixels();
-                unsigned char* zeroCrossingFramePixels = zeroCrossingFrame.getPixels();
-                
-                for(int r = 0; r < height; r++){
-                    for(int c = columnIndices[r]; c < width; c++){
-                        if(diffFramePixels[c+r*width] > zeroCrossingThreshold){
-                            zeroCrossingFramePixels[c+r*width] = 255;
-                            for(int j = columnIndices[r]; j < c; j++){
-
-                                float hue = ((float)frameIndex-1)/(float)frames.size()*255.0;
-                                float sat = 255;
-                                float bri = 255;
-
-                                ofColor c1Color = ofColor::fromHsb(hue,sat,bri);
-
-                                hue = ((float)frameIndex)/(float)frames.size()*255.0;
-
-                                ofColor c2Color = ofColor::fromHsb(hue,sat,bri);
-
-                                ofColor interColor = c1Color;
-                                interColor.lerp(c2Color,ofMap(j,columnIndices[r],c,0.0,1.0));
-                                
-                                temporalImgPixels[3*(j+r*width)] = interColor[0];
-                                temporalImgPixels[3*(j+r*width)+1] = interColor[1];
-                                temporalImgPixels[3*(j+r*width)+2] = interColor[2];
-                            }
-                            columnIndices[r] = c;
-                            break;
-                        }
-                    }
-                }
-                temporalImg.setFromPixels(temporalImgPixels,width,height);
-                zeroCrossingFrame.setFromPixels(zeroCrossingFramePixels,width,height);
-
-                if(frameIndex > 0){
-                    topLine = computeLineFromZeroCrossings(zeroCrossingFrame,topSection);
-                    bottomLine = computeLineFromZeroCrossings(zeroCrossingFrame,bottomSection);  
-
-                    //cout << "topLine " << topLine.dir.x << " " << topLine.dir.y << endl;
-                    //cout << "bottomLine " << bottomLine.dir.x << " " << bottomLine.dir.y << endl;
-                }
-                
-
-                 //Uncomment to save out diff frames
-                // bufferOfxCvColorImage = diffFrame;
-                // bufferOfImage.setFromPixels(bufferOfxCvColorImage.getPixelsRef());
-                // filename = "output/diffFrames/diffFrame";
-                // filename += ofToString(frameIndex);
-                // filename += ".tiff";
-                // bufferOfImage.saveImage(filename);
-
-                //Uncomment to save out zero crossing frames
-                // bufferOfxCvColorImage = zeroCrossingFrame;
-                // bufferOfImage.setFromPixels(bufferOfxCvColorImage.getPixelsRef());
-                // filename = "output/zeroCrossingFrames/zeroCrossingFrame";
-                // filename += ofToString(frameIndex);
-                // filename += ".tiff";
-                // bufferOfImage.saveImage(filename);
-            }
-
-            frameIndex++;
-            if(frameIndex == frames.size()){
-                //Uncomment to save out temporal image
-                bufferOfImage.setFromPixels(temporalImg.getPixelsRef());
-                bufferOfImage.saveImage("output/temporalImg.tiff");
-
-                programState = VISUALIZATION;
-                cout << "VISUALIZATION STATE" << endl;
-                //Uncomment to save out min/max/shadowthresh frames
-                bufferOfxCvColorImage = minImg;
-                bufferOfImage.setFromPixels(bufferOfxCvColorImage.getPixelsRef());
-                bufferOfImage.saveImage("output/minImg.tiff");
-                bufferOfxCvColorImage = maxImg;
-                bufferOfImage.setFromPixels(bufferOfxCvColorImage.getPixelsRef());
-                bufferOfImage.saveImage("output/maxImg.tiff");
-                bufferOfxCvColorImage = shadowThreshImg;
-                bufferOfImage.setFromPixels(bufferOfxCvColorImage.getPixelsRef());
-                bufferOfImage.saveImage("output/shadowThreshImg.tiff");
-            }
-       
+            processingUpdate();
             break;
         }
         case VISUALIZATION:
         {    
-            messageBarText = "VISUALIZATION";
-            messageBarSubText = "";
-
-            //do nothing
+            visualizationUpdate();
             break;
         }
 
     }
 }
 
+void Scan3dApp::setupUpdate(){
+    messageBarText = "SETUP";
+    switch(setupSubState){
+        case TOP_SECTION:
+            messageBarSubText = "Click and drag top rectangle (or press c to clear settings and start over)";
+            break;
+        case  BOTTOM_SECTION:
+            messageBarSubText = "Click and drag bottom rectangle (or press c to clear settings and start over)";
+            break;
+        case  T_TL:
+            messageBarSubText = "Click to select the top left marker on the vertical backplane (or press c to clear settings and start over)";
+            break;
+        case  T_TR:
+            messageBarSubText = "Click to select the top right marker on the vertical backplane (or press c to clear settings and start over)";
+            break;
+        case  T_BR:
+            messageBarSubText = "Click to select the bottom right marker on the vertical backplane (or press c to clear settings and start over)";
+            break;
+        case  T_BL:
+            messageBarSubText = "Click to select the bottom left marker on the vertical backplane (or press c to clear settings and start over)";
+            break;
+        case  B_TL:
+            messageBarSubText = "Click to select the top left marker on the horizontal backplane (or press c to clear settings and start over)";
+            break;
+        case  B_TR:
+            messageBarSubText = "Click to select the top right marker on the horizontal backplane (or press c to clear settings and start over)";
+            break;
+        case  B_BL:
+            messageBarSubText = "Click to select the bottom right marker on the horizontal backplane (or press c to clear settings and start over)";
+            break;
+        case B_BR:
+            messageBarSubText = "Click to select the bottom left marker on the horizontal backplane (or press c to clear settings and start over)";
+            break;
+        case WAITING:
+            messageBarSubText = "Press spacebar to commence scanning (or press c to clear settings and start over)";                    
+            break;
+    }
+
+    /*
+        Initializing with first frame (either from image sequence or video)
+    */
+    frameIndex = 0;
+    switch(inputType){
+        case VIDEO:
+            vid.firstFrame();
+            vid.update();
+            if(vid.isFrameNew()){
+                colorFrame.setFromPixels(vid.getPixels(),vid.getWidth(),vid.getHeight());
+                grayscaleFrame = colorFrame;
+            }
+            break;
+        case IMAGE_SEQUENCE:
+            bufferOfImage.loadImage(dir.getPath(frameIndex));
+            colorFrame.setFromPixels(bufferOfImage.getPixels(),width,height);
+            grayscaleFrame = colorFrame;
+            break;
+    }
+}
+
+void Scan3dApp::captureUpdate(){
+    messageBarText = "SCANNING";
+    switch(displayState){
+        case COLOR:
+            messageBarText += "  (COLOR)";
+            break;
+        case GRAYSCALE:
+            messageBarText += "  (GRAYSCALE)";
+            break;
+        case MINIMAGE:
+            messageBarText += "  (MIN)";
+            break;
+        case MAXIMAGE:
+            messageBarText += "  (MAX)";
+            break;
+        case SHADOWTHRESHIMAGE:
+            messageBarText += "  (SHADOW THRESH)";
+            break;
+    }
+
+    messageBarSubText = "Press [1, 2, 3, 4, 5] for [COLOR, GRAYSCALE, MIN, MAX, SHADOW THRESH] display";
+    
+    bool framesDone = false;
+    switch(inputType){
+        case VIDEO:
+            vid.update();
+            if(vid.isFrameNew()){
+                colorFrame.setFromPixels(vid.getPixels(),vid.getWidth(),vid.getHeight());
+            }
+
+            framesDone = vid.getIsMovieDone();
+           
+            break;
+        case IMAGE_SEQUENCE:
+            if(frameIndex < dir.numFiles()){
+                bufferOfImage.loadImage(dir.getPath(frameIndex));
+                colorFrame.setFromPixels(bufferOfImage.getPixels(),width,height);
+            }
+            else{
+                framesDone = true; 
+            }
+            break;
+
+    }
+
+    if(framesDone){
+        colorFrame = maxColorImg;
+        messageBarText = "PROCESSING";
+        messageBarSubText = "";
+        programState = PROCESSING;
+        cout << "PROCESSING STATE" << endl;
+        frameIndex = 0;
+    }
+
+    //Uncomment to save out color frames
+    // bufferOfImage.setFromPixels(colorFrame.getPixelsRef());
+    // filename = "output/grayscaleFrames/gsframe";
+    // filename += ofToString(frameIndex);
+    // filename += ".tiff";
+    // bufferOfImage.saveImage(filename);
+        
+    grayscaleFrame = colorFrame;
+
+    //resizing vector if needed
+    if(frameIndex >= frames.capacity()){
+        frames.resize(2*frames.size(),bufferOfxCvGrayscaleImage);
+    }
+
+    frames[frameIndex] = grayscaleFrame;
+
+    //Uncomment to save out grayscale frames
+    // bufferOfxCvColorImage = grayscaleFrame;
+    // bufferOfImage.setFromPixels(bufferOfxCvColorImage.getPixelsRef());
+    // filename = "output/grayscaleFrames/gsframe";
+    // filename += ofToString(frameIndex);
+    // filename += ".tiff";
+    // bufferOfImage.saveImage(filename);
+
+    //Update min/max images
+    unsigned char* minImgPixels = minImg.getPixels();
+    unsigned char* maxImgPixels = maxImg.getPixels();
+    unsigned char* maxColorImgPixels = maxColorImg.getPixels();
+    unsigned char* grayscaleFramePixels = grayscaleFrame.getPixels();
+    unsigned char* colorFramePixels = colorFrame.getPixels();
+    unsigned char* shadowThreshImgPixels = shadowThreshImg.getPixels();
+
+    int i = 0;
+    for(int y = 0; y < height; y++){
+        for(int x = 0; x < width; x++){
+            i = y*width+x;
+            minImgPixels[i] = min(minImgPixels[i],grayscaleFramePixels[i]);
+            maxImgPixels[i] = max(maxImgPixels[i],grayscaleFramePixels[i]);
+            shadowThreshImgPixels[i] = (int)((minImgPixels[i]+maxImgPixels[i])/2);
+            maxColorImgPixels[3*i] = max(maxColorImgPixels[3*i],colorFramePixels[3*i]);
+            maxColorImgPixels[3*i+1] = max(maxColorImgPixels[3*i+1],colorFramePixels[3*i+1]);
+            maxColorImgPixels[3*i+2] = max(maxColorImgPixels[3*i+2],colorFramePixels[3*i+2]);
+        }  
+    }
+
+    //A tad inefficient, but this handles a bug where if you draw these it doesn't set new values
+    minImg.setFromPixels(minImgPixels,width,height);
+    maxImg.setFromPixels(maxImgPixels,width,height);
+    shadowThreshImg.setFromPixels(shadowThreshImgPixels,width,height);
+    maxColorImg.setFromPixels(maxColorImgPixels,width,height);
+    
+    frameIndex++;
+}
+
+void Scan3dApp::processingUpdate(){
+    unsigned char* temporalImgPixels = temporalImg.getPixels(); 
+
+    grayscaleFrame = frames[frameIndex];
+    zeroCrossingFrame.set(0);
+    diffFrame.set(0);
+    previousDiffFrame.set(0);
+
+    if(frameIndex>0){
+        previousDiffFrame = frames[frameIndex-1];
+        previousDiffFrame -= shadowThreshImg;
+    }
+
+    diffFrame = frames[frameIndex];
+    diffFrame -= shadowThreshImg;
+
+    if(frameIndex>0){
+        bufferOfxCvGrayscaleImage = diffFrame;
+        bufferOfxCvGrayscaleImage.absDiff(previousDiffFrame);
+        diffFrame -= bufferOfxCvGrayscaleImage;
+
+        unsigned char* diffFramePixels = diffFrame.getPixels();
+        unsigned char* zeroCrossingFramePixels = zeroCrossingFrame.getPixels();
+        
+        for(int r = 0; r < height; r++){
+            for(int c = columnIndices[r]; c < width; c++){
+                if(diffFramePixels[c+r*width] > zeroCrossingThreshold){
+                    zeroCrossingFramePixels[c+r*width] = 255;
+                    for(int j = columnIndices[r]; j < c; j++){
+
+                        float hue = ((float)frameIndex-1)/(float)frames.size()*255.0;
+                        float sat = 255;
+                        float bri = 255;
+
+                        ofColor c1Color = ofColor::fromHsb(hue,sat,bri);
+
+                        hue = ((float)frameIndex)/(float)frames.size()*255.0;
+
+                        ofColor c2Color = ofColor::fromHsb(hue,sat,bri);
+
+                        ofColor interColor = c1Color;
+                        interColor.lerp(c2Color,ofMap(j,columnIndices[r],c,0.0,1.0));
+                        
+                        temporalImgPixels[3*(j+r*width)] = interColor[0];
+                        temporalImgPixels[3*(j+r*width)+1] = interColor[1];
+                        temporalImgPixels[3*(j+r*width)+2] = interColor[2];
+                    }
+                    columnIndices[r] = c;
+                    break;
+                }
+            }
+        }
+        temporalImg.setFromPixels(temporalImgPixels,width,height);
+        zeroCrossingFrame.setFromPixels(zeroCrossingFramePixels,width,height);
+
+        if(frameIndex > 0){
+            topLine = computeLineFromZeroCrossings(zeroCrossingFrame,topSection);
+            bottomLine = computeLineFromZeroCrossings(zeroCrossingFrame,bottomSection);  
+
+            //cout << "topLine " << topLine.dir.x << " " << topLine.dir.y << endl;
+            //cout << "bottomLine " << bottomLine.dir.x << " " << bottomLine.dir.y << endl;
+        }
+        
+
+         //Uncomment to save out diff frames
+        // bufferOfxCvColorImage = diffFrame;
+        // bufferOfImage.setFromPixels(bufferOfxCvColorImage.getPixelsRef());
+        // filename = "output/diffFrames/diffFrame";
+        // filename += ofToString(frameIndex);
+        // filename += ".tiff";
+        // bufferOfImage.saveImage(filename);
+
+        //Uncomment to save out zero crossing frames
+        // bufferOfxCvColorImage = zeroCrossingFrame;
+        // bufferOfImage.setFromPixels(bufferOfxCvColorImage.getPixelsRef());
+        // filename = "output/zeroCrossingFrames/zeroCrossingFrame";
+        // filename += ofToString(frameIndex);
+        // filename += ".tiff";
+        // bufferOfImage.saveImage(filename);
+    }
+
+    frameIndex++;
+    if(frameIndex == frames.size()){
+        //Uncomment to save out temporal image
+        bufferOfImage.setFromPixels(temporalImg.getPixelsRef());
+        bufferOfImage.saveImage("output/temporalImg.tiff");
+
+        programState = VISUALIZATION;
+        cout << "VISUALIZATION STATE" << endl;
+        //Uncomment to save out min/max/shadowthresh frames
+        bufferOfxCvColorImage = minImg;
+        bufferOfImage.setFromPixels(bufferOfxCvColorImage.getPixelsRef());
+        bufferOfImage.saveImage("output/minImg.tiff");
+        bufferOfxCvColorImage = maxImg;
+        bufferOfImage.setFromPixels(bufferOfxCvColorImage.getPixelsRef());
+        bufferOfImage.saveImage("output/maxImg.tiff");
+        bufferOfxCvColorImage = shadowThreshImg;
+        bufferOfImage.setFromPixels(bufferOfxCvColorImage.getPixelsRef());
+        bufferOfImage.saveImage("output/shadowThreshImg.tiff");
+    }
+}
+
+void Scan3dApp::visualizationUpdate(){
+    messageBarText = "VISUALIZATION";
+    messageBarSubText = "";
+
+    //do nothing
+}
+
 //--------------------------------------------------------------
 void Scan3dApp::draw(){
-    
-    // draw the image sequence at the new frame count
-    //ofSetColor(255);
     
     ofBackground(60);
     ofSetColor(255);
@@ -596,47 +628,58 @@ void Scan3dApp::draw(){
 
     switch(programState){
         case SETUP:
-            drawSectionRectangles();
-            drawMarkerPoints();
+            setupDraw();
+            
             break;
         case CAPTURE:
-            drawSectionRectangles();
-            drawMarkerPoints();
+            captureDraw();
             break; 
         case PROCESSING:
+            processingDraw();
             
-            drawSectionRectangles();
-            drawMarkerPoints();
-
-            fullSection.x = 0;
-            fullSection.y = 0;
-            fullSection.width = width;
-            fullSection.height = height;
-
-            if(topLine.isLineInRegion(topSection) && bottomLine.isLineInRegion(bottomSection) && isPointInRegion(topLine.intersection(bottomLine),fullSection)){
-                ofSetColor(topSectionColor);
-                ofNoFill();
-                ofSetLineWidth(4);
-                topLine.drawLineInRegion(topSection);
-                
-                ofSetLineWidth(1);
-                topLine.drawLineInRegion(fullSection);
-
-                ofSetColor(bottomSectionColor);
-                ofNoFill();
-                ofSetLineWidth(4);
-                bottomLine.drawLineInRegion(bottomSection);
-
-                ofNoFill();
-                ofSetLineWidth(1);
-                bottomLine.drawLineInRegion(fullSection); 
-            }
             
             break;
     }
 }
 
+void Scan3dApp::setupDraw(){
+    drawSectionRectangles();
+    drawMarkerPoints();
+}
 
+void Scan3dApp::captureDraw(){
+    drawSectionRectangles();
+    drawMarkerPoints();
+}
+
+void Scan3dApp::processingDraw(){
+    drawSectionRectangles();
+    drawMarkerPoints();
+
+    fullSection.x = 0;
+    fullSection.y = 0;
+    fullSection.width = width;
+    fullSection.height = height;
+
+    if(topLine.isLineInRegion(topSection) && bottomLine.isLineInRegion(bottomSection) && isPointInRegion(topLine.intersection(bottomLine),fullSection)){
+        ofSetColor(topSectionColor);
+        ofNoFill();
+        ofSetLineWidth(4);
+        topLine.drawLineInRegion(topSection);
+        
+        ofSetLineWidth(1);
+        topLine.drawLineInRegion(fullSection);
+
+        ofSetColor(bottomSectionColor);
+        ofNoFill();
+        ofSetLineWidth(4);
+        bottomLine.drawLineInRegion(bottomSection);
+
+        ofNoFill();
+        ofSetLineWidth(1);
+        bottomLine.drawLineInRegion(fullSection); 
+    }
+}
 
 
 
@@ -776,8 +819,8 @@ ofPoint Scan3dApp::getNearestCorner(ofxCvGrayscaleImage img, int windowSize, int
 //--------------------------------------------------------------
 void Scan3dApp::keyPressed(int key){
     switch(key){
-        case 32:
-            if(programState ==  SETUP){
+        case 32: //SPACEBAR
+           if(programState ==  SETUP){
                 saveSettings();
                 programState = CAPTURE;
             }
@@ -823,12 +866,12 @@ void Scan3dApp::mouseMoved(int x, int y ){
 //--------------------------------------------------------------
 void Scan3dApp::mouseDragged(int x, int y, int button){
     if(programState == SETUP){
-        switch(programSubState){
-            case SETUP_TOP_SECTION:
+        switch(setupSubState){
+            case TOP_SECTION:
                 topSection.setWidth(x-topSection.x);
                 topSection.setHeight(y-topSection.y);
                 break;
-            case  SETUP_BOTTOM_SECTION:
+            case  BOTTOM_SECTION:
                 bottomSection.setWidth(x-bottomSection.x);
                 bottomSection.setHeight(y-bottomSection.y);
 
@@ -843,11 +886,11 @@ void Scan3dApp::mouseDragged(int x, int y, int button){
 //--------------------------------------------------------------
 void Scan3dApp::mousePressed(int x, int y, int button){
      if(programState == SETUP){
-        switch(programSubState){
-            case SETUP_TOP_SECTION:
+        switch(setupSubState){
+            case TOP_SECTION:
                 topSection.setPosition(x,y);
                 break;
-            case  SETUP_BOTTOM_SECTION:
+            case  BOTTOM_SECTION:
                 if(x < topSection.x){
                     bottomSection.setPosition(topSection.x,y);
                 }
@@ -868,45 +911,45 @@ void Scan3dApp::mousePressed(int x, int y, int button){
 //--------------------------------------------------------------
 void Scan3dApp::mouseReleased(int x, int y, int button){
     if(programState == SETUP){
-        switch(programSubState){
-            case SETUP_TOP_SECTION:
-                programSubState = SETUP_BOTTOM_SECTION;
+        switch(setupSubState){
+            case TOP_SECTION:
+                setupSubState = BOTTOM_SECTION;
                 break;
-            case  SETUP_BOTTOM_SECTION:
+            case  BOTTOM_SECTION:
                 topSection.width = bottomSection.width;
-                programSubState = SETUP_T_TL;
+                setupSubState = T_TL;
                 break;
-            case  SETUP_T_TL:                
+            case  T_TL:                
                 verticalPlanePts[0] = getNearestCorner(grayscaleFrame,10,x,y);
-                programSubState = SETUP_T_TR;
+                setupSubState = T_TR;
                 break;
-            case  SETUP_T_TR:
+            case  T_TR:
                 verticalPlanePts[1] = getNearestCorner(grayscaleFrame,10,x,y);
-                programSubState = SETUP_T_BR;
+                setupSubState = T_BR;
                 break;
-            case  SETUP_T_BR:
+            case  T_BR:
                 verticalPlanePts[2] = getNearestCorner(grayscaleFrame,10,x,y);
-                programSubState = SETUP_T_BL;
+                setupSubState = T_BL;
                 break;
-            case  SETUP_T_BL:
+            case  T_BL:
                 verticalPlanePts[3] = getNearestCorner(grayscaleFrame,10,x,y);
-                programSubState = SETUP_B_TL;
+                setupSubState = B_TL;
                 break;
-            case  SETUP_B_TL:
+            case  B_TL:
                 horizontalPlanePts[0] = getNearestCorner(grayscaleFrame,10,x,y);
-                programSubState = SETUP_B_TR;
+                setupSubState = B_TR;
                 break;
-            case  SETUP_B_TR:
+            case  B_TR:
                 horizontalPlanePts[1] = getNearestCorner(grayscaleFrame,10,x,y);
-                programSubState = SETUP_B_BL;
+                setupSubState = B_BL;
                 break;
-            case  SETUP_B_BL:
+            case  B_BL:
                 horizontalPlanePts[2] = getNearestCorner(grayscaleFrame,10,x,y);
-                programSubState = SETUP_B_BR;
+                setupSubState = B_BR;
                 break;
-            case SETUP_B_BR:
+            case B_BR:
                 horizontalPlanePts[3] = getNearestCorner(grayscaleFrame,10,x,y);
-                programSubState = WAITING;
+                setupSubState = WAITING;
                 break;       
         }
     }

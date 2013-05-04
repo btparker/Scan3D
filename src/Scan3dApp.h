@@ -7,7 +7,14 @@
 #include "ofxLine.h"
 
 enum {SETUP, CAPTURE, PROCESSING,RECONSTRUCTION,VISUALIZATION};
-enum {SETUP_TOP_SECTION, SETUP_BOTTOM_SECTION, SETUP_T_TL, SETUP_T_TR, SETUP_T_BL, SETUP_T_BR, SETUP_B_TL, SETUP_B_TR, SETUP_B_BL, SETUP_B_BR, WAITING};
+
+
+enum Setup{TOP_SECTION, BOTTOM_SECTION, T_TL, T_TR, T_BL, T_BR, B_TL, B_TR, B_BL, B_BR, WAITING};
+
+
+enum CameraCalibration{TL, TR, BL, BR, CAM_CAL_WAITING};
+
+
 enum { COLOR, GRAYSCALE, MINIMAGE, MAXIMAGE, SHADOWTHRESHIMAGE, DIFF, THRESH, EDGE, CORNER};
 enum { UP, DOWN, LEFT, RIGHT, VERTICAL, HORIZONTAL, BOTH};
 enum {VIDEO,IMAGE_SEQUENCE,NONE};
@@ -19,7 +26,16 @@ class Scan3dApp : public ofBaseApp{
 	public:
 		void setup();
 		void update();
+		void setupUpdate();
+		void captureUpdate();
+		void processingUpdate();
+		void visualizationUpdate();
+
 		void draw();
+		void captureDraw();
+		void setupDraw();
+		void processingDraw();
+		void visualizationDraw();
 
 		void loadSettings();
 		void saveSettings();
@@ -56,7 +72,8 @@ class Scan3dApp : public ofBaseApp{
 
         int displayState;
         int programState;
-        int programSubState;
+        int setupSubState;
+        int camCalSubState;
         int inputType;
 
         int width,height;

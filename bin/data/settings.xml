@@ -1,74 +1,79 @@
 <settings>
-    <input>
-        <type>IMAGE_SEQUENCE</type>
-        <src>/home/btparker/Dropbox/Projects/Active/3D Scanning/oF/apps/myApps/Scan3D/bin/data/monkey_scan</src>
-    </input>
+    <user>
+        <input>
+            <type>IMAGE_SEQUENCE</type>
+            <src>/home/btparker/Dropbox/Projects/Active/3D Scanning/oF/apps/myApps/Scan3D/bin/data/frog_scan</src>
+        </input>
+        <misc>
+            <zeroCrossingThreshold>20</zeroCrossingThreshold>
+        </misc>
+    </user>
     <scene>
         <verticalPlane>
             <section>
                 <pixelpts>
-                    <x>76.000000000</x>
-                    <y>21.000000000</y>
-                    <width>1115.000000000</width>
-                    <height>99.000000000</height>
+                    <x>220.000000000</x>
+                    <y>7.000000000</y>
+                    <width>587.000000000</width>
+                    <height>281.000000000</height>
                 </pixelpts>
             </section>
             <marker0>
                 <pixelpt>
-                    <x>461.072631836</x>
-                    <y>139.259536743</y>
+                    <x>188.278656006</x>
+                    <y>44.440395355</y>
                 </pixelpt>
             </marker0>
             <marker1>
                 <pixelpt>
-                    <x>833.136596680</x>
-                    <y>139.285751343</y>
+                    <x>843.918090820</x>
+                    <y>29.502180099</y>
                 </pixelpt>
             </marker1>
             <marker2>
                 <pixelpt>
-                    <x>817.385192871</x>
-                    <y>354.364410400</y>
+                    <x>832.299621582</x>
+                    <y>352.790771484</y>
                 </pixelpt>
             </marker2>
             <marker3>
                 <pixelpt>
-                    <x>475.661743164</x>
-                    <y>354.353454590</y>
+                    <x>219.435409546</x>
+                    <y>362.629180908</y>
                 </pixelpt>
             </marker3>
         </verticalPlane>
         <horizontalPlane>
             <section>
                 <pixelpts>
-                    <x>76.000000000</x>
-                    <y>617.000000000</y>
-                    <width>1115.000000000</width>
-                    <height>70.000000000</height>
+                    <x>220.000000000</x>
+                    <y>660.000000000</y>
+                    <width>587.000000000</width>
+                    <height>103.000000000</height>
                 </pixelpts>
             </section>
             <marker0>
                 <pixelpt>
-                    <x>473.037445068</x>
-                    <y>433.448822021</y>
+                    <x>210.431289673</x>
+                    <y>507.333129883</y>
                 </pixelpt>
             </marker0>
             <marker1>
                 <pixelpt>
-                    <x>819.899047852</x>
-                    <y>433.405151367</y>
+                    <x>839.395141602</x>
+                    <y>500.347625732</y>
                 </pixelpt>
             </marker1>
             <marker2>
                 <pixelpt>
-                    <x>850.093933105</x>
-                    <y>580.665222168</y>
+                    <x>883.847839355</x>
+                    <y>697.129272461</y>
                 </pixelpt>
             </marker2>
             <marker3>
                 <pixelpt>
-                    <x>445.338836670</x>
-                    <y>580.671264648</y>
+                    <x>147.590942383</x>
+                    <y>704.194580078</y>
                 </pixelpt>
             </marker3>
         </horizontalPlane>
