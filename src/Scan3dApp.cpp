@@ -92,13 +92,13 @@ void Scan3dApp::setup(){
 
     // Calibration Variables (Adapted for use from Learning OpenCV Computer Vision with the OpenCV Library)
     camCalFrame = 0;
-    boardXCount = 9;
-    boardYCount = 7;
+    boardXCount = 8;
+    boardYCount = 6;
     numBoards = camCalDir.numFiles();
     successes = 0;
-    boardPatternSize = (boardXCount-1) * (boardYCount-1);
+    boardPatternSize = boardXCount*boardYCount;
     boardSquareSize = 30.0; // in mm
-    boardNumInternalCornersCV = cvSize( boardXCount-1, boardYCount-1 );
+    boardNumInternalCornersCV = cvSize( boardXCount, boardYCount);
 
     image_points = cvCreateMat(numBoards*boardPatternSize,2,CV_32FC1);
     object_points = cvCreateMat(numBoards*boardPatternSize,3,CV_32FC1);
@@ -434,7 +434,7 @@ void Scan3dApp::camCalUpdate(){
         colorFrame = image;
         camCalFrame++;
     }
-    else if(camCalFrame >= numBoards){
+    else{
         //ALLOCATE MATRICES ACCORDING TO HOW MANY CHESSBOARDS FOUND
         CvMat* object_points2 = cvCreateMat(successes*boardPatternSize,3,CV_32FC1);
         CvMat* image_points2 = cvCreateMat(successes*boardPatternSize,2,CV_32FC1);
@@ -460,24 +460,38 @@ void Scan3dApp::camCalUpdate(){
         //
         CV_MAT_ELEM( *intrinsic_matrix, float, 0, 0 ) = 1.0f;
         CV_MAT_ELEM( *intrinsic_matrix, float, 1, 1 ) = 1.0f;
-        /*
+        
         
         //CALIBRATE THE CAMERA!
         cvCalibrateCamera2(
-        object_points2, image_points2,
-        point_counts2, cvGetSize( image ),
-        intrinsic_matrix, distortion_coeffs,
-        NULL, NULL,0 //CV_CALIB_FIX_ASPECT_RATIO
+            object_points2, 
+            image_points2,
+            point_counts2, 
+            cvGetSize( colorFrame.getCvImage() ),
+            intrinsic_matrix, 
+            distortion_coeffs,
+            NULL, NULL,0 //CV_CALIB_FIX_ASPECT_RATIO
         );
-        */
+        
         // SAVE THE INTRINSICS AND DISTORTIONS
         cvSave("Intrinsics.xml",intrinsic_matrix);
         cvSave("Distortion.xml",distortion_coeffs);
 
+        //CvMat *intrinsic = (CvMat*)cvLoad("Intrinsics.xml");
+        //CvMat *distortion = (CvMat*)cvLoad("Distortion.xml");
+
+
+
+        mapx = cvCreateImage( cvGetSize(colorFrame.getCvImage()), IPL_DEPTH_32F, 1 );
+        mapy = cvCreateImage( cvGetSize(colorFrame.getCvImage()), IPL_DEPTH_32F, 1 );
+        cvInitUndistortMap(
+            intrinsic_matrix,
+            distortion_coeffs,
+            mapx,
+            mapy
+        );
+        
         programState = SETUP;
-    }
-    else{
-         programState = SETUP;
     }
     
 }
@@ -530,12 +544,19 @@ void Scan3dApp::setupUpdate(){
             vid.update();
             if(vid.isFrameNew()){
                 colorFrame.setFromPixels(vid.getPixels(),vid.getWidth(),vid.getHeight());
+                colorFrame.flagImageChanged();
+                colorFrame.updateTexture();
+                colorFrame.remap(mapx,mapy);
+
                 grayscaleFrame = colorFrame;
             }
             break;
         case IMAGE_SEQUENCE:
             bufferOfImage.loadImage(dir.getPath(frameIndex));
             colorFrame.setFromPixels(bufferOfImage.getPixels(),width,height);
+            colorFrame.flagImageChanged();
+            colorFrame.updateTexture();
+            colorFrame.remap(mapx,mapy);
             grayscaleFrame = colorFrame;
             break;
     }
@@ -569,7 +590,10 @@ void Scan3dApp::captureUpdate(){
             vid.update();
             if(vid.isFrameNew()){
                 colorFrame.setFromPixels(vid.getPixels(),vid.getWidth(),vid.getHeight());
-            }
+                colorFrame.flagImageChanged();
+                colorFrame.updateTexture();
+                colorFrame.remap(mapx,mapy);}
+
 
             framesDone = vid.getIsMovieDone();
            
@@ -578,7 +602,10 @@ void Scan3dApp::captureUpdate(){
             if(frameIndex < dir.numFiles()){
                 bufferOfImage.loadImage(dir.getPath(frameIndex));
                 colorFrame.setFromPixels(bufferOfImage.getPixels(),width,height);
-            }
+                colorFrame.flagImageChanged();
+                colorFrame.updateTexture();
+                colorFrame.remap(mapx,mapy);}
+
             else{
                 framesDone = true; 
             }

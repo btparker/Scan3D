@@ -146,6 +146,8 @@ class Scan3dApp : public ofBaseApp{
 
 		CvPoint2D32f* corners;
 		int corner_count;
+		IplImage* mapx;
+		IplImage* mapy;
 
 
 
