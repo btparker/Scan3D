@@ -6,6 +6,7 @@
 #include "cv.h"
 #include "ofxLine2d.h"
 #include "ofxRay3d.h"
+#include "ofxPlane.h"
 
 enum {CAMERA_CALIBRATION, SETUP, CAPTURE, PROCESSING,RECONSTRUCTION,VISUALIZATION};
 
@@ -59,8 +60,8 @@ class Scan3dApp : public ofBaseApp{
 		ofPoint getNearestCorner(ofxCvGrayscaleImage img, int windowSize, int x, int y);
 		void estimateCameraPose(ofPoint *objectPoints, ofPoint *imagePoints, CvMat* cameraMatrix, CvMat* distCoeffs);
 		void convertOfPointsToCvMat(ofPoint *pts, int dimensions, int size, CvMat* output);
-		ofVec3f pixel2Ray(const CvMat* intrinsicMat, const CvMat* extrinsicMat, ofPoint imagePt);
-		ofPoint rayPlaneIntersection(ofPoint planePt, ofVec3f planeNormal, ofPoint rayOrigin, ofVec3f rayDirection);
+		ofxRay3d pixel2Ray(const CvMat* intrinsicMat, const CvMat* extrinsicMat, ofPoint imagePt);
+		//ofPoint rayPlaneIntersection(ofPoint planePt, ofVec3f planeNormal, ofPoint rayOrigin, ofVec3f rayDirection);
 
 		ofVideoPlayer vid;
 

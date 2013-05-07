@@ -37,4 +37,10 @@ void ofxRay3d::setOrigin(float x,float y, float z){
 void ofxRay3d::setOrigin(ofPoint origin){
 	setOrigin(origin.x,origin.y,origin.z);
 }
-//ofPoint intersect(ofxPlane plane);
+
+ofPoint ofxRay3d::intersect(ofxPlane plane){
+	ofVec3f p0(origin);
+	float t = -1*(p0.dot(plane.normal)+plane.d)/(dir.dot(plane.normal));
+	ofPoint p = p0+t*dir;
+	return p;
+}

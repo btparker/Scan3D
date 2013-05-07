@@ -555,6 +555,7 @@ void Scan3dApp::camCalUpdate(){
 void Scan3dApp::setupUpdate(){
     ofPoint imagePts[8];
     ofPoint objectPts[8];
+
     messageBarText = "SETUP";
     switch(setupSubState){
         case TOP_SECTION:
@@ -602,6 +603,7 @@ void Scan3dApp::setupUpdate(){
             }
             estimateCameraPose(objectPts,imagePts,intrinsic_matrix, distortion_coeffs);
             pixel2Ray(intrinsic_matrix,extrinsic_matrix,ofPoint(0,0));
+            
             setupSubState = WAITING;
             break;
         case WAITING:
@@ -1157,7 +1159,7 @@ void Scan3dApp::estimateCameraPose(ofPoint *objectPoints, ofPoint *imagePoints, 
     cvReleaseMat(&translation);    
 }
 
-ofVec3f Scan3dApp::pixel2Ray(const CvMat* intrinsicMat, const CvMat* extrinsicMat, ofPoint imagePt){
+ofxRay3d Scan3dApp::pixel2Ray(const CvMat* intrinsicMat, const CvMat* extrinsicMat, ofPoint imagePt){
     CvMat* pixel = cvCreateMat(3,1, CV_32FC1);
     CV_MAT_ELEM(*pixel,float,0,0) = imagePt.x; CV_MAT_ELEM(*pixel,float,1,0) = imagePt.y; CV_MAT_ELEM(*pixel,float,2,0) = 1.0; 
     CvMat* invIntrinsicMat = cvCreateMat(3,3,CV_32FC1);
@@ -1175,7 +1177,9 @@ ofVec3f Scan3dApp::pixel2Ray(const CvMat* intrinsicMat, const CvMat* extrinsicMa
         cout << endl;  
     }
     cout << endl;
-    ofVec3f ofRay(CV_MAT_ELEM(*normRay,float,0,0),CV_MAT_ELEM(*normRay,float,1,0),CV_MAT_ELEM(*normRay,float,2,0));
+    ofVec3f rayDir(CV_MAT_ELEM(*normRay,float,0,0),CV_MAT_ELEM(*normRay,float,1,0),CV_MAT_ELEM(*normRay,float,2,0));
+    ofPoint rayOrigin(CV_MAT_ELEM(*extrinsic_matrix,float,3,0),CV_MAT_ELEM(*extrinsic_matrix,float,3,1),CV_MAT_ELEM(*extrinsic_matrix,float,3,2));
+    ofxRay3d ofRay(rayOrigin,rayDir);
     cvReleaseMat(&invIntrinsicMat);
     cvReleaseMat(&pixel);
     cvReleaseMat(&ray);
@@ -1184,10 +1188,10 @@ ofVec3f Scan3dApp::pixel2Ray(const CvMat* intrinsicMat, const CvMat* extrinsicMa
     return ofRay;
 }
 
-ofPoint Scan3dApp::rayPlaneIntersection(ofPoint planePt, ofVec3f planeNormal, ofPoint rayOrigin, ofVec3f rayDirection){
-    
-    return ofPoint(0,0,0);
-}
+// ofPoint Scan3dApp::rayPlaneIntersection(ofPoint planePt, ofVec3f planeNormal, ofPoint rayOrigin, ofVec3f rayDirection){
+
+//     return ofPoint(0,0,0);
+// }
 
 /*
 
