@@ -601,7 +601,7 @@ void Scan3dApp::setupUpdate(){
                 
             }
             estimateCameraPose(objectPts,imagePts,intrinsic_matrix, distortion_coeffs);
-            pixel2Ray(intrinsic_matrix,NULL,ofPoint(0,0));
+            pixel2Ray(intrinsic_matrix,extrinsic_matrix,ofPoint(0,0));
             setupSubState = WAITING;
             break;
         case WAITING:
@@ -1035,9 +1035,9 @@ void Scan3dApp::drawMarkerPoints(){
 
     @param img The (likely zero-crossing) image that has white pixels
     @param roi (optional) A rectangle that defines the region of interest to look over img 
-    @returns ofxLine a line generated from the zero crossings
+    @returns ofxLine2d a line generated from the zero crossings
 */
-ofxLine Scan3dApp::computeLineFromZeroCrossings(ofxCvGrayscaleImage img, ofRectangle roi){
+ofxLine2d Scan3dApp::computeLineFromZeroCrossings(ofxCvGrayscaleImage img, ofRectangle roi){
     int roi_x0 = roi.x;
     int roi_y0 = roi.y;
     
@@ -1069,7 +1069,7 @@ ofxLine Scan3dApp::computeLineFromZeroCrossings(ofxCvGrayscaleImage img, ofRecta
 
     cvFitLine(&point_mat,CV_DIST_HUBER ,0,0.01,0.01,result);
 
-    ofxLine line;
+    ofxLine2d line;
     line.set(result[0],result[1],result[2],result[3]);
 
 
@@ -1157,7 +1157,7 @@ void Scan3dApp::estimateCameraPose(ofPoint *objectPoints, ofPoint *imagePoints, 
     cvReleaseMat(&translation);    
 }
 
-ofPoint Scan3dApp::pixel2Ray(const CvMat* intrinsicMat, const CvMat* extrinsicMat, ofPoint imagePt){
+ofVec3f Scan3dApp::pixel2Ray(const CvMat* intrinsicMat, const CvMat* extrinsicMat, ofPoint imagePt){
     CvMat* pixel = cvCreateMat(3,1, CV_32FC1);
     CV_MAT_ELEM(*pixel,float,0,0) = imagePt.x; CV_MAT_ELEM(*pixel,float,1,0) = imagePt.y; CV_MAT_ELEM(*pixel,float,2,0) = 1.0; 
     CvMat* invIntrinsicMat = cvCreateMat(3,3,CV_32FC1);
@@ -1175,13 +1175,18 @@ ofPoint Scan3dApp::pixel2Ray(const CvMat* intrinsicMat, const CvMat* extrinsicMa
         cout << endl;  
     }
     cout << endl;
-    ofPoint ofRay(CV_MAT_ELEM(*normRay,float,0,0),CV_MAT_ELEM(*normRay,float,1,0),CV_MAT_ELEM(*normRay,float,2,0));
+    ofVec3f ofRay(CV_MAT_ELEM(*normRay,float,0,0),CV_MAT_ELEM(*normRay,float,1,0),CV_MAT_ELEM(*normRay,float,2,0));
     cvReleaseMat(&invIntrinsicMat);
     cvReleaseMat(&pixel);
     cvReleaseMat(&ray);
     cvReleaseMat(&normRay);
 
     return ofRay;
+}
+
+ofPoint Scan3dApp::rayPlaneIntersection(ofPoint planePt, ofVec3f planeNormal, ofPoint rayOrigin, ofVec3f rayDirection){
+    
+    return ofPoint(0,0,0);
 }
 
 /*

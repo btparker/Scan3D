@@ -4,7 +4,7 @@
 #include "ofxXmlSettings.h"
 #include "ofxOpenCv.h"
 #include "cv.h"
-#include "ofxLine.h"
+#include "ofxLine2d.h"
 
 enum {CAMERA_CALIBRATION, SETUP, CAPTURE, PROCESSING,RECONSTRUCTION,VISUALIZATION};
 
@@ -53,12 +53,13 @@ class Scan3dApp : public ofBaseApp{
 		void gotMessage(ofMessage msg);
 		void drawSectionRectangles();
 		void drawMarkerPoints();
-		ofxLine computeLineFromZeroCrossings(ofxCvGrayscaleImage img, ofRectangle roi);
+		ofxLine2d computeLineFromZeroCrossings(ofxCvGrayscaleImage img, ofRectangle roi);
 		bool isPointInRegion(ofPoint pt, ofRectangle roi);
 		ofPoint getNearestCorner(ofxCvGrayscaleImage img, int windowSize, int x, int y);
 		void estimateCameraPose(ofPoint *objectPoints, ofPoint *imagePoints, CvMat* cameraMatrix, CvMat* distCoeffs);
 		void convertOfPointsToCvMat(ofPoint *pts, int dimensions, int size, CvMat* output);
-		ofPoint pixel2Ray(const CvMat* intrinsicMat, const CvMat* extrinsicMat, ofPoint imagePt);
+		ofVec3f pixel2Ray(const CvMat* intrinsicMat, const CvMat* extrinsicMat, ofPoint imagePt);
+		ofPoint rayPlaneIntersection(ofPoint planePt, ofVec3f planeNormal, ofPoint rayOrigin, ofVec3f rayDirection);
 
 		ofVideoPlayer vid;
 
@@ -122,9 +123,9 @@ class Scan3dApp : public ofBaseApp{
 		ofTrueTypeFont messageBarFont;
 		ofTrueTypeFont messageBarSubTextFont;
 
-		ofxLine topLine;
-		ofxLine bottomLine;
-		ofxLine testLine;
+		ofxLine2d topLine;
+		ofxLine2d bottomLine;
+		ofxLine2d testLine;
 
 		string filename;
 

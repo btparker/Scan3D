@@ -1,6 +1,6 @@
-#include "ofxLine.h"
+#include "ofxLine2d.h"
 
-ofxLine::ofxLine(){
+ofxLine2d::ofxLine2d(){
 }
 
 
@@ -13,7 +13,7 @@ ofxLine::ofxLine(){
 	@param x0 The x component of a point on the line
 	@param y0 The y component of a point on the line
 */	
-ofxLine::ofxLine(float vx,float vy, float x0, float y0){
+ofxLine2d::ofxLine2d(float vx,float vy, float x0, float y0){
 	set(vx,vy, x0, y0);
 }
 
@@ -27,7 +27,7 @@ ofxLine::ofxLine(float vx,float vy, float x0, float y0){
 	@param x0 The x component of a point on the line
 	@param y0 The y component of a point on the line
 */		
-void ofxLine::set(float vx,float vy, float x0, float y0){
+void ofxLine2d::set(float vx,float vy, float x0, float y0){
 	dir.x = vx;
 	dir.y = vy;
 
@@ -42,7 +42,7 @@ void ofxLine::set(float vx,float vy, float x0, float y0){
 	@param line The other line to check against
 	@returns ofPoint The point of intersection (or throws an error if lines are parallel)
 */
-ofPoint ofxLine::intersection(ofxLine line){
+ofPoint ofxLine2d::intersection(ofxLine2d line){
 
 	if(isParallelTo(line)){
 		ofLogError() << "Attempted line intersection of parallel lines";
@@ -78,7 +78,7 @@ ofPoint ofxLine::intersection(ofxLine line){
 	@param line The other line to check against
 	@returns bool Whether or not the line is parralel to this one 
 */
-bool ofxLine::isParallelTo(ofxLine line){
+bool ofxLine2d::isParallelTo(ofxLine2d line){
 	
 
 	float a0 = (pt.y + dir.y) - pt.y;
@@ -104,11 +104,11 @@ bool ofxLine::isParallelTo(ofxLine line){
     @returns bool If the line does not cross the region, 
     	returns false and does not draw. Otherwise, returns true
 */
-bool ofxLine::drawLineInRegion(ofRectangle roi, bool drawLine){
-	ofxLine top(1, 0, 0, roi.y);
-	ofxLine bottom(1, 0, 0, roi.y + roi.height);
-	ofxLine left(0, 1, roi.x, 0);
-	ofxLine right(0, 1, roi.x + roi.width, 0);
+bool ofxLine2d::drawLineInRegion(ofRectangle roi, bool drawLine){
+	ofxLine2d top(1, 0, 0, roi.y);
+	ofxLine2d bottom(1, 0, 0, roi.y + roi.height);
+	ofxLine2d left(0, 1, roi.x, 0);
+	ofxLine2d right(0, 1, roi.x + roi.width, 0);
 
 	/*
 
@@ -221,7 +221,7 @@ bool ofxLine::drawLineInRegion(ofRectangle roi, bool drawLine){
     @returns bool If the line does not cross the region, 
     	returns false and does not draw. Otherwise, returns true
 */
-bool ofxLine::isLineInRegion(ofRectangle roi){
+bool ofxLine2d::isLineInRegion(ofRectangle roi){
 	return drawLineInRegion(roi, false);
 }
 
@@ -231,6 +231,6 @@ bool ofxLine::isLineInRegion(ofRectangle roi){
 
     @param roi The region of interest to draw the line in
 */
-void ofxLine::drawLineInRegion(ofRectangle roi){
+void ofxLine2d::drawLineInRegion(ofRectangle roi){
 	drawLineInRegion(roi, true);
 }
