@@ -1,5 +1,5 @@
-#ifndef _OFX_LINE_2d
-#define _OFX_LINE_2d
+#ifndef _OFX_LINE_2D
+#define _OFX_LINE_2D
 
 #include "ofMain.h"
 

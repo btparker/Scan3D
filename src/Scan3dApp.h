@@ -5,6 +5,7 @@
 #include "ofxOpenCv.h"
 #include "cv.h"
 #include "ofxLine2d.h"
+#include "ofxRay3d.h"
 
 enum {CAMERA_CALIBRATION, SETUP, CAPTURE, PROCESSING,RECONSTRUCTION,VISUALIZATION};
 
