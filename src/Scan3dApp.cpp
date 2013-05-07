@@ -137,20 +137,22 @@ void Scan3dApp::loadSettings(){
     			
                 settings.popTag(); //pop input
                 settings.pushTag("calibration");
-                    settings.pushTag("intrinsiccam");
-                        camCalDir = ofDirectory(settings.getValue("src",""));
-                        if(settings.tagExists("file")){
-                            //load the distortion matrix
-                            programState = SETUP;
+                    settings.pushTag("cam");
+                        programState = CAMERA_CALIBRATION;
+                        camCalDir = ofDirectory(settings.getValue("frames",""));
+                        intrinsicFilename = ofToDataPath("intrinsic.xml");
+                        distortionFilename = ofToDataPath("distortion.xml");
+                        if(settings.tagExists("intrinsicFile") && settings.tagExists("distortionFile")){
+                            intrinsicFilename = settings.getValue("intrinsicFile","intrinsic.xml");
+                            distortionFilename = settings.getValue("distortionFile","distortion.xml");
+                            camCalSubstate = CAM_CAL_LOADING;
                         }
                         else{
                             camCalDir.listDir();
                             camCalDir.sort();
 
                             cout << "   Using camera calibration sequence folder: " << camCalDir.path() << endl;
-                            programState = CAMERA_CALIBRATION;
-                            camCalSubstate = TL;
-
+                            camCalSubstate = CAM_CAL_PROCESSING;  
                         }
                     settings.popTag();
                 settings.popTag();
@@ -163,53 +165,61 @@ void Scan3dApp::loadSettings(){
 				settings.pushTag("verticalPlane");
 
                     settings.pushTag("section");
-                        if(settings.tagExists("pixelpts")){
+                        if(settings.tagExists("imagePts")){
                             setupSubState = BOTTOM_SECTION;
                         }
-                        settings.pushTag("pixelpts");
+                        settings.pushTag("imagePts");
                             topSection.x = settings.getValue("x",0.0);
                             topSection.y = settings.getValue("y",0.0);
                             topSection.width = settings.getValue("width",0.0);
                             topSection.height = settings.getValue("height",0.0);
                         settings.popTag();
                     settings.popTag(); // pop section
-					cout << "   Loaded vertical plane points as [TL,TR,BR,BL]:"<< endl;
+					cout << "   Loaded vertical plane points as [BR,TR,TL,BL]:"<< endl;
 
                     for(int i = 0; i < 4; i++){
                         settings.pushTag("marker"+ofToString(i));
-                            if(settings.tagExists("pixelpt")){
+                            if(settings.tagExists("imagePt")){
                                 setupSubState = B_TL;
                             }
-        					settings.pushTag("pixelpt");
-        					    verticalPlanePts[i].set(settings.getValue("x",0.0),settings.getValue("y",0.0));
-        					    cout << "      [" << verticalPlanePts[i].x << ", " << verticalPlanePts[i].y << "]" << endl;
+        					settings.pushTag("imagePt");
+        					    verticalPlaneImagePts[i].set(settings.getValue("x",0.0),settings.getValue("y",0.0));
+        					    cout << "      image:[" << verticalPlaneImagePts[i].x << ", " << verticalPlaneImagePts[i].y << "]";
         					settings.popTag(); // pop pts
+                            settings.pushTag("objectPt");
+                                verticalPlaneObjectPts[i].set(settings.getValue("x",0.0),settings.getValue("y",0.0),settings.getValue("z",0.0));
+                                cout << "      object:[" << verticalPlaneObjectPts[i].x << ", " << verticalPlaneObjectPts[i].y << ", " << verticalPlaneObjectPts[i].z << "]" << endl;
+                            settings.popTag(); // pop pts
                         settings.popTag(); // pop markers
                     }
 				settings.popTag(); // pop verticalPlane
 
 				settings.pushTag("horizontalPlane");
                     settings.pushTag("section");
-                        if(settings.tagExists("pixelpts")){
+                        if(settings.tagExists("imagePts")){
                             setupSubState = T_TL;
                         }
-                        settings.pushTag("pixelpts");
+                        settings.pushTag("imagePts");
                             bottomSection.x = settings.getValue("x",0.0);
                             bottomSection.y = settings.getValue("y",0.0);
                             bottomSection.width = settings.getValue("width",0.0);
                             bottomSection.height = settings.getValue("height",0.0);
                         settings.popTag();
                     settings.popTag(); // pop section
-					cout << "   Loaded horizontal plane points as [TL,TR,BR,BL]:"<< endl;
+					cout << "   Loaded horizontal plane points as [BR,TR,TL,BL]:"<< endl;
                     for(int i = 0; i < 4; i++){
     					settings.pushTag("marker"+ofToString(i));
-                            if(settings.tagExists("pixelpt")){
-                                setupSubState = WAITING;
+                            if(settings.tagExists("imagePt")){
+                                setupSubState = ESTIMATE_CAMERA;
                             }
-                            settings.pushTag("pixelpt");
-        					    horizontalPlanePts[i].set(settings.getValue("x",0.0),settings.getValue("y",0.0));
-        					    cout << "      [" << horizontalPlanePts[i].x << ", " << horizontalPlanePts[i].y << "]" << endl;
-    					   settings.popTag(); // pop pts
+                            settings.pushTag("imagePt");
+        					    horizontalPlaneImagePts[i].set(settings.getValue("x",0.0),settings.getValue("y",0.0));
+        					    cout << "      image:[" << horizontalPlaneImagePts[i].x << ", " << horizontalPlaneImagePts[i].y << "]";
+    					    settings.popTag(); // pop pts
+                            settings.pushTag("objectPt");
+                                 horizontalPlaneObjectPts[i].set(settings.getValue("x",0.0),settings.getValue("y",0.0),settings.getValue("z",0.0));
+                                 cout << "      object:[" << horizontalPlaneObjectPts[i].x << ", " << horizontalPlaneObjectPts[i].y << ", " << horizontalPlaneObjectPts[i].z << "]" << endl;
+                            settings.popTag(); // pop pts
                         settings.popTag(); // pop markers
                     }   
                 settings.popTag(); // pop verticalPlane
@@ -256,10 +266,12 @@ void Scan3dApp::saveSettings(){
             settings.popTag(); //pop input
             settings.addTag("calibration");
             settings.pushTag("calibration");
-                settings.addTag("intrinsiccam");
-                settings.pushTag("intrinsiccam");
-                    settings.setValue("src",camCalDir.path());
-                settings.popTag(); //pop intrinsiccam
+                settings.addTag("cam");
+                settings.pushTag("cam");
+                    settings.setValue("frames",camCalDir.path());
+                    settings.setValue("intrinsicFile",intrinsicFilename);
+                    settings.setValue("distortionFile",distortionFilename);
+                settings.popTag(); //pop cam
             settings.popTag(); //pop calibration
             settings.addTag("misc");
             settings.pushTag("misc");
@@ -272,23 +284,27 @@ void Scan3dApp::saveSettings(){
             settings.pushTag("verticalPlane");
                 settings.addTag("section");
                 settings.pushTag("section");
-                    settings.addTag("pixelpts");
-                    settings.pushTag("pixelpts");
+                    settings.addTag("imagePts");
+                    settings.pushTag("imagePts");
                         settings.setValue("x",topSection.x);
                         settings.setValue("y",topSection.y);
                         settings.setValue("width",topSection.width);
                         settings.setValue("height",topSection.height);
-                    settings.popTag(); // pop pixelpts
+                    settings.popTag(); // pop imagePts
                 settings.popTag(); // pop section
-                cout << "   Setting vertical plane points as [TL,TR,BR,BL]:"<< endl;
+                cout << "   Setting vertical plane points as [BR,TR,TL,BL]:"<< endl;
                 for(int i = 0; i < 4; i++){
                     settings.addTag("marker"+ofToString(i));
                     settings.pushTag("marker"+ofToString(i));
-                        settings.addTag("pixelpt");
-                        settings.pushTag("pixelpt");
-                            settings.setValue("x",verticalPlanePts[i].x); settings.setValue("y",verticalPlanePts[i].y);
-                            cout << "      [" << verticalPlanePts[i].x << ", " << verticalPlanePts[i].y << "]" << endl;
-                        settings.popTag(); // pop pixelpts
+                        settings.addTag("imagePt");
+                        settings.pushTag("imagePt");
+                            settings.setValue("x",verticalPlaneImagePts[i].x); settings.setValue("y",verticalPlaneImagePts[i].y);
+                            cout << "      [" << verticalPlaneImagePts[i].x << ", " << verticalPlaneImagePts[i].y << "]" << endl;
+                        settings.popTag(); // pop imagePt
+                        settings.addTag("objectPt");
+                        settings.pushTag("objectPt");
+                            settings.setValue("x",verticalPlaneObjectPts[i].x); settings.setValue("y",verticalPlaneObjectPts[i].y); settings.setValue("z",verticalPlaneObjectPts[i].z);
+                        settings.popTag(); // pop objectPt
                     settings.popTag(); // pop markers
                 }
             settings.popTag(); // pop verticalPlane
@@ -297,23 +313,27 @@ void Scan3dApp::saveSettings(){
             settings.pushTag("horizontalPlane");
                 settings.addTag("section");
                 settings.pushTag("section");
-                    settings.addTag("pixelpts");
-                    settings.pushTag("pixelpts");
+                    settings.addTag("imagePts");
+                    settings.pushTag("imagePts");
                         settings.setValue("x",bottomSection.x);
                         settings.setValue("y",bottomSection.y);
                         settings.setValue("width",bottomSection.width);
                         settings.setValue("height",bottomSection.height);
-                    settings.popTag(); // pop pixelpts
+                    settings.popTag(); // pop imagePts
                 settings.popTag(); // pop section
-                cout << "   Setting horizontal plane points as [TL,TR,BR,BL]:"<< endl;
+                cout << "   Setting horizontal plane points as [BR,TR,TL,BL]:"<< endl;
                 for(int i = 0; i < 4; i++){
                     settings.addTag("marker"+ofToString(i));
                     settings.pushTag("marker"+ofToString(i));
-                        settings.addTag("pixelpt");
-                        settings.pushTag("pixelpt");
-                            settings.setValue("x",horizontalPlanePts[i].x); settings.setValue("y",horizontalPlanePts[i].y);
-                            cout << "      [" << horizontalPlanePts[i].x << ", " << horizontalPlanePts[i].y << "]" << endl;
-                        settings.popTag(); // pop pixelpt
+                        settings.addTag("imagePt");
+                        settings.pushTag("imagePt");
+                            settings.setValue("x",horizontalPlaneImagePts[i].x); settings.setValue("y",horizontalPlaneImagePts[i].y);
+                            cout << "      [" << horizontalPlaneImagePts[i].x << ", " << horizontalPlaneImagePts[i].y << "]" << endl;
+                        settings.popTag(); // pop imagePt
+                        settings.addTag("objectPt");
+                        settings.pushTag("objectPt");
+                            settings.setValue("x",horizontalPlaneObjectPts[i].x); settings.setValue("y",horizontalPlaneObjectPts[i].y); settings.setValue("z",horizontalPlaneObjectPts[i].z);
+                        settings.popTag(); // pop objectPt
                     settings.popTag(); // pop marker
                 }
             settings.popTag(); // pop horizontalPlane
@@ -330,10 +350,10 @@ void Scan3dApp::clearSettings(){
    topSection.set(0,0,0,0);
    bottomSection.set(0,0,0,0);
    for(int i = 0; i < 4; i++){
-        verticalPlanePts[i].x = 0;
-        verticalPlanePts[i].y = 0;
-        horizontalPlanePts[i].x = 0;
-        horizontalPlanePts[i].y = 0;
+        verticalPlaneImagePts[i].x = 0;
+        verticalPlaneImagePts[i].y = 0;
+        horizontalPlaneImagePts[i].x = 0;
+        horizontalPlaneImagePts[i].y = 0;
     }
     programState = SETUP;
     setupSubState = TOP_SECTION;
@@ -369,134 +389,172 @@ void Scan3dApp::update(){
     }
 }
 void Scan3dApp::camCalUpdate(){
+    ofFile intrinsicFile;
+    ofFile distortionFile;
     messageBarText = "CAMERA CALIBRATION";
-    if(camCalFrame < numBoards){
-        bufferOfImage.loadImage(camCalDir.getPath(camCalFrame));
-        colorFrame.setFromPixels(bufferOfImage.getPixels(),width,height);
-        grayscaleFrame = colorFrame;
+    switch(camCalSubstate){
+        case CAM_CAL_PROCESSING:
+            messageBarSubText = "Processing calibration frames";
+            if(camCalFrame < numBoards){
+                bufferOfImage.loadImage(camCalDir.getPath(camCalFrame));
+                colorFrame.setFromPixels(bufferOfImage.getPixels(),width,height);
+                grayscaleFrame = colorFrame;
 
-        //(Adapted for use from Learning OpenCV Computer Vision with the OpenCV Library)
-        IplImage* image = colorFrame.getCvImage();
-        IplImage* gray_image = grayscaleFrame.getCvImage();
+                //(Adapted for use from Learning OpenCV Computer Vision with the OpenCV Library)
+                IplImage* image = colorFrame.getCvImage();
+                IplImage* gray_image = grayscaleFrame.getCvImage();
 
-         
-        //Find chessboard corners:
-        int found = cvFindChessboardCorners(
-            image, 
-            boardNumInternalCornersCV, 
-            corners, 
-            &corner_count,
-            CV_CALIB_CB_ADAPTIVE_THRESH | CV_CALIB_CB_FILTER_QUADS
-        );
+                 
+                //Find chessboard corners:
+                int found = cvFindChessboardCorners(
+                    image, 
+                    boardNumInternalCornersCV, 
+                    corners, 
+                    &corner_count,
+                    CV_CALIB_CB_ADAPTIVE_THRESH | CV_CALIB_CB_FILTER_QUADS
+                );
 
-        
-       
-        //Get Subpixel accuracy on those corners
+                
+               
+                //Get Subpixel accuracy on those corners
 
-        cvFindCornerSubPix(
-            gray_image, 
-            corners, 
-            corner_count,
-            cvSize(11,11),
-            cvSize(-1,-1), 
-            cvTermCriteria(
-                CV_TERMCRIT_EPS+CV_TERMCRIT_ITER, 
-                30, 
-                0.1 
-            )
-        );
-        //Draw it
-        cvDrawChessboardCorners(
-            image, 
-            boardNumInternalCornersCV, 
-            corners,
-            corner_count, 
-            found
-        );
-        
-       
-        // If we got a good board, add it to our data
-        if( corner_count == boardPatternSize ) {
-            int step = successes*boardPatternSize;
-            for( int i=step, j=0; j<boardPatternSize; ++i,++j ) {
-                CV_MAT_ELEM(*image_points, float,i,0) = corners[j].x;
-                CV_MAT_ELEM(*image_points, float,i,1) = corners[j].y;
-                CV_MAT_ELEM(*object_points,float,i,0) = j/boardXCount;
-                CV_MAT_ELEM(*object_points,float,i,1) = j%boardXCount;
-                CV_MAT_ELEM(*object_points,float,i,2) = 0.0f;
+                cvFindCornerSubPix(
+                    gray_image, 
+                    corners, 
+                    corner_count,
+                    cvSize(11,11),
+                    cvSize(-1,-1), 
+                    cvTermCriteria(
+                        CV_TERMCRIT_EPS+CV_TERMCRIT_ITER, 
+                        30, 
+                        0.1 
+                    )
+                );
+                //Draw it
+                cvDrawChessboardCorners(
+                    image, 
+                    boardNumInternalCornersCV, 
+                    corners,
+                    corner_count, 
+                    found
+                );
+                
+               
+                // If we got a good board, add it to our data
+                if( corner_count == boardPatternSize ) {
+                    int step = successes*boardPatternSize;
+                    for( int i=step, j=0; j<boardPatternSize; ++i,++j ) {
+                        CV_MAT_ELEM(*image_points, float,i,0) = corners[j].x;
+                        CV_MAT_ELEM(*image_points, float,i,1) = corners[j].y;
+                        CV_MAT_ELEM(*object_points,float,i,0) = j/boardXCount;
+                        CV_MAT_ELEM(*object_points,float,i,1) = j%boardXCount;
+                        CV_MAT_ELEM(*object_points,float,i,2) = 0.0f;
+                    }
+                    CV_MAT_ELEM(*point_counts, int,successes,0) = boardPatternSize;
+                    successes++;
+                }
+
+                
+
+                colorFrame = image;
+                camCalFrame++;
             }
-            CV_MAT_ELEM(*point_counts, int,successes,0) = boardPatternSize;
-            successes++;
-        }
+            else{
+                //ALLOCATE MATRICES ACCORDING TO HOW MANY CHESSBOARDS FOUND
+                CvMat* object_points2 = cvCreateMat(successes*boardPatternSize,3,CV_32FC1);
+                CvMat* image_points2 = cvCreateMat(successes*boardPatternSize,2,CV_32FC1);
+                CvMat* point_counts2 = cvCreateMat(successes,1,CV_32SC1);
+                //TRANSFER THE POINTS INTO THE CORRECT SIZE MATRICES
+               
+                for(int i = 0; i<successes*boardPatternSize; ++i) {
+                    CV_MAT_ELEM( *image_points2, float, i, 0) = CV_MAT_ELEM( *image_points, float, i, 0);
+                    CV_MAT_ELEM( *image_points2, float,i,1) = CV_MAT_ELEM( *image_points, float, i, 1);
+                    CV_MAT_ELEM(*object_points2, float, i, 0) = CV_MAT_ELEM( *object_points, float, i, 0) ;
+                    CV_MAT_ELEM( *object_points2, float, i, 1) = CV_MAT_ELEM( *object_points, float, i, 1) ;
+                    CV_MAT_ELEM( *object_points2, float, i, 2) = CV_MAT_ELEM( *object_points, float, i, 2) ;
+                }
+                for(int i=0; i<successes; ++i){ //These are all the same number
+                    CV_MAT_ELEM( *point_counts2, int, i, 0) = CV_MAT_ELEM( *point_counts, int, i, 0);
+                }
+                cvReleaseMat(&object_points);
+                cvReleaseMat(&image_points);
+                cvReleaseMat(&point_counts);
+                // At this point we have all of the chessboard corners we need.
+                // Initialize the intrinsic matrix such that the two focal
+                // lengths have a ratio of 1.0
+                //
+                CV_MAT_ELEM( *intrinsic_matrix, float, 0, 0 ) = 1.0f;
+                CV_MAT_ELEM( *intrinsic_matrix, float, 1, 1 ) = 1.0f;
+                
+                
+                //CALIBRATE THE CAMERA!
+                cvCalibrateCamera2(
+                    object_points2, 
+                    image_points2,
+                    point_counts2, 
+                    cvGetSize( colorFrame.getCvImage() ),
+                    intrinsic_matrix, 
+                    distortion_coeffs,
+                    NULL, NULL,0 //CV_CALIB_FIX_ASPECT_RATIO
+                );
+                
+                // SAVE THE INTRINSICS AND DISTORTIONS
+                cvSave(intrinsicFilename.c_str(),intrinsic_matrix);
+                cvSave(distortionFilename.c_str(),distortion_coeffs);
 
-        
+                mapx = cvCreateImage( cvGetSize(colorFrame.getCvImage()), IPL_DEPTH_32F, 1 );
+                mapy = cvCreateImage( cvGetSize(colorFrame.getCvImage()), IPL_DEPTH_32F, 1 );
+                cvInitUndistortMap(
+                    intrinsic_matrix,
+                    distortion_coeffs,
+                    mapx,
+                    mapy
+                );
 
-        colorFrame = image;
-        camCalFrame++;
+                
+                
+                programState = SETUP;
+            }
+            break;
+
+        case CAM_CAL_LOADING:
+            messageBarSubText = "Loading calibration file";
+            
+            intrinsicFile.open(intrinsicFilename, ofFile::ReadWrite, false);
+            if(!intrinsicFile.exists()){
+                camCalSubstate = CAM_CAL_PROCESSING;
+                update();
+            }
+
+            distortionFile.open(distortionFilename, ofFile::ReadWrite, false);
+            if(!distortionFile.exists()){
+                camCalSubstate = CAM_CAL_PROCESSING;
+                update();
+            }
+            intrinsic_matrix = (CvMat*)cvLoad(intrinsicFilename.c_str());
+            distortion_coeffs = (CvMat*)cvLoad(distortionFilename.c_str());
+
+
+
+            mapx = cvCreateImage( cvGetSize(colorFrame.getCvImage()), IPL_DEPTH_32F, 1 );
+            mapy = cvCreateImage( cvGetSize(colorFrame.getCvImage()), IPL_DEPTH_32F, 1 );
+            cvInitUndistortMap(
+                intrinsic_matrix,
+                distortion_coeffs,
+                mapx,
+                mapy
+            );
+
+            programState = SETUP;
+            break;
     }
-    else{
-        //ALLOCATE MATRICES ACCORDING TO HOW MANY CHESSBOARDS FOUND
-        CvMat* object_points2 = cvCreateMat(successes*boardPatternSize,3,CV_32FC1);
-        CvMat* image_points2 = cvCreateMat(successes*boardPatternSize,2,CV_32FC1);
-        CvMat* point_counts2 = cvCreateMat(successes,1,CV_32SC1);
-        //TRANSFER THE POINTS INTO THE CORRECT SIZE MATRICES
-       
-        for(int i = 0; i<successes*boardPatternSize; ++i) {
-            CV_MAT_ELEM( *image_points2, float, i, 0) = CV_MAT_ELEM( *image_points, float, i, 0);
-            CV_MAT_ELEM( *image_points2, float,i,1) = CV_MAT_ELEM( *image_points, float, i, 1);
-            CV_MAT_ELEM(*object_points2, float, i, 0) = CV_MAT_ELEM( *object_points, float, i, 0) ;
-            CV_MAT_ELEM( *object_points2, float, i, 1) = CV_MAT_ELEM( *object_points, float, i, 1) ;
-            CV_MAT_ELEM( *object_points2, float, i, 2) = CV_MAT_ELEM( *object_points, float, i, 2) ;
-        }
-        for(int i=0; i<successes; ++i){ //These are all the same number
-            CV_MAT_ELEM( *point_counts2, int, i, 0) = CV_MAT_ELEM( *point_counts, int, i, 0);
-        }
-        cvReleaseMat(&object_points);
-        cvReleaseMat(&image_points);
-        cvReleaseMat(&point_counts);
-        // At this point we have all of the chessboard corners we need.
-        // Initialize the intrinsic matrix such that the two focal
-        // lengths have a ratio of 1.0
-        //
-        CV_MAT_ELEM( *intrinsic_matrix, float, 0, 0 ) = 1.0f;
-        CV_MAT_ELEM( *intrinsic_matrix, float, 1, 1 ) = 1.0f;
-        
-        
-        //CALIBRATE THE CAMERA!
-        cvCalibrateCamera2(
-            object_points2, 
-            image_points2,
-            point_counts2, 
-            cvGetSize( colorFrame.getCvImage() ),
-            intrinsic_matrix, 
-            distortion_coeffs,
-            NULL, NULL,0 //CV_CALIB_FIX_ASPECT_RATIO
-        );
-        
-        // SAVE THE INTRINSICS AND DISTORTIONS
-        cvSave("Intrinsics.xml",intrinsic_matrix);
-        cvSave("Distortion.xml",distortion_coeffs);
-
-        //CvMat *intrinsic = (CvMat*)cvLoad("Intrinsics.xml");
-        //CvMat *distortion = (CvMat*)cvLoad("Distortion.xml");
-
-
-
-        mapx = cvCreateImage( cvGetSize(colorFrame.getCvImage()), IPL_DEPTH_32F, 1 );
-        mapy = cvCreateImage( cvGetSize(colorFrame.getCvImage()), IPL_DEPTH_32F, 1 );
-        cvInitUndistortMap(
-            intrinsic_matrix,
-            distortion_coeffs,
-            mapx,
-            mapy
-        );
-        
-        programState = SETUP;
-    }
+    
     
 }
 
 void Scan3dApp::setupUpdate(){
+    ofPoint imagePts[8];
+    ofPoint objectPts[8];
     messageBarText = "SETUP";
     switch(setupSubState){
         case TOP_SECTION:
@@ -524,12 +582,30 @@ void Scan3dApp::setupUpdate(){
             messageBarSubText = "Click to select the top right marker on the horizontal backplane (or press c to clear settings and start over)";
             break;
         case  B_BL:
-            messageBarSubText = "Click to select the bottom right marker on the horizontal backplane (or press c to clear settings and start over)";
-            break;
-        case B_BR:
             messageBarSubText = "Click to select the bottom left marker on the horizontal backplane (or press c to clear settings and start over)";
             break;
+        case B_BR:
+            messageBarSubText = "Click to select the bottom right marker on the horizontal backplane (or press c to clear settings and start over)";
+            break;
+        case ESTIMATE_CAMERA:
+            messageBarSubText = "Estimating camera pose...";
+            for(int i = 0; i < 8; i++){
+                if(i < 4){
+                    imagePts[i] = verticalPlaneImagePts[i];
+                    objectPts[i] = verticalPlaneObjectPts[i];
+                }
+                else{
+                    imagePts[i] = horizontalPlaneImagePts[i-4];
+                    objectPts[i] = horizontalPlaneObjectPts[i-4];
+                }
+                
+            }
+            estimateCameraPose(objectPts,imagePts,intrinsic_matrix, distortion_coeffs);
+            setupSubState = WAITING;
+            break;
         case WAITING:
+            
+            
             messageBarSubText = "Press spacebar to commence scanning (or press c to clear settings and start over)";                    
             break;
     }
@@ -559,6 +635,29 @@ void Scan3dApp::setupUpdate(){
             colorFrame.remap(mapx,mapy);
             grayscaleFrame = colorFrame;
             break;
+    }
+}
+
+void Scan3dApp::convertOfPointsToCvMat(ofPoint *pts, int dimensions, int size, CvMat* output){
+    if(pts == NULL){
+        return;
+    }
+    for(int i = 0; i < size; i++){
+        for(int j = 0; j < dimensions; j++){
+            float value = 0;
+            switch(j){
+                case 0:
+                    value = pts[i].x;
+                    break;
+                case 1:
+                    value = pts[i].y;
+                    break;
+                case 2:
+                    value = pts[i].z;
+                    break;
+            }
+            CV_MAT_ELEM( *output, float, i, j ) = value;
+        }
     }
 }
 
@@ -915,15 +1014,15 @@ void Scan3dApp::drawMarkerPoints(){
     ofSetColor(topSectionColor);
     ofSetLineWidth(1);
     for(int i = 0; i < 4; i++){
-        ofLine(verticalPlanePts[i].x-15,verticalPlanePts[i].y,verticalPlanePts[i].x+15,verticalPlanePts[i].y);
-        ofLine(verticalPlanePts[i].x,verticalPlanePts[i].y-15,verticalPlanePts[i].x,verticalPlanePts[i].y+15);
+        ofLine(verticalPlaneImagePts[i].x-15,verticalPlaneImagePts[i].y,verticalPlaneImagePts[i].x+15,verticalPlaneImagePts[i].y);
+        ofLine(verticalPlaneImagePts[i].x,verticalPlaneImagePts[i].y-15,verticalPlaneImagePts[i].x,verticalPlaneImagePts[i].y+15);
     }
 
     ofSetColor(bottomSectionColor);
     ofSetLineWidth(1);
     for(int i = 0; i < 4; i++){
-        ofLine(horizontalPlanePts[i].x-15,horizontalPlanePts[i].y,horizontalPlanePts[i].x+15,horizontalPlanePts[i].y);
-        ofLine(horizontalPlanePts[i].x,horizontalPlanePts[i].y-15,horizontalPlanePts[i].x,horizontalPlanePts[i].y+15);
+        ofLine(horizontalPlaneImagePts[i].x-15,horizontalPlaneImagePts[i].y,horizontalPlaneImagePts[i].x+15,horizontalPlaneImagePts[i].y);
+        ofLine(horizontalPlaneImagePts[i].x,horizontalPlaneImagePts[i].y-15,horizontalPlaneImagePts[i].x,horizontalPlaneImagePts[i].y+15);
     }
 
     
@@ -1004,16 +1103,78 @@ ofPoint Scan3dApp::getNearestCorner(ofxCvGrayscaleImage img, int windowSize, int
     return cornerPt;
 }
 
+CvMat* Scan3dApp::estimateCameraPose(ofPoint *objectPoints, ofPoint *imagePoints, CvMat* cameraMatrix, CvMat* distCoeffs){
+    CvMat* cvObjectPoints = cvCreateMat( 8, 3, CV_32FC1 );
+    CvMat* cvImagePoints = cvCreateMat( 8, 2, CV_32FC1 );
+    CvMat* tvec = cvCreateMat(1, 3, CV_32FC1); 
+    CvMat* rvec = cvCreateMat(1, 3, CV_32FC1); 
+    convertOfPointsToCvMat(objectPoints,3,8, cvObjectPoints);
+    convertOfPointsToCvMat(imagePoints,2,8, cvImagePoints);
+    cvFindExtrinsicCameraParams2(cvObjectPoints,cvImagePoints,intrinsic_matrix, distortion_coeffs,rvec,tvec);
+    cvReleaseMat(&cvObjectPoints);
+    cvReleaseMat(&cvImagePoints);
+    ofPoint transVec(CV_MAT_ELEM( *tvec, float, 0, 0),CV_MAT_ELEM( *tvec, float, 0, 1),CV_MAT_ELEM( *tvec, float, 0, 2));
+    ofPoint rotVec(CV_MAT_ELEM( *rvec, float, 0, 0),CV_MAT_ELEM( *rvec, float, 0, 1),CV_MAT_ELEM( *rvec, float, 0, 2));
+    
+    return NULL;
+}
+
+/*
+
+Convert your 2d point into a homogenous point (give it a third coordinate equal to 1) and then multiply by the inverse of your camera intrinsics matrix. For example
+
+cv::Matx31f hom_pt(point_in_image.x, point_in_image.y, 1);
+hom_pt = camera_intrinsics_mat.inv()*hom_pt; //put in world coordinates
+
+cv::Point3f origin(0,0,0);
+cv::Point3f direction(hom_pt(0),hom_pt(1),hom_pt(2));
+
+//To get a unit vector, direction just needs to be normalized
+direction *= 1/cv::norm(direction);
+origin and direction now define the ray in world space corresponding to that image point. Note that here the origin is centered on the camera, 
+you can use your camera pose to transform to a different origin. Distortion coefficients map from your actual camera to the pinhole camera model 
+and should be used at the very beginning to find your actual 2d coordinate. The steps then are:
+
+Undistort 2d coordinate with distortion coefficients
+Convert to ray (as shown above)
+Move that ray to whatever coordinate system you like.
+
+*/
+
+/*
+I believe this can get my camera pose:
+
+-- cvFindExtrinsicCameraParams2 --
+
+FindExtrinsicCameraParams2
+bgroup({solvePnP})
+
+void cvFindExtrinsicCameraParams2(const CvMat* objectPoints, const CvMat* imagePoints, const CvMat* cameraMatrix, const CvMat* distCoeffs, CvMat* rvec, CvMat* tvec)
+
+Finds the object pose from the 3D-2D point correspondences
+
+
+Parameters: 
+objectPoints – The array of object points in the object coordinate space, 3xN or Nx3 1-channel, or 1xN or Nx1 3-channel, where N is the number of points.
+
+imagePoints – The array of corresponding image points, 2xN or Nx2 1-channel or 1xN or Nx1 2-channel, where N is the number of points.
+cameraMatrix – The input camera matrix //intrinsic matrix
+distCoeffs – The input 4x1, 1x4, 5x1 or 1x5 vector of distortion coefficients . If it is NULL, all of the distortion coefficients are set to 0
+rvec – The output rotation vector (see Rodrigues2) that (together with tvec) brings points from the model coordinate system to the camera coordinate system
+tvec – The output translation vector
+The function estimates the object pose given a set of object points, their corresponding image projections, as well as the camera matrix and the distortion coefficients. 
+This function finds such a pose that minimizes reprojection error, i.e. the sum of squared distances between the observed projections imagePoints and the projected 
+(using ProjectPoints2) objectPoints.
+
+*/
+
 
 
 //--------------------------------------------------------------
 void Scan3dApp::keyPressed(int key){
     switch(key){
         case 32: //SPACEBAR
-            if(programState ==  CAMERA_CALIBRATION){
-                programState = SETUP;
-            }
-            else if(programState ==  SETUP){
+            if(programState ==  SETUP){
                 saveSettings();
                 programState = CAPTURE;
             }
@@ -1119,38 +1280,38 @@ void Scan3dApp::mouseReleased(int x, int y, int button){
                 break;
             case  BOTTOM_SECTION:
                 topSection.width = bottomSection.width;
-                setupSubState = T_TL;
+                setupSubState = T_BR;
                 break;
-            case  T_TL:                
-                verticalPlanePts[0] = getNearestCorner(grayscaleFrame,10,x,y);
+            case  T_BR:                
+                verticalPlaneImagePts[0] = getNearestCorner(grayscaleFrame,10,x,y);
                 setupSubState = T_TR;
                 break;
             case  T_TR:
-                verticalPlanePts[1] = getNearestCorner(grayscaleFrame,10,x,y);
-                setupSubState = T_BR;
+                verticalPlaneImagePts[1] = getNearestCorner(grayscaleFrame,10,x,y);
+                setupSubState = T_TL;
                 break;
-            case  T_BR:
-                verticalPlanePts[2] = getNearestCorner(grayscaleFrame,10,x,y);
+            case  T_TL:
+                verticalPlaneImagePts[2] = getNearestCorner(grayscaleFrame,10,x,y);
                 setupSubState = T_BL;
                 break;
             case  T_BL:
-                verticalPlanePts[3] = getNearestCorner(grayscaleFrame,10,x,y);
-                setupSubState = B_TL;
+                verticalPlaneImagePts[3] = getNearestCorner(grayscaleFrame,10,x,y);
+                setupSubState = B_BR;
                 break;
-            case  B_TL:
-                horizontalPlanePts[0] = getNearestCorner(grayscaleFrame,10,x,y);
+            case  B_BR:
+                horizontalPlaneImagePts[0] = getNearestCorner(grayscaleFrame,10,x,y);
                 setupSubState = B_TR;
                 break;
             case  B_TR:
-                horizontalPlanePts[1] = getNearestCorner(grayscaleFrame,10,x,y);
+                horizontalPlaneImagePts[1] = getNearestCorner(grayscaleFrame,10,x,y);
+                setupSubState = B_TL;
+                break;
+            case  B_TL:
+                horizontalPlaneImagePts[2] = getNearestCorner(grayscaleFrame,10,x,y);
                 setupSubState = B_BL;
                 break;
-            case  B_BL:
-                horizontalPlanePts[2] = getNearestCorner(grayscaleFrame,10,x,y);
-                setupSubState = B_BR;
-                break;
-            case B_BR:
-                horizontalPlanePts[3] = getNearestCorner(grayscaleFrame,10,x,y);
+            case B_BL:
+                horizontalPlaneImagePts[3] = getNearestCorner(grayscaleFrame,10,x,y);
                 setupSubState = WAITING;
                 break;       
         }

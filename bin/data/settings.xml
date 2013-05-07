@@ -5,9 +5,11 @@
             <src>/home/btparker/Dropbox/Projects/Active/3D Scanning/oF/apps/myApps/Scan3D/bin/data/frog_scan</src>
         </input>
         <calibration>
-            <intrinsiccam>
-                <src>/home/btparker/Dropbox/Projects/Active/3D Scanning/oF/apps/myApps/Scan3D/bin/data/calib</src>
-            </intrinsiccam>
+            <cam>
+                <frames>/home/btparker/Dropbox/Projects/Active/3D Scanning/oF/apps/myApps/Scan3D/bin/data/calib</frames>
+                <intrinsicFile>/home/btparker/Dropbox/Projects/Active/3D Scanning/oF/apps/myApps/Scan3D/bin/data/intrinsic.xml</intrinsicFile>
+                <distortionFile>/home/btparker/Dropbox/Projects/Active/3D Scanning/oF/apps/myApps/Scan3D/bin/data/distortion.xml</distortionFile>
+            </cam>
         </calibration>
         <misc>
             <zeroCrossingThreshold>20</zeroCrossingThreshold>
@@ -16,70 +18,110 @@
     <scene>
         <verticalPlane>
             <section>
-                <pixelpts>
-                    <x>222.000000000</x>
-                    <y>6.000000000</y>
-                    <width>578.000000000</width>
-                    <height>315.000000000</height>
-                </pixelpts>
+                <imagePts>
+                    <x>225.000000000</x>
+                    <y>4.000000000</y>
+                    <width>581.000000000</width>
+                    <height>309.000000000</height>
+                </imagePts>
             </section>
             <marker0>
-                <pixelpt>
-                    <x>183.874603271</x>
-                    <y>39.650115967</y>
-                </pixelpt>
+                <imagePt>
+                    <x>832.696044922</x>
+                    <y>352.481048584</y>
+                </imagePt>
+                <objectPt>
+                    <x>558.799987793</x>
+                    <y>-90.000000000</y>
+                    <z>-0.000000000</z>
+                </objectPt>
             </marker0>
             <marker1>
-                <pixelpt>
+                <imagePt>
                     <x>845.715270996</x>
-                    <y>25.650032043</y>
-                </pixelpt>
+                    <y>25.649997711</y>
+                </imagePt>
+                <objectPt>
+                    <x>558.799987793</x>
+                    <y>-393.212493896</y>
+                    <z>-0.000000000</z>
+                </objectPt>
             </marker1>
             <marker2>
-                <pixelpt>
-                    <x>832.696105957</x>
-                    <y>352.480804443</y>
-                </pixelpt>
+                <imagePt>
+                    <x>183.874603271</x>
+                    <y>39.650115967</y>
+                </imagePt>
+                <objectPt>
+                    <x>0.000000000</x>
+                    <y>-393.212493896</y>
+                    <z>-0.000000000</z>
+                </objectPt>
             </marker2>
             <marker3>
-                <pixelpt>
+                <imagePt>
                     <x>217.217666626</x>
                     <y>361.863220215</y>
-                </pixelpt>
+                </imagePt>
+                <objectPt>
+                    <x>0.000000000</x>
+                    <y>-90.000000000</y>
+                    <z>-0.000000000</z>
+                </objectPt>
             </marker3>
         </verticalPlane>
         <horizontalPlane>
             <section>
-                <pixelpts>
-                    <x>222.000000000</x>
-                    <y>655.000000000</y>
-                    <width>578.000000000</width>
-                    <height>111.000000000</height>
-                </pixelpts>
+                <imagePts>
+                    <x>225.000000000</x>
+                    <y>665.000000000</y>
+                    <width>581.000000000</width>
+                    <height>99.000000000</height>
+                </imagePts>
             </section>
             <marker0>
-                <pixelpt>
-                    <x>208.331512451</x>
-                    <y>507.368927002</y>
-                </pixelpt>
+                <imagePt>
+                    <x>884.533447266</x>
+                    <y>697.390258789</y>
+                </imagePt>
+                <objectPt>
+                    <x>558.799987793</x>
+                    <y>0.000000000</y>
+                    <z>-393.212493896</z>
+                </objectPt>
             </marker0>
             <marker1>
-                <pixelpt>
-                    <x>839.599060059</x>
+                <imagePt>
+                    <x>839.599121094</x>
                     <y>500.260101318</y>
-                </pixelpt>
+                </imagePt>
+                <objectPt>
+                    <x>558.799987793</x>
+                    <y>0.000000000</y>
+                    <z>-90.000000000</z>
+                </objectPt>
             </marker1>
             <marker2>
-                <pixelpt>
-                    <x>884.533386230</x>
-                    <y>697.390258789</y>
-                </pixelpt>
+                <imagePt>
+                    <x>208.331451416</x>
+                    <y>507.368927002</y>
+                </imagePt>
+                <objectPt>
+                    <x>0.000000000</x>
+                    <y>0.000000000</y>
+                    <z>-90.000000000</z>
+                </objectPt>
             </marker2>
             <marker3>
-                <pixelpt>
-                    <x>144.480102539</x>
+                <imagePt>
+                    <x>144.480117798</x>
                     <y>705.244995117</y>
-                </pixelpt>
+                </imagePt>
+                <objectPt>
+                    <x>0.000000000</x>
+                    <y>0.000000000</y>
+                    <z>-393.212493896</z>
+                </objectPt>
             </marker3>
         </horizontalPlane>
     </scene>

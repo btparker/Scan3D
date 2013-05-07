@@ -9,10 +9,10 @@
 enum {CAMERA_CALIBRATION, SETUP, CAPTURE, PROCESSING,RECONSTRUCTION,VISUALIZATION};
 
 
-enum Setup{TOP_SECTION, BOTTOM_SECTION, T_TL, T_TR, T_BL, T_BR, B_TL, B_TR, B_BL, B_BR, WAITING};
+enum Setup{TOP_SECTION, BOTTOM_SECTION, T_TL, T_TR, T_BL, T_BR, B_TL, B_TR, B_BL, B_BR,ESTIMATE_CAMERA, WAITING};
 
 
-enum CameraCalibration{TL, TR, BL, BR, CAM_CAL_WAITING};
+enum CameraCalibration{CAM_CAL_PROCESSING, CAM_CAL_LOADING, CAM_CAL_WAITING};
 
 
 enum { COLOR, GRAYSCALE, MINIMAGE, MAXIMAGE, SHADOWTHRESHIMAGE, DIFF, THRESH, EDGE, CORNER};
@@ -56,6 +56,8 @@ class Scan3dApp : public ofBaseApp{
 		ofxLine computeLineFromZeroCrossings(ofxCvGrayscaleImage img, ofRectangle roi);
 		bool isPointInRegion(ofPoint pt, ofRectangle roi);
 		ofPoint getNearestCorner(ofxCvGrayscaleImage img, int windowSize, int x, int y);
+		CvMat* estimateCameraPose(ofPoint *objectPoints, ofPoint *imagePoints, CvMat* cameraMatrix, CvMat* distCoeffs);
+		void convertOfPointsToCvMat(ofPoint *pts, int dimensions, int size, CvMat* output);
 
 		ofVideoPlayer vid;
 
@@ -63,8 +65,11 @@ class Scan3dApp : public ofBaseApp{
 		string inputVideoFile;
 
 		//Calibration points for the planes the object rests on
-		ofPoint verticalPlanePts[4];
-		ofPoint horizontalPlanePts[4];
+		ofPoint verticalPlaneImagePts[4];
+		ofPoint horizontalPlaneImagePts[4];
+
+		ofPoint verticalPlaneObjectPts[4];
+		ofPoint horizontalPlaneObjectPts[4];
     
         //Images
         ofxCvColorImage colorFrame;
@@ -148,6 +153,9 @@ class Scan3dApp : public ofBaseApp{
 		int corner_count;
 		IplImage* mapx;
 		IplImage* mapy;
+
+		string intrinsicFilename;
+		string distortionFilename;
 
 
 
