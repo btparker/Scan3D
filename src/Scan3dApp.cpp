@@ -601,6 +601,7 @@ void Scan3dApp::setupUpdate(){
                 
             }
             estimateCameraPose(objectPts,imagePts,intrinsic_matrix, distortion_coeffs);
+            pixel2Ray(intrinsic_matrix,NULL,ofPoint(0,0));
             setupSubState = WAITING;
             break;
         case WAITING:
@@ -1103,20 +1104,84 @@ ofPoint Scan3dApp::getNearestCorner(ofxCvGrayscaleImage img, int windowSize, int
     return cornerPt;
 }
 
-CvMat* Scan3dApp::estimateCameraPose(ofPoint *objectPoints, ofPoint *imagePoints, CvMat* cameraMatrix, CvMat* distCoeffs){
+void Scan3dApp::estimateCameraPose(ofPoint *objectPoints, ofPoint *imagePoints, CvMat* cameraMatrix, CvMat* distCoeffs){
     CvMat* cvObjectPoints = cvCreateMat( 8, 3, CV_32FC1 );
     CvMat* cvImagePoints = cvCreateMat( 8, 2, CV_32FC1 );
-    CvMat* tvec = cvCreateMat(1, 3, CV_32FC1); 
-    CvMat* rvec = cvCreateMat(1, 3, CV_32FC1); 
+    CvMat* tvec = cvCreateMat(3,1, CV_32FC1); 
+    CvMat* rvec = cvCreateMat(3,1, CV_32FC1); 
     convertOfPointsToCvMat(objectPoints,3,8, cvObjectPoints);
     convertOfPointsToCvMat(imagePoints,2,8, cvImagePoints);
     cvFindExtrinsicCameraParams2(cvObjectPoints,cvImagePoints,intrinsic_matrix, distortion_coeffs,rvec,tvec);
     cvReleaseMat(&cvObjectPoints);
     cvReleaseMat(&cvImagePoints);
-    ofPoint transVec(CV_MAT_ELEM( *tvec, float, 0, 0),CV_MAT_ELEM( *tvec, float, 0, 1),CV_MAT_ELEM( *tvec, float, 0, 2));
-    ofPoint rotVec(CV_MAT_ELEM( *rvec, float, 0, 0),CV_MAT_ELEM( *rvec, float, 0, 1),CV_MAT_ELEM( *rvec, float, 0, 2));
+
+    CvMat* rotmat = cvCreateMat( 3,3, CV_32FC1 );
+
+    cvRodrigues2(rvec,rotmat);
+
+    CvMat* rotmatTransposed = cvCreateMat( 3,3, CV_32FC1 );
+    cvTranspose(rotmat,rotmatTransposed);
+
+    CvMat* negRotmatTransposed = cvCreateMat( 3,3, CV_32FC1 );
+    cvScale(rotmatTransposed,negRotmatTransposed,-1);
+
+    CvMat* translation = cvCreateMat(3,1, CV_32FC1); 
+    cvMatMul(negRotmatTransposed,tvec,translation);
+
+    extrinsic_matrix = cvCreateMat( 4, 4, CV_32FC1 );
+    CV_MAT_ELEM(*extrinsic_matrix,float,3,3) = 1.0;
+    for(int i = 0; i < 3; i++){
+        for(int j = 0; j < 3; j++){
+            CV_MAT_ELEM(*extrinsic_matrix,float,i,j) = CV_MAT_ELEM(*rotmatTransposed,float,i,j);
+        }  
+    }
+
+    for(int i = 0; i < 3; i++){
+        CV_MAT_ELEM(*extrinsic_matrix,float,i,3) = CV_MAT_ELEM(*translation,float,i,0); 
+    }
+
+    // for(int i = 0; i < 4; i++){
+    //     for(int j = 0; j < 4; j++){
+    //         cout << CV_MAT_ELEM(*extrinsic_matrix,float,i,j) << ' ';
+    //     }  
+    //     cout << endl;  
+    // }
+    // cout << endl;
     
-    return NULL;
+    
+    cvReleaseMat(&tvec);
+    cvReleaseMat(&rvec);
+    cvReleaseMat(&rotmat);
+    cvReleaseMat(&rotmatTransposed);
+    cvReleaseMat(&negRotmatTransposed);
+    cvReleaseMat(&translation);    
+}
+
+ofPoint Scan3dApp::pixel2Ray(const CvMat* intrinsicMat, const CvMat* extrinsicMat, ofPoint imagePt){
+    CvMat* pixel = cvCreateMat(3,1, CV_32FC1);
+    CV_MAT_ELEM(*pixel,float,0,0) = imagePt.x; CV_MAT_ELEM(*pixel,float,1,0) = imagePt.y; CV_MAT_ELEM(*pixel,float,2,0) = 1.0; 
+    CvMat* invIntrinsicMat = cvCreateMat(3,3,CV_32FC1);
+    cvInv(intrinsicMat, invIntrinsicMat, CV_LU);
+    CvMat* ray = cvCreateMat(3,1, CV_32FC1);
+    
+    cvMatMul(invIntrinsicMat,pixel,ray);
+
+    CvMat* normRay = cvCreateMat(3,1, CV_32FC1);
+    cvNormalize(ray,normRay);
+    for(int i = 0; i < 3; i++){
+        for(int j = 0; j < 1; j++){
+            cout << CV_MAT_ELEM(*normRay,float,i,j) << ' ';
+        }  
+        cout << endl;  
+    }
+    cout << endl;
+    ofPoint ofRay(CV_MAT_ELEM(*normRay,float,0,0),CV_MAT_ELEM(*normRay,float,1,0),CV_MAT_ELEM(*normRay,float,2,0));
+    cvReleaseMat(&invIntrinsicMat);
+    cvReleaseMat(&pixel);
+    cvReleaseMat(&ray);
+    cvReleaseMat(&normRay);
+
+    return ofRay;
 }
 
 /*
@@ -1140,34 +1205,6 @@ Convert to ray (as shown above)
 Move that ray to whatever coordinate system you like.
 
 */
-
-/*
-I believe this can get my camera pose:
-
--- cvFindExtrinsicCameraParams2 --
-
-FindExtrinsicCameraParams2
-bgroup({solvePnP})
-
-void cvFindExtrinsicCameraParams2(const CvMat* objectPoints, const CvMat* imagePoints, const CvMat* cameraMatrix, const CvMat* distCoeffs, CvMat* rvec, CvMat* tvec)
-
-Finds the object pose from the 3D-2D point correspondences
-
-
-Parameters: 
-objectPoints – The array of object points in the object coordinate space, 3xN or Nx3 1-channel, or 1xN or Nx1 3-channel, where N is the number of points.
-
-imagePoints – The array of corresponding image points, 2xN or Nx2 1-channel or 1xN or Nx1 2-channel, where N is the number of points.
-cameraMatrix – The input camera matrix //intrinsic matrix
-distCoeffs – The input 4x1, 1x4, 5x1 or 1x5 vector of distortion coefficients . If it is NULL, all of the distortion coefficients are set to 0
-rvec – The output rotation vector (see Rodrigues2) that (together with tvec) brings points from the model coordinate system to the camera coordinate system
-tvec – The output translation vector
-The function estimates the object pose given a set of object points, their corresponding image projections, as well as the camera matrix and the distortion coefficients. 
-This function finds such a pose that minimizes reprojection error, i.e. the sum of squared distances between the observed projections imagePoints and the projected 
-(using ProjectPoints2) objectPoints.
-
-*/
-
 
 
 //--------------------------------------------------------------
