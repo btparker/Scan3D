@@ -163,6 +163,10 @@ class Scan3dApp : public ofBaseApp{
 		string intrinsicFilename;
 		string distortionFilename;
 
+		ofPoint camPos;
+		CvMat* camRotMat;
+		CvMat* invIntrinsic;
+
 
 
 
