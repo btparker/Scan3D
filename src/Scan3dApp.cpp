@@ -615,6 +615,12 @@ void Scan3dApp::setupUpdate(){
 
             cout << pixelCoord << endl;
 
+            ray = pixelToRay(intrinsic_matrix,extrinsic_matrix,pixelCoord);
+
+            // intersectPt = ray.intersect(vertPlane);
+
+            // cout << intersectPt << endl;
+
             setupSubState = WAITING;
             break;
         case WAITING:
@@ -651,6 +657,7 @@ void Scan3dApp::setupUpdate(){
             break;
     }
 }
+
 
 ofPoint Scan3dApp::pt3DToPixel(const CvMat* intrinsicMat, const CvMat* extrinsicMat, ofPoint pt3D){
     CvMat* A = cvCreateMat( 3, 4, CV_32FC1 );
@@ -1155,19 +1162,6 @@ void Scan3dApp::estimateCameraPose(ofPoint *objectPoints, ofPoint *imagePoints, 
 
     cvRodrigues2(rvec,rotmat);
 
-    // CvMat* rotmatTransposed = cvCreateMat( 3,3, CV_32FC1 );
-    // cvTranspose(rotmat,rotmatTransposed);
-
-    // CvMat* negRotmatTransposed = cvCreateMat( 3,3, CV_32FC1 );
-    // for(int i = 0; i < 3; i++){
-    //     for(int j = 0; j < 3; j++){
-    //         CV_MAT_ELEM(*negRotmatTransposed,float,i,j) = -1*CV_MAT_ELEM(*rotmatTransposed,float,i,j);
-    //     }  
-    // }
-
-    // CvMat* translation = cvCreateMat(3,1, CV_32FC1); 
-    // cvMatMul(negRotmatTransposed,tvec,translation);
-
     extrinsic_matrix = cvCreateMat( 3, 4, CV_32FC1 );
     for(int i = 0; i < 3; i++){
         for(int j = 0; j < 3; j++){
@@ -1179,24 +1173,31 @@ void Scan3dApp::estimateCameraPose(ofPoint *objectPoints, ofPoint *imagePoints, 
         CV_MAT_ELEM(*extrinsic_matrix,float,i,3) = CV_MAT_ELEM(*tvec,float,i,0); 
     }
 
-    // for(int i = 0; i < 4; i++){
-    //     for(int j = 0; j < 4; j++){
-    //         cout << CV_MAT_ELEM(*extrinsic_matrix,float,i,j) << ' ';
-    //     }  
-    //     cout << endl;  
-    // }
-    // cout << endl;
-    
     cvReleaseMat(&tvec);
     cvReleaseMat(&rvec);
-    cvReleaseMat(&rotmat);
-    // cvReleaseMat(&rotmatTransposed);
-    // cvReleaseMat(&negRotmatTransposed);
-    // cvReleaseMat(&translation);    
+    cvReleaseMat(&rotmat);   
 }
 
-ofxRay3d Scan3dApp::pixel2Ray(const CvMat* intrinsicMat, const CvMat* extrinsicMat, ofPoint imagePt){
+ofxRay3d Scan3dApp::pixelToRay(const CvMat* intrinsicMat, const CvMat* extrinsicMat, ofPoint imagePt){
+    CvMat* homography = cvCreateMat(3,3, CV_32FC1); 
+
+    float t3 = CV_MAT_ELEM(*extrinsicMat,float,2,3); 
+    for(int row = 0; row < 3; row++){
+        CV_MAT_ELEM(*homography,float,row,0) = CV_MAT_ELEM(*extrinsicMat,float,row,0)/t3;
+        CV_MAT_ELEM(*homography,float,row,1) = CV_MAT_ELEM(*extrinsicMat,float,row,1)/t3;
+        CV_MAT_ELEM(*homography,float,row,2) = CV_MAT_ELEM(*extrinsicMat,float,row,3)/t3;
+    }
+
+    CvMat* cvImgPt = cvCreateMat(3,1, CV_32FC1); 
+    CV_MAT_ELEM(*cvImgPt,float,0,0) = imagePt.x;
+    CV_MAT_ELEM(*cvImgPt,float,1,0) = imagePt.y;
+    CV_MAT_ELEM(*cvImgPt,float,2,0) = imagePt.z;
+
+    CvMat* res = cvCreateMat(3,1, CV_32FC1); 
+
+    cvMatMul(homography,cvImgPt,res);
     
+
     return ofxRay3d();
 }
 
