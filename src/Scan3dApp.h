@@ -58,7 +58,7 @@ class Scan3dApp : public ofBaseApp{
 		ofxLine2d computeLineFromZeroCrossings(ofxCvGrayscaleImage img, ofRectangle roi);
 		bool isPointInRegion(ofPoint pt, ofRectangle roi);
 		ofPoint getNearestCorner(ofxCvGrayscaleImage img, int windowSize, int x, int y);
-		void estimateCameraPose(ofPoint *objectPoints, ofPoint *imagePoints, CvMat* cameraMatrix, CvMat* distCoeffs);
+		void computeExtrinsicMatrix(ofPoint *objectPoints, ofPoint *imagePoints, CvMat* cameraMatrix, CvMat* distCoeffs);
 		void convertOfPointsToCvMat(ofPoint *pts, int dimensions, int size, CvMat* output);
 		ofxRay3d pixelToRay(const CvMat* intrinsicMat, const CvMat* extrinsicMat, ofPoint imagePt);
 		ofPoint pt3DToPixel(const CvMat* intrinsicMat, const CvMat* extrinsicMat, ofPoint pt3D);

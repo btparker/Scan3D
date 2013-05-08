@@ -606,7 +606,7 @@ void Scan3dApp::setupUpdate(){
                 }
                 
             }
-            estimateCameraPose(objectPts,imagePts,intrinsic_matrix, distortion_coeffs);
+            computeExtrinsicMatrix(objectPts,imagePts,intrinsic_matrix, distortion_coeffs);
             cout << "Points and such "<< endl;
             cout << verticalPlaneObjectPts[0] << endl;
             cout << verticalPlaneImagePts[0] << endl;
@@ -617,9 +617,9 @@ void Scan3dApp::setupUpdate(){
 
             ray = pixelToRay(intrinsic_matrix,extrinsic_matrix,pixelCoord);
 
-            // intersectPt = ray.intersect(vertPlane);
+            intersectPt = ray.intersect(vertPlane);
 
-            // cout << intersectPt << endl;
+            cout << intersectPt << endl;
 
             setupSubState = WAITING;
             break;
@@ -1147,7 +1147,7 @@ ofPoint Scan3dApp::getNearestCorner(ofxCvGrayscaleImage img, int windowSize, int
     return cornerPt;
 }
 
-void Scan3dApp::estimateCameraPose(ofPoint *objectPoints, ofPoint *imagePoints, CvMat* cameraMatrix, CvMat* distCoeffs){
+void Scan3dApp::computeExtrinsicMatrix(ofPoint *objectPoints, ofPoint *imagePoints, CvMat* cameraMatrix, CvMat* distCoeffs){
     CvMat* cvObjectPoints = cvCreateMat( 8, 3, CV_32FC1 );
     CvMat* cvImagePoints = cvCreateMat( 8, 2, CV_32FC1 );
     CvMat* tvec = cvCreateMat(3,1, CV_32FC1); 
@@ -1179,26 +1179,65 @@ void Scan3dApp::estimateCameraPose(ofPoint *objectPoints, ofPoint *imagePoints, 
 }
 
 ofxRay3d Scan3dApp::pixelToRay(const CvMat* intrinsicMat, const CvMat* extrinsicMat, ofPoint imagePt){
-    CvMat* homography = cvCreateMat(3,3, CV_32FC1); 
 
-    float t3 = CV_MAT_ELEM(*extrinsicMat,float,2,3); 
-    for(int row = 0; row < 3; row++){
-        CV_MAT_ELEM(*homography,float,row,0) = CV_MAT_ELEM(*extrinsicMat,float,row,0)/t3;
-        CV_MAT_ELEM(*homography,float,row,1) = CV_MAT_ELEM(*extrinsicMat,float,row,1)/t3;
-        CV_MAT_ELEM(*homography,float,row,2) = CV_MAT_ELEM(*extrinsicMat,float,row,3)/t3;
+    CvMat* rotmat = cvCreateMat( 3,3, CV_32FC1 );
+
+    for(int i = 0; i < 3; i++){
+        for(int j = 0; j < 3; j++){
+            CV_MAT_ELEM(*rotmat,float,i,j) = CV_MAT_ELEM(*extrinsicMat,float,i,j);
+        }  
     }
 
-    CvMat* cvImgPt = cvCreateMat(3,1, CV_32FC1); 
-    CV_MAT_ELEM(*cvImgPt,float,0,0) = imagePt.x;
-    CV_MAT_ELEM(*cvImgPt,float,1,0) = imagePt.y;
-    CV_MAT_ELEM(*cvImgPt,float,2,0) = imagePt.z;
+    CvMat* tvec = cvCreateMat(3,1, CV_32FC1); 
+    for(int i = 0; i < 3; i++){
+        CV_MAT_ELEM(*tvec,float,i,0) = CV_MAT_ELEM(*extrinsicMat,float,i,3);
+    }
 
-    CvMat* res = cvCreateMat(3,1, CV_32FC1); 
+    CvMat* transRotmat = cvCreateMat( 3,3, CV_32FC1 );
+    cvTranspose(rotmat,transRotmat);
 
-    cvMatMul(homography,cvImgPt,res);
+
+    CvMat* camRotVec = cvCreateMat(3,1, CV_32FC1); 
+    cvRodrigues2(transRotmat,camRotVec);
+
+    CvMat* negTransRotmat = cvCreateMat( 3,3, CV_32FC1 );
+    cvScale(transRotmat,negTransRotmat,-1);
+
+    CvMat* camTransVec = cvCreateMat(3,1, CV_32FC1);  
+    cvMatMul(negTransRotmat,tvec,camTransVec);
+
+    CvMat* camRotMat = cvCreateMat(3,3, CV_32FC1); 
+    cvRodrigues2(camRotVec,camRotMat);
+
+    ofPoint camPos = ofPoint(CV_MAT_ELEM(*camTransVec,float,0,0),CV_MAT_ELEM(*camTransVec,float,1,0),CV_MAT_ELEM(*camTransVec,float,2,0));
+
+    cout << camPos << endl;
+
+    CvMat* invIntrinsic = cvCreateMat( 3,3, CV_32FC1 );
+    cvInv(intrinsicMat,invIntrinsic);
+
+    CvMat* homoImgPt = cvCreateMat(3,1, CV_32FC1); 
+
+    CV_MAT_ELEM(*homoImgPt,float,0,0) = imagePt.x;
+    CV_MAT_ELEM(*homoImgPt,float,1,0) = imagePt.y;
+    CV_MAT_ELEM(*homoImgPt,float,2,0) = 1.0;
+
+    CvMat* resPt = cvCreateMat(3,1, CV_32FC1); 
+
+    cvMatMul(invIntrinsic,homoImgPt,resPt);
+
+    CvMat* rotResPt = cvCreateMat(3,1, CV_32FC1); 
+
+    cvMatMul(camRotMat,resPt,rotResPt);
+
+    ofVec3f dir = ofVec3f(CV_MAT_ELEM(*rotResPt,float,0,0),CV_MAT_ELEM(*rotResPt,float,1,0),CV_MAT_ELEM(*rotResPt,float,2,0));
     
+    dir.normalize();
 
-    return ofxRay3d();
+    cout << dir << endl;
+
+
+    return ofxRay3d(camPos,dir);
 }
 
 // ofPoint Scan3dApp::rayPlaneIntersection(ofPoint planePt, ofVec3f planeNormal, ofPoint rayOrigin, ofVec3f rayDirection){
