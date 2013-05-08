@@ -555,6 +555,11 @@ void Scan3dApp::camCalUpdate(){
 void Scan3dApp::setupUpdate(){
     ofPoint imagePts[8];
     ofPoint objectPts[8];
+    ofPoint pixelCoord;
+    ofxRay3d ray;
+    ofxPlane vertPlane(ofPoint(5,5,0),ofVec3f(0,0,-1));
+    ofPoint intersectPt;
+
 
     messageBarText = "SETUP";
     switch(setupSubState){
@@ -602,8 +607,14 @@ void Scan3dApp::setupUpdate(){
                 
             }
             estimateCameraPose(objectPts,imagePts,intrinsic_matrix, distortion_coeffs);
-            pixel2Ray(intrinsic_matrix,extrinsic_matrix,ofPoint(0,0));
-            
+            cout << "Points and such "<< endl;
+            cout << verticalPlaneObjectPts[0] << endl;
+            cout << verticalPlaneImagePts[0] << endl;
+
+            pixelCoord = pt3DToPixel(intrinsic_matrix,extrinsic_matrix,verticalPlaneObjectPts[0]);
+
+            cout << pixelCoord << endl;
+
             setupSubState = WAITING;
             break;
         case WAITING:
@@ -639,6 +650,29 @@ void Scan3dApp::setupUpdate(){
             grayscaleFrame = colorFrame;
             break;
     }
+}
+
+ofPoint Scan3dApp::pt3DToPixel(const CvMat* intrinsicMat, const CvMat* extrinsicMat, ofPoint pt3D){
+    CvMat* A = cvCreateMat( 3, 4, CV_32FC1 );
+    cvMatMul(intrinsic_matrix,extrinsic_matrix,A); //combining into one matrix
+    CvMat* x = cvCreateMat( 4, 1, CV_32FC1 ); // homogenized point
+    CV_MAT_ELEM(*x, float, 0,0) = pt3D.x;
+    CV_MAT_ELEM(*x, float, 1,0) = pt3D.y;
+    CV_MAT_ELEM(*x, float, 2,0) = pt3D.z;
+    CV_MAT_ELEM(*x, float, 3,0) = 1.0;
+
+    CvMat* b = cvCreateMat( 3, 1, CV_32FC1 ); // pixel coordinate solving for
+    cvMatMul(A,x,b);
+    CV_MAT_ELEM(*b,float,0,0) /= CV_MAT_ELEM(*b,float,2,0);
+    CV_MAT_ELEM(*b,float,1,0) /= CV_MAT_ELEM(*b,float,2,0);
+    CV_MAT_ELEM(*b,float,2,0) /= CV_MAT_ELEM(*b,float,2,0);
+    ofPoint pixelRes = ofPoint(CV_MAT_ELEM(*b,float,0,0),CV_MAT_ELEM(*b,float,1,0),CV_MAT_ELEM(*b,float,2,0));
+
+    cvReleaseMat(&A);
+    cvReleaseMat(&x);
+    cvReleaseMat(&b);
+
+    return pixelRes;
 }
 
 void Scan3dApp::convertOfPointsToCvMat(ofPoint *pts, int dimensions, int size, CvMat* output){
@@ -1121,25 +1155,28 @@ void Scan3dApp::estimateCameraPose(ofPoint *objectPoints, ofPoint *imagePoints, 
 
     cvRodrigues2(rvec,rotmat);
 
-    CvMat* rotmatTransposed = cvCreateMat( 3,3, CV_32FC1 );
-    cvTranspose(rotmat,rotmatTransposed);
+    // CvMat* rotmatTransposed = cvCreateMat( 3,3, CV_32FC1 );
+    // cvTranspose(rotmat,rotmatTransposed);
 
-    CvMat* negRotmatTransposed = cvCreateMat( 3,3, CV_32FC1 );
-    cvScale(rotmatTransposed,negRotmatTransposed,-1);
+    // CvMat* negRotmatTransposed = cvCreateMat( 3,3, CV_32FC1 );
+    // for(int i = 0; i < 3; i++){
+    //     for(int j = 0; j < 3; j++){
+    //         CV_MAT_ELEM(*negRotmatTransposed,float,i,j) = -1*CV_MAT_ELEM(*rotmatTransposed,float,i,j);
+    //     }  
+    // }
 
-    CvMat* translation = cvCreateMat(3,1, CV_32FC1); 
-    cvMatMul(negRotmatTransposed,tvec,translation);
+    // CvMat* translation = cvCreateMat(3,1, CV_32FC1); 
+    // cvMatMul(negRotmatTransposed,tvec,translation);
 
-    extrinsic_matrix = cvCreateMat( 4, 4, CV_32FC1 );
-    CV_MAT_ELEM(*extrinsic_matrix,float,3,3) = 1.0;
+    extrinsic_matrix = cvCreateMat( 3, 4, CV_32FC1 );
     for(int i = 0; i < 3; i++){
         for(int j = 0; j < 3; j++){
-            CV_MAT_ELEM(*extrinsic_matrix,float,i,j) = CV_MAT_ELEM(*rotmatTransposed,float,i,j);
+            CV_MAT_ELEM(*extrinsic_matrix,float,i,j) = CV_MAT_ELEM(*rotmat,float,i,j);
         }  
     }
 
     for(int i = 0; i < 3; i++){
-        CV_MAT_ELEM(*extrinsic_matrix,float,i,3) = CV_MAT_ELEM(*translation,float,i,0); 
+        CV_MAT_ELEM(*extrinsic_matrix,float,i,3) = CV_MAT_ELEM(*tvec,float,i,0); 
     }
 
     // for(int i = 0; i < 4; i++){
@@ -1150,42 +1187,17 @@ void Scan3dApp::estimateCameraPose(ofPoint *objectPoints, ofPoint *imagePoints, 
     // }
     // cout << endl;
     
-    
     cvReleaseMat(&tvec);
     cvReleaseMat(&rvec);
     cvReleaseMat(&rotmat);
-    cvReleaseMat(&rotmatTransposed);
-    cvReleaseMat(&negRotmatTransposed);
-    cvReleaseMat(&translation);    
+    // cvReleaseMat(&rotmatTransposed);
+    // cvReleaseMat(&negRotmatTransposed);
+    // cvReleaseMat(&translation);    
 }
 
 ofxRay3d Scan3dApp::pixel2Ray(const CvMat* intrinsicMat, const CvMat* extrinsicMat, ofPoint imagePt){
-    CvMat* pixel = cvCreateMat(3,1, CV_32FC1);
-    CV_MAT_ELEM(*pixel,float,0,0) = imagePt.x; CV_MAT_ELEM(*pixel,float,1,0) = imagePt.y; CV_MAT_ELEM(*pixel,float,2,0) = 1.0; 
-    CvMat* invIntrinsicMat = cvCreateMat(3,3,CV_32FC1);
-    cvInv(intrinsicMat, invIntrinsicMat, CV_LU);
-    CvMat* ray = cvCreateMat(3,1, CV_32FC1);
     
-    cvMatMul(invIntrinsicMat,pixel,ray);
-
-    CvMat* normRay = cvCreateMat(3,1, CV_32FC1);
-    cvNormalize(ray,normRay);
-    for(int i = 0; i < 3; i++){
-        for(int j = 0; j < 1; j++){
-            cout << CV_MAT_ELEM(*normRay,float,i,j) << ' ';
-        }  
-        cout << endl;  
-    }
-    cout << endl;
-    ofVec3f rayDir(CV_MAT_ELEM(*normRay,float,0,0),CV_MAT_ELEM(*normRay,float,1,0),CV_MAT_ELEM(*normRay,float,2,0));
-    ofPoint rayOrigin(CV_MAT_ELEM(*extrinsic_matrix,float,3,0),CV_MAT_ELEM(*extrinsic_matrix,float,3,1),CV_MAT_ELEM(*extrinsic_matrix,float,3,2));
-    ofxRay3d ofRay(rayOrigin,rayDir);
-    cvReleaseMat(&invIntrinsicMat);
-    cvReleaseMat(&pixel);
-    cvReleaseMat(&ray);
-    cvReleaseMat(&normRay);
-
-    return ofRay;
+    return ofxRay3d();
 }
 
 // ofPoint Scan3dApp::rayPlaneIntersection(ofPoint planePt, ofVec3f planeNormal, ofPoint rayOrigin, ofVec3f rayDirection){

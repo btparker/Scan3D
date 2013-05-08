@@ -61,6 +61,7 @@ class Scan3dApp : public ofBaseApp{
 		void estimateCameraPose(ofPoint *objectPoints, ofPoint *imagePoints, CvMat* cameraMatrix, CvMat* distCoeffs);
 		void convertOfPointsToCvMat(ofPoint *pts, int dimensions, int size, CvMat* output);
 		ofxRay3d pixel2Ray(const CvMat* intrinsicMat, const CvMat* extrinsicMat, ofPoint imagePt);
+		ofPoint pt3DToPixel(const CvMat* intrinsicMat, const CvMat* extrinsicMat, ofPoint pt3D);
 		//ofPoint rayPlaneIntersection(ofPoint planePt, ofVec3f planeNormal, ofPoint rayOrigin, ofVec3f rayDirection);
 
 		ofVideoPlayer vid;
