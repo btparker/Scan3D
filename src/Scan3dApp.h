@@ -170,7 +170,7 @@ class Scan3dApp : public ofBaseApp{
 		ofxPlane vertPlane;
 		ofxPlane horizPlane;
 
-
+		bool paused;
 
 
         

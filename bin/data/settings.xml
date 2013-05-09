@@ -12,7 +12,7 @@
             </cam>
         </calibration>
         <misc>
-            <zeroCrossingThreshold>20</zeroCrossingThreshold>
+            <zeroCrossingThreshold>10</zeroCrossingThreshold>
         </misc>
     </user>
     <scene>

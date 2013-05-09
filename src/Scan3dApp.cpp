@@ -109,6 +109,8 @@ void Scan3dApp::setup(){
 
     vertPlane = ofxPlane(ofPoint(5,5,0),ofVec3f(0,0,-1));
     horizPlane = ofxPlane(ofPoint(5,0,5),ofVec3f(0,1,0));
+
+    paused = false;
 }
 
 //--------------------------------------------------------------
@@ -364,31 +366,33 @@ void Scan3dApp::clearSettings(){
 
 //--------------------------------------------------------------
 void Scan3dApp::update(){
-    switch(programState){
-        case CAMERA_CALIBRATION:
-            camCalUpdate();
-            break;
-        case SETUP:
-        {
-            setupUpdate();
-            break;
-        }
-        case CAPTURE:
-        {
-            captureUpdate();
-            break;
-        }
-        case PROCESSING:
-        {     
-            processingUpdate();
-            break;
-        }
-        case VISUALIZATION:
-        {    
-            visualizationUpdate();
-            break;
-        }
+    if(!paused){
+        switch(programState){
+            case CAMERA_CALIBRATION:
+                camCalUpdate();
+                break;
+            case SETUP:
+            {
+                setupUpdate();
+                break;
+            }
+            case CAPTURE:
+            {
+                captureUpdate();
+                break;
+            }
+            case PROCESSING:
+            {     
+                processingUpdate();
+                break;
+            }
+            case VISUALIZATION:
+            {    
+                visualizationUpdate();
+                break;
+            }
 
+        }
     }
 }
 void Scan3dApp::camCalUpdate(){
@@ -960,12 +964,15 @@ void Scan3dApp::draw(){
         case SHADOWTHRESHIMAGE:
             temporalImg.draw(0, 0);
             break;
+        case DIFF:
+            diffFrame.draw(0, 0);
+            break;
+
     }
 
     switch(programState){
         case SETUP:
             setupDraw();
-            
             break;
         case CAPTURE:
             captureDraw();
@@ -1288,8 +1295,14 @@ void Scan3dApp::keyPressed(int key){
         case 53:
             displayState = SHADOWTHRESHIMAGE;
             break;
+        case 54:
+            displayState = DIFF;
+            break;
         case 'q':
             std::exit(1);
+            break;
+        case 'p':
+            paused = !paused;
             break;
         case 'c':
             if(programState == SETUP){
