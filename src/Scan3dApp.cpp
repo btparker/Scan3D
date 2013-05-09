@@ -106,6 +106,9 @@ void Scan3dApp::setup(){
     intrinsic_matrix = cvCreateMat(3,3,CV_32FC1);
     distortion_coeffs = cvCreateMat(5,1,CV_32FC1);
     corners = new CvPoint2D32f[ boardPatternSize ];
+
+    vertPlane = ofxPlane(ofPoint(5,5,0),ofVec3f(0,0,-1));
+    horizPlane = ofxPlane(ofPoint(5,0,5),ofVec3f(0,1,0));
 }
 
 //--------------------------------------------------------------
@@ -557,7 +560,7 @@ void Scan3dApp::setupUpdate(){
     ofPoint objectPts[8];
     ofPoint pixelCoord;
     ofxRay3d ray;
-    ofxPlane vertPlane(ofPoint(5,5,0),ofVec3f(0,0,-1));
+    ofxPlane testPlane;
     ofPoint intersectPt;
 
 
@@ -607,19 +610,23 @@ void Scan3dApp::setupUpdate(){
                 
             }
             computeExtrinsicMatrix(objectPts,imagePts,intrinsic_matrix, distortion_coeffs);
-            cout << "Points and such "<< endl;
-            cout << verticalPlaneObjectPts[0] << endl;
-            cout << verticalPlaneImagePts[0] << endl;
+            // cout << "Points and such "<< endl;
+            // cout << verticalPlaneObjectPts[0] << endl;
+            // cout << verticalPlaneImagePts[0] << endl;
 
-            pixelCoord = pt3DToPixel(intrinsic_matrix,extrinsic_matrix,verticalPlaneObjectPts[0]);
+            // pixelCoord = pt3DToPixel(intrinsic_matrix,extrinsic_matrix,verticalPlaneObjectPts[0]);
 
-            cout << pixelCoord << endl;
+            // cout << pixelCoord << endl;
 
-            ray = pixelToRay(intrinsic_matrix,extrinsic_matrix,pixelCoord);
+            // ray = pixelToRay(intrinsic_matrix,extrinsic_matrix,verticalPlaneImagePts[2]);
 
-            intersectPt = ray.intersect(vertPlane);
+            // intersectPt = ray.intersect(vertPlane);
 
-            cout << intersectPt << endl;
+            // cout << intersectPt << endl;
+
+            // testPlane = vertPlane.interpolate(ofxPlane(ofPoint(0,0,0),ofVec3f(0,-1,0)), 0.5);
+
+            // cout << testPlane.normal << endl;
 
             setupSubState = WAITING;
             break;

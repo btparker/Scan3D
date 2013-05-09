@@ -167,6 +167,9 @@ class Scan3dApp : public ofBaseApp{
 		CvMat* camRotMat;
 		CvMat* invIntrinsic;
 
+		ofxPlane vertPlane;
+		ofxPlane horizPlane;
+
 
 
 

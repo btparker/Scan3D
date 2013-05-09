@@ -11,11 +11,14 @@ class ofxPlane{
 
 		ofxPlane();
 		ofxPlane(ofPoint pt, ofVec3f normal);
+		ofxPlane(ofPoint* pts);
 		void setNormal(float vx,float vy, float vz);
 		void setNormal(ofVec3f normal);
 		void setPoint(float x,float y, float z);
 		void setPoint(ofPoint pt);
 		void computeD();
+		ofxPlane interpolate(ofxPlane plane, float value);
+
 };
 
 #endif

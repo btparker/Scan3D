@@ -14,6 +14,10 @@ ofxPlane::ofxPlane(ofPoint pt, ofVec3f normal){
 	computeD();
 }
 
+ofxPlane::ofxPlane(ofPoint* pts){
+	//best fit plane
+}
+
 void ofxPlane::computeD(){
 	d = pt.x*normal.x+pt.y*normal.y+pt.z*normal.z;
 }
@@ -43,5 +47,15 @@ void ofxPlane::setPoint(float x,float y, float z){
 
 void ofxPlane::setPoint(ofPoint pt){
 	setPoint(pt.x,pt.y,pt.z);
+}
+
+
+ofxPlane ofxPlane::interpolate(ofxPlane plane, float value){
+	ofVec3f interNormal = normal.interpolate(plane.normal,value);
+	ofPoint interPoint = pt.interpolate(plane.pt,value);
+
+	interNormal.normalize();
+
+	return ofxPlane(interPoint,interNormal);
 }
 
