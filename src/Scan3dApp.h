@@ -64,6 +64,11 @@ class Scan3dApp : public ofBaseApp{
 		ofPoint pt3DToPixel(const CvMat* intrinsicMat, const CvMat* extrinsicMat, ofPoint pt3D);
 		//ofPoint rayPlaneIntersection(ofPoint planePt, ofVec3f planeNormal, ofPoint rayOrigin, ofVec3f rayDirection);
 
+		ofxCvGrayscaleImage computeGradientImage(ofxCvGrayscaleImage &input, int direction);
+
+		int sobelHorizontal[3][3];
+    	int sobelVertical[3][3];
+
 		ofVideoPlayer vid;
 
 		ofxXmlSettings settings;
@@ -98,6 +103,7 @@ class Scan3dApp : public ofBaseApp{
 	    ofxCvGrayscaleImage diffFrame;
 	    ofxCvGrayscaleImage previousDiffFrame;
 	    ofxCvGrayscaleImage zeroCrossingFrame;
+	    ofxCvGrayscaleImage zeroCrossingImg;
 
         ofImage bufferOfImage;
         ofxCvColorImage bufferOfxCvColorImage;

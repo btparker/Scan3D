@@ -3,6 +3,17 @@ using namespace cv;
 
 //--------------------------------------------------------------
 void Scan3dApp::setup(){
+
+    //Initializing sobel kernels
+    sobelHorizontal[0][0] = -1; sobelHorizontal[0][1] = 0; sobelHorizontal[0][2] = 1;
+    sobelHorizontal[1][0] = -2; sobelHorizontal[1][1] = 0; sobelHorizontal[1][2] = 2;
+    sobelHorizontal[2][0] = -1; sobelHorizontal[2][1] = 0; sobelHorizontal[2][2] = 1;
+
+    sobelVertical[0][0] =  1; sobelVertical[0][1] =  2; sobelVertical[0][2] = 1;
+    sobelVertical[1][0] =  0; sobelVertical[1][1] =  0; sobelVertical[1][2] = 0;
+    sobelVertical[2][0] = -1; sobelVertical[2][1] = -2; sobelVertical[2][2] = -1;
+
+
     ofBackground(0);
     ofSetWindowTitle("3D SCAN ALL THE THINGS");
     ofSetFrameRate(30);
@@ -55,6 +66,8 @@ void Scan3dApp::setup(){
     maxImg.set(0);
     temporalImg.allocate(width,height);
     zeroCrossingFrame.allocate(width,height);
+    zeroCrossingImg.allocate(width,height);
+    zeroCrossingImg.set(0);
     diffFrame.allocate(width,height);
     previousDiffFrame.allocate(width,height);
     previousDiffFrame.set(0);
@@ -162,7 +175,7 @@ void Scan3dApp::loadSettings(){
                     settings.popTag();
                 settings.popTag();
                 settings.pushTag("misc");
-                    zeroCrossingThreshold = settings.getValue("zeroCrossingThreshold", 20);
+                    zeroCrossingThreshold = settings.getValue("zeroCrossingThreshold", 0);
                 settings.popTag();// pop misc
             settings.popTag(); // pop user
 			settings.pushTag("scene");
@@ -814,7 +827,7 @@ void Scan3dApp::captureUpdate(){
             i = y*width+x;
             minImgPixels[i] = min(minImgPixels[i],grayscaleFramePixels[i]);
             maxImgPixels[i] = max(maxImgPixels[i],grayscaleFramePixels[i]);
-            shadowThreshImgPixels[i] = (int)((minImgPixels[i]+maxImgPixels[i])/2);
+            shadowThreshImgPixels[i] = ((minImgPixels[i]+maxImgPixels[i])/2.0);
             maxColorImgPixels[3*i] = max(maxColorImgPixels[3*i],colorFramePixels[3*i]);
             maxColorImgPixels[3*i+1] = max(maxColorImgPixels[3*i+1],colorFramePixels[3*i+1]);
             maxColorImgPixels[3*i+2] = max(maxColorImgPixels[3*i+2],colorFramePixels[3*i+2]);
@@ -826,11 +839,14 @@ void Scan3dApp::captureUpdate(){
     maxImg.setFromPixels(maxImgPixels,width,height);
     shadowThreshImg.setFromPixels(shadowThreshImgPixels,width,height);
     maxColorImg.setFromPixels(maxColorImgPixels,width,height);
+
+
     
     frameIndex++;
 }
 
 void Scan3dApp::processingUpdate(){
+    bool interpolateColor = false;
     unsigned char* temporalImgPixels = temporalImg.getPixels(); 
 
     grayscaleFrame = frames[frameIndex];
@@ -841,23 +857,27 @@ void Scan3dApp::processingUpdate(){
     if(frameIndex>0){
         previousDiffFrame = frames[frameIndex-1];
         previousDiffFrame -= shadowThreshImg;
+        
     }
 
+    
+
     diffFrame = frames[frameIndex];
+
     diffFrame -= shadowThreshImg;
+    
 
     if(frameIndex>0){
-        bufferOfxCvGrayscaleImage = diffFrame;
-        bufferOfxCvGrayscaleImage.absDiff(previousDiffFrame);
-        diffFrame -= bufferOfxCvGrayscaleImage;
 
         unsigned char* diffFramePixels = diffFrame.getPixels();
         unsigned char* zeroCrossingFramePixels = zeroCrossingFrame.getPixels();
+        unsigned char* zeroCrossingImgPixels = zeroCrossingImg.getPixels();
         
         for(int r = 0; r < height; r++){
             for(int c = columnIndices[r]; c < width; c++){
-                if(diffFramePixels[c+r*width] > zeroCrossingThreshold){
+                if(diffFramePixels[c+r*width] > zeroCrossingThreshold && zeroCrossingImgPixels[c+r*width] == 0){
                     zeroCrossingFramePixels[c+r*width] = 255;
+                    zeroCrossingImgPixels[c+r*width] == 255;
                     for(int j = columnIndices[r]; j < c; j++){
 
                         float hue = ((float)frameIndex-1)/(float)frames.size()*255.0;
@@ -870,12 +890,20 @@ void Scan3dApp::processingUpdate(){
 
                         ofColor c2Color = ofColor::fromHsb(hue,sat,bri);
 
-                        ofColor interColor = c1Color;
-                        interColor.lerp(c2Color,ofMap(j,columnIndices[r],c,0.0,1.0));
+                        if(interpolateColor){
+                            ofColor interColor = c1Color;
+                            interColor.lerp(c2Color,ofMap(j,columnIndices[r],c,0.0,1.0));
+                            
+                            temporalImgPixels[3*(j+r*width)] = interColor[0];
+                            temporalImgPixels[3*(j+r*width)+1] = interColor[1];
+                            temporalImgPixels[3*(j+r*width)+2] = interColor[2];
+                        }
+                        else{
+                            temporalImgPixels[3*(j+r*width)] = c2Color[0];
+                            temporalImgPixels[3*(j+r*width)+1] = c2Color[1];
+                            temporalImgPixels[3*(j+r*width)+2] = c2Color[2];
+                        }
                         
-                        temporalImgPixels[3*(j+r*width)] = interColor[0];
-                        temporalImgPixels[3*(j+r*width)+1] = interColor[1];
-                        temporalImgPixels[3*(j+r*width)+2] = interColor[2];
                     }
                     columnIndices[r] = c;
                     break;
@@ -884,6 +912,7 @@ void Scan3dApp::processingUpdate(){
         }
         temporalImg.setFromPixels(temporalImgPixels,width,height);
         zeroCrossingFrame.setFromPixels(zeroCrossingFramePixels,width,height);
+        zeroCrossingImg.setFromPixels(zeroCrossingImgPixels,width,height);
 
         if(frameIndex > 0){
             topLine = computeLineFromZeroCrossings(zeroCrossingFrame,topSection);
@@ -1436,4 +1465,103 @@ void Scan3dApp::gotMessage(ofMessage msg){
 //--------------------------------------------------------------
 void Scan3dApp::dragEvent(ofDragInfo dragInfo){ 
 
+}
+
+//--------------------------------------------------------------
+ofxCvGrayscaleImage Scan3dApp::computeGradientImage(ofxCvGrayscaleImage &input, int direction){
+    int sum, sumX,sumY;
+    unsigned char* inputPixelData = input.getPixels();
+    
+    int heightVal = input.getHeight();
+    int widthVal = input.getWidth();
+
+    unsigned char* outputPixelData = new unsigned char[widthVal*heightVal];
+
+    for(int yPx = 0; yPx < heightVal; yPx++){
+        for(int xPx = 0; xPx < widthVal; xPx++){
+            sumX = 0;
+            sumY = 0;
+            if(yPx == 0){
+                sum = 0;
+            }
+            else if(xPx == 0){
+                sum = 0;
+            }
+            else{
+                for(int i = -1; i <= 1; i++){
+                    for(int j = -1; j <= 1; j++){
+                        switch(direction){
+                            case UP:
+                                sumY = sumY + (int)inputPixelData[(yPx+j)*widthVal+xPx+i]*sobelVertical[j+1][i+1];
+                                break;
+                            case DOWN:
+                                sumY = sumY + (int)inputPixelData[(yPx+j)*widthVal+xPx+i]*sobelVertical[1-j][i+1];
+                                break;
+                            case LEFT:
+                                sumX = sumX + (int)inputPixelData[(yPx+j)*widthVal+xPx+i]*sobelHorizontal[j+1][1-i];
+                                break;
+                            case RIGHT:
+                                sumX = sumX + (int)inputPixelData[(yPx+j)*widthVal+xPx+i]*sobelHorizontal[j+1][i+1];
+                                break;
+                            case VERTICAL:
+                                sumY = sumY + (int)inputPixelData[(yPx+j)*widthVal+xPx+i]*sobelVertical[j+1][i+1];
+                                break;
+                            case HORIZONTAL:
+                                sumX = sumX + (int)inputPixelData[(yPx+j)*widthVal+xPx+i]*sobelHorizontal[j+1][i+1];
+                                break;
+                            case BOTH:
+                                sumY = sumY + (int)inputPixelData[(yPx+j)*widthVal+xPx+i]*sobelVertical[j+1][i+1];
+                                sumX = sumX + (int)inputPixelData[(yPx+j)*widthVal+xPx+i]*sobelHorizontal[j+1][i+1];
+                                break;
+                        }
+                    }
+                }
+                switch(direction){
+                    case UP:
+                        if(sumY < 0){
+                            sumY = 0;
+                        }
+                        sum = sumY;
+                        break;
+                    case DOWN:
+                        if(sumY < 0){
+                            sumY = 0;
+                        }
+                        sum = sumY;
+                        break;
+                    case LEFT:
+                        if(sumX < 0){
+                            sumX = 0;
+                        }
+                        sum = sumX;
+                        break;
+                    case RIGHT:
+                        if(sumX < 0){
+                            sumX = 0;
+                        }
+                        sum = sumX;
+                        break;
+                    case VERTICAL:
+                        sum = abs(sumY);
+                        break;
+                    case HORIZONTAL:
+                        sum = abs(sumX);
+                        break;
+                    case BOTH:
+                        sum = abs(sumX)+abs(sumY);
+                        break;
+                }
+            }
+            if(sum > 255){
+                sum = 255;
+            }
+            if(sum < 0){
+                sum = 0;
+            }
+            outputPixelData[yPx*widthVal+xPx] = (unsigned char)(sum);
+        }
+    }
+    ofxCvGrayscaleImage out;
+    out.setFromPixels(outputPixelData,widthVal,heightVal);
+    return out;
 }
