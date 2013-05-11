@@ -20,6 +20,12 @@ ofxLine3d::ofxLine3d(float vx,float vy, float vz, float x0, float y0, float z0){
 
 }
 
+
+ofxLine3d::ofxLine3d(ofVec3f dir, ofPoint pt){
+	set(dir.x, dir.y, dir.z, pt.x, pt.y, pt.z);
+	initialized = true;
+}
+
 bool ofxLine3d::isInit(){
 	return initialized;
 }

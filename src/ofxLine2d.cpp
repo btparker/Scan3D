@@ -4,6 +4,12 @@ ofxLine2d::ofxLine2d(){
 	initialized = false;
 }
 
+ofxLine2d::ofxLine2d(ofVec2f dir, ofPoint pt){
+	set(dir.x, dir.y, pt.x, pt.y);
+	initialized = true;
+
+}
+
 
 //--------------------------------------------------------------
 /**
@@ -255,3 +261,4 @@ bool ofxLine2d::isLineInRegion(ofRectangle roi){
 void ofxLine2d::drawLineInRegion(ofRectangle roi){
 	drawLineInRegion(roi, true);
 }
+

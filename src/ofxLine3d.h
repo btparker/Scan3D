@@ -12,6 +12,7 @@ class ofxLine3d{
 
 		ofxLine3d();
 		ofxLine3d(float vx,float vy, float vz, float x0, float y0, float z0);
+		ofxLine3d(ofVec3f dir, ofPoint pt);
 		bool isInit();
 		void set(float vx,float vy, float vz, float x0, float y0, float z0);
 		//ofPoint intersection(ofxLine3d line);

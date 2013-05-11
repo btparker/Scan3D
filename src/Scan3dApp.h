@@ -64,6 +64,7 @@ class Scan3dApp : public ofBaseApp{
 		ofxRay3d pixelToRay(const CvMat* intrinsicMat, const CvMat* extrinsicMat, ofPoint imagePt);
 		ofPoint pt3DToPixel(const CvMat* intrinsicMat, const CvMat* extrinsicMat, ofPoint pt3D);
 		//ofPoint rayPlaneIntersection(ofPoint planePt, ofVec3f planeNormal, ofPoint rayOrigin, ofVec3f rayDirection);
+		ofxLine3d projectLineOntoPlane(ofxLine2d line, ofxPlane plane, const CvMat* intrinsicMat, const CvMat* extrinsicMat);
 
 		ofxCvGrayscaleImage computeGradientImage(ofxCvGrayscaleImage &input, int direction);
 

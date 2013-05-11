@@ -1591,3 +1591,18 @@ ofxCvGrayscaleImage Scan3dApp::computeGradientImage(ofxCvGrayscaleImage &input, 
     out.setFromPixels(outputPixelData,widthVal,heightVal);
     return out;
 }
+
+ofxLine3d Scan3dApp::projectLineOntoPlane(ofxLine2d line, ofxPlane plane, const CvMat* intrinsicMat, const CvMat* extrinsicMat){
+    ofPoint pixPt0 = line.pt;
+    ofPoint pixPt1 = line.pt+line.dir;
+
+    ofxRay3d ray0 = pixelToRay(intrinsicMat,extrinsicMat,pixPt0);
+    ofxRay3d ray1 = pixelToRay(intrinsicMat,extrinsicMat,pixPt1);
+
+    ofPoint worldPt0 = ray0.intersect(plane);
+    ofPoint worldPt1 = ray1.intersect(plane);
+
+    ofVec3f dir = worldPt1 - worldPt0;
+
+    return ofxLine3d(dir.x,dir.y,dir.z,worldPt0.x,worldPt0.y,worldPt0.z);
+}
