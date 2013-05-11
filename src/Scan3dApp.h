@@ -18,7 +18,7 @@ enum CameraCalibration{CAM_CAL_PROCESSING, CAM_CAL_LOADING, CAM_CAL_WAITING};
 
 
 enum { COLOR, GRAYSCALE, MINIMAGE, MAXIMAGE, SHADOWTHRESHIMAGE, DIFF, THRESH, EDGE, CORNER};
-enum { UP, DOWN, LEFT, RIGHT, VERTICAL, HORIZONTAL, BOTH};
+enum { UP, DOWN, LEFT, RIGHT, VERTICAL, HORIZONTAL, BOTH, LOG};
 enum {VIDEO,IMAGE_SEQUENCE,NONE};
 
 
@@ -69,6 +69,8 @@ class Scan3dApp : public ofBaseApp{
 		int sobelHorizontal[3][3];
     	int sobelVertical[3][3];
 
+    	int laplacianOfGaussian[3][3];
+
 		ofVideoPlayer vid;
 
 		ofxXmlSettings settings;
@@ -111,7 +113,7 @@ class Scan3dApp : public ofBaseApp{
 
         vector<ofxCvGrayscaleImage> frames;
 
-        int frameBufferSize;
+        unsigned int frameBufferSize;
         int zeroCrossingThreshold;
 
         ofRectangle topSection;
@@ -146,9 +148,9 @@ class Scan3dApp : public ofBaseApp{
 
 		ofDirectory camCalDir;
 
-		int camCalFrame;
+		unsigned int camCalFrame;
 		int boardXCount, boardYCount;
-		int numBoards;
+		unsigned int numBoards;
 		int boardPatternSize;
 		float boardSquareSize; //in mm
 		int successes;

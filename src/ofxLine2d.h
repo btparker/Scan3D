@@ -8,8 +8,11 @@ class ofxLine2d{
 		ofVec2f dir;
 		ofPoint pt;
 
+		bool initialized;
+
 		ofxLine2d();
 		ofxLine2d(float vx,float vy, float x0, float y0);
+		bool isInit();
 		void set(float vx,float vy, float x0, float y0);
 		ofPoint intersection(ofxLine2d line);
 		bool isParallelTo(ofxLine2d line);

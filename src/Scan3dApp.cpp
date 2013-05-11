@@ -13,6 +13,10 @@ void Scan3dApp::setup(){
     sobelVertical[1][0] =  0; sobelVertical[1][1] =  0; sobelVertical[1][2] = 0;
     sobelVertical[2][0] = -1; sobelVertical[2][1] = -2; sobelVertical[2][2] = -1;
 
+    laplacianOfGaussian[0][0] = -1; laplacianOfGaussian[0][1] =  2; laplacianOfGaussian[0][2] = -1;
+    laplacianOfGaussian[1][0] =  2; laplacianOfGaussian[1][1] = -4; laplacianOfGaussian[1][2] =  2;
+    laplacianOfGaussian[2][0] = -1; laplacianOfGaussian[2][1] =  2; laplacianOfGaussian[2][2] = -1;
+
 
     ofBackground(0);
     ofSetWindowTitle("3D SCAN ALL THE THINGS");
@@ -799,7 +803,7 @@ void Scan3dApp::captureUpdate(){
     grayscaleFrame = colorFrame;
 
     //resizing vector if needed
-    if(frameIndex >= frames.capacity()){
+    if((unsigned)frameIndex >= frames.capacity()){
         frames.resize(2*frames.size(),bufferOfxCvGrayscaleImage);
     }
 
@@ -865,6 +869,13 @@ void Scan3dApp::processingUpdate(){
     diffFrame = frames[frameIndex];
 
     diffFrame -= shadowThreshImg;
+
+    //diffFrame = computeGradientImage(diffFrame, LOG);
+    //diffFrame = computeGradientImage(diffFrame, BOTH);
+    // diffFrame.threshold(0,true);
+    //diffFrame.erode();
+
+
     
 
     if(frameIndex>0){
@@ -877,7 +888,7 @@ void Scan3dApp::processingUpdate(){
             for(int c = columnIndices[r]; c < width; c++){
                 if(diffFramePixels[c+r*width] > zeroCrossingThreshold && zeroCrossingImgPixels[c+r*width] == 0){
                     zeroCrossingFramePixels[c+r*width] = 255;
-                    zeroCrossingImgPixels[c+r*width] == 255;
+                    zeroCrossingImgPixels[c+r*width] = 255;
                     for(int j = columnIndices[r]; j < c; j++){
 
                         float hue = ((float)frameIndex-1)/(float)frames.size()*255.0;
@@ -914,6 +925,7 @@ void Scan3dApp::processingUpdate(){
         zeroCrossingFrame.setFromPixels(zeroCrossingFramePixels,width,height);
         zeroCrossingImg.setFromPixels(zeroCrossingImgPixels,width,height);
 
+
         if(frameIndex > 0){
             topLine = computeLineFromZeroCrossings(zeroCrossingFrame,topSection);
             bottomLine = computeLineFromZeroCrossings(zeroCrossingFrame,bottomSection);  
@@ -941,7 +953,7 @@ void Scan3dApp::processingUpdate(){
     }
 
     frameIndex++;
-    if(frameIndex == frames.size()){
+    if((unsigned)frameIndex == frames.size()){
         //Uncomment to save out temporal image
         bufferOfImage.setFromPixels(temporalImg.getPixelsRef());
         bufferOfImage.saveImage("output/temporalImg.tiff");
@@ -1469,7 +1481,9 @@ void Scan3dApp::dragEvent(ofDragInfo dragInfo){
 
 //--------------------------------------------------------------
 ofxCvGrayscaleImage Scan3dApp::computeGradientImage(ofxCvGrayscaleImage &input, int direction){
-    int sum, sumX,sumY;
+    int sum = 0;
+    int sumX = 0;
+    int sumY = 0;
     unsigned char* inputPixelData = input.getPixels();
     
     int heightVal = input.getHeight();
@@ -1512,6 +1526,10 @@ ofxCvGrayscaleImage Scan3dApp::computeGradientImage(ofxCvGrayscaleImage &input, 
                             case BOTH:
                                 sumY = sumY + (int)inputPixelData[(yPx+j)*widthVal+xPx+i]*sobelVertical[j+1][i+1];
                                 sumX = sumX + (int)inputPixelData[(yPx+j)*widthVal+xPx+i]*sobelHorizontal[j+1][i+1];
+                                break;
+                            case LOG:
+                                sumY = sumY + (int)inputPixelData[(yPx+j)*widthVal+xPx+i]*laplacianOfGaussian[j+1][i+1];
+                                sumX = sumX + (int)inputPixelData[(yPx+j)*widthVal+xPx+i]*laplacianOfGaussian[j+1][i+1];
                                 break;
                         }
                     }

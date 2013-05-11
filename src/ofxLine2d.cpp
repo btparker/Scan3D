@@ -1,6 +1,7 @@
 #include "ofxLine2d.h"
 
 ofxLine2d::ofxLine2d(){
+	initialized = false;
 }
 
 
@@ -15,6 +16,12 @@ ofxLine2d::ofxLine2d(){
 */	
 ofxLine2d::ofxLine2d(float vx,float vy, float x0, float y0){
 	set(vx,vy, x0, y0);
+	initialized = true;
+
+}
+
+bool ofxLine2d::isInit(){
+	return initialized;
 }
 
 
@@ -33,6 +40,7 @@ void ofxLine2d::set(float vx,float vy, float x0, float y0){
 
 	pt.x = x0;
 	pt.y = y0; 
+	initialized = true;
 }
 
 //--------------------------------------------------------------
