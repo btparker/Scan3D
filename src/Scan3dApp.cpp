@@ -649,6 +649,8 @@ void Scan3dApp::setupUpdate(){
 
             // cout << testPlane.normal << endl;
 
+
+
             setupSubState = WAITING;
             break;
         case WAITING:
@@ -898,7 +900,6 @@ void Scan3dApp::processingUpdate(){
                         ofColor c1Color = ofColor::fromHsb(hue,sat,bri);
 
                         hue = ((float)frameIndex)/(float)frames.size()*255.0;
-
                         ofColor c2Color = ofColor::fromHsb(hue,sat,bri);
 
                         if(interpolateColor){
@@ -932,8 +933,17 @@ void Scan3dApp::processingUpdate(){
 
             //cout << "topLine " << topLine.dir.x << " " << topLine.dir.y << endl;
             //cout << "bottomLine " << bottomLine.dir.x << " " << bottomLine.dir.y << endl;
+
+            ofxLine3d top3dLine = projectLineOntoPlane(topLine,vertPlane,intrinsic_matrix,extrinsic_matrix);
+            ofxLine3d bottom3dLine = projectLineOntoPlane(bottomLine,horizPlane,intrinsic_matrix,extrinsic_matrix);
+
+            ofxPlane planeFromLines = ofxPlane(top3dLine, bottom3dLine);
         }
         
+        
+
+        // cout << '[' << planeFromLines.normal.x << ',' << planeFromLines.normal.y << ',' << planeFromLines.normal.z << ']' << endl;
+
 
          //Uncomment to save out diff frames
         // bufferOfxCvColorImage = diffFrame;
@@ -1605,4 +1615,10 @@ ofxLine3d Scan3dApp::projectLineOntoPlane(ofxLine2d line, ofxPlane plane, const 
     ofVec3f dir = worldPt1 - worldPt0;
 
     return ofxLine3d(dir.x,dir.y,dir.z,worldPt0.x,worldPt0.y,worldPt0.z);
+}
+
+float Scan3dApp::getFrameFromColor(ofColor color){
+    float hue = color.getHue();
+    float computedFrameIndex = (hue/255.0)*frames.size();
+    return computedFrameIndex;
 }

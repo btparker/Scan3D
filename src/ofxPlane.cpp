@@ -1,5 +1,6 @@
 #include "ofxPlane.h"
 
+
 ofxPlane::ofxPlane(){
 }
 
@@ -14,12 +15,29 @@ ofxPlane::ofxPlane(ofPoint pt, ofVec3f normal){
 	computeD();
 }
 
-ofxPlane::ofxPlane(ofPoint* pts){
-	//best fit plane
-}
-
 void ofxPlane::computeD(){
 	d = pt.x*normal.x+pt.y*normal.y+pt.z*normal.z;
+}
+
+ofxPlane::ofxPlane(ofxLine3d line0, ofxLine3d line1){
+	
+	// Computing 'good enough' fit plane
+	ofPoint pt0 = line0.pt+line0.dir;
+	ofPoint pt1 = line1.pt+line1.dir;
+	ofPoint pt2 = line0.pt+line1.dir;
+
+	ofPoint centroid = pt0+pt1+pt2;
+	centroid /= 3;
+
+	ofPoint pt01 = pt1-pt0;
+	ofPoint pt02 = pt2-pt0;
+
+	ofVec3f normal = pt01.cross(pt02);
+	normal.normalize();
+
+	setNormal(normal.x,normal.y,normal.z);
+	setPoint(centroid.x,centroid.y,centroid.z);
+	computeD();
 }
 
 

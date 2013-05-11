@@ -68,6 +68,9 @@ class Scan3dApp : public ofBaseApp{
 
 		ofxCvGrayscaleImage computeGradientImage(ofxCvGrayscaleImage &input, int direction);
 
+		float getFrameFromColor(ofColor color);
+
+
 		int sobelHorizontal[3][3];
     	int sobelVertical[3][3];
 
