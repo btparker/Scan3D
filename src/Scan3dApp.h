@@ -5,6 +5,7 @@
 #include "ofxOpenCv.h"
 #include "cv.h"
 #include "ofxLine2d.h"
+#include "ofxLine3d.h"
 #include "ofxRay3d.h"
 #include "ofxPlane.h"
 
