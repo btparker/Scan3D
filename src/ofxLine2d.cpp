@@ -51,12 +51,21 @@ void ofxLine2d::set(float vx,float vy, float x0, float y0){
 	@returns ofPoint The point of intersection (or throws an error if lines are parallel)
 */
 ofPoint ofxLine2d::intersection(ofxLine2d line){
+	ofPoint intersectionPt;
+
+	if(!initialized || !line.isInit()){
+		ofLogError() << "Attempted line intersection of uninitialized line(s)";
+		intersectionPt.x = -1;
+		intersectionPt.y = -1;
+		return intersectionPt;
+	}
 
 	if(isParallelTo(line)){
 		ofLogError() << "Attempted line intersection of parallel lines";
+		intersectionPt.x = -1;
+		intersectionPt.y = -1;
+		return intersectionPt;
 	}
-
-	ofPoint intersectionPt;
 
 	float a0 = (pt.y + dir.y) - pt.y;
 	float b0 = pt.x - (pt.x + dir.x);
@@ -87,6 +96,7 @@ ofPoint ofxLine2d::intersection(ofxLine2d line){
 	@returns bool Whether or not the line is parralel to this one 
 */
 bool ofxLine2d::isParallelTo(ofxLine2d line){
+
 	
 
 	float a0 = (pt.y + dir.y) - pt.y;
@@ -113,6 +123,9 @@ bool ofxLine2d::isParallelTo(ofxLine2d line){
     	returns false and does not draw. Otherwise, returns true
 */
 bool ofxLine2d::drawLineInRegion(ofRectangle roi, bool drawLine){
+	if(!initialized){
+		return false;
+	}
 	ofxLine2d top(1, 0, 0, roi.y);
 	ofxLine2d bottom(1, 0, 0, roi.y + roi.height);
 	ofxLine2d left(0, 1, roi.x, 0);

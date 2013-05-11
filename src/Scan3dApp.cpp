@@ -1080,6 +1080,9 @@ void Scan3dApp::processingDraw(){
     @returns bool
 */
 bool Scan3dApp::isPointInRegion(ofPoint pt, ofRectangle roi){
+    if(pt.x == -1 || pt.y == -1){
+        return false;
+    }
     return  pt.x >= roi.x && 
             pt.x <= (roi.x + roi.width) && 
             pt.y >= roi.y && 
@@ -1141,8 +1144,13 @@ ofxLine2d Scan3dApp::computeLineFromZeroCrossings(ofxCvGrayscaleImage img, ofRec
     
     int roi_x1 = roi.x+roi.width;
     int roi_y1 = roi.y+roi.height;
-           
 
+    ofxLine2d line;
+           
+    if(img.countNonZeroInRegion(roi.x,roi.y,roi.width,roi.height) <= 3){
+        //ofLogError() << "Not enough non-zero values in image to compute line";
+        return line;
+    }
 
     CvPoint * points=(CvPoint*)malloc( (roi_y1-roi_y0) * sizeof(points[0]));
 
@@ -1167,7 +1175,7 @@ ofxLine2d Scan3dApp::computeLineFromZeroCrossings(ofxCvGrayscaleImage img, ofRec
 
     cvFitLine(&point_mat,CV_DIST_HUBER ,0,0.01,0.01,result);
 
-    ofxLine2d line;
+    
     line.set(result[0],result[1],result[2],result[3]);
 
 
