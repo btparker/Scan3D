@@ -29,10 +29,7 @@ ofxPlane::ofxPlane(ofxLine3d line0, ofxLine3d line1){
 		// Computing 'good enough' fit plane
 		ofPoint pt0 = line0.pt;
 		ofPoint pt1 = line1.pt;
-		ofPoint pt2 = (line0.pt+line0.dir)+(line1.pt+line1.dir);
-		pt2 /= 2;
-
-		
+		ofPoint pt2 = (line0.pt+line0.dir);
 
 		ofVec3f pt01 = pt1-pt0;
 		ofVec3f pt02 = pt2-pt0;

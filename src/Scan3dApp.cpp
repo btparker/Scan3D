@@ -1187,8 +1187,8 @@ void Scan3dApp::points3dUpdate(){
                             if(plane.isInit()){
                                 ofxRay3d ray = pixelToRay(intrinsic_matrix,extrinsic_matrix, ofPoint(c,r));
                                 
-                                ofPoint pt = (((int)computedFrameIndex) % 2) == 0 ? ray.intersect(vertPlane) : ray.intersect(horizPlane);
-                                //ofPoint pt = ray.intersect(plane);
+                                //ofPoint pt = (((int)computedFrameIndex) % 2) == 0 ? ray.intersect(vertPlane) : ray.intersect(horizPlane);
+                                ofPoint pt = ray.intersect(plane);
                                 // cout << "Ray origin should be camera pos: " << endl;
                                 // cout << "   camPos: ";
                                 // cout << camPos << endl;
@@ -1201,7 +1201,12 @@ void Scan3dApp::points3dUpdate(){
                                 // testVec.normalize();
                                 // cout << "   testVec: ";
                                 // cout << testVec << endl;
-
+                                if(pt.y <= 0){
+                                    pt.y = 0;
+                                }
+                                if(pt.z <= 0){
+                                    pt.z = 0;
+                                }
 
                                 if(pt.x != pt.x || pt.y != pt.y || pt.z != pt.z){
                                     // not a valid point
