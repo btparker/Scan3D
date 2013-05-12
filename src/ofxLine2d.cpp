@@ -46,6 +46,9 @@ void ofxLine2d::set(float vx,float vy, float x0, float y0){
 
 	pt.x = x0;
 	pt.y = y0; 
+	pt.z = 0;
+
+	dir.normalize();
 	initialized = true;
 }
 

@@ -4,6 +4,8 @@ using namespace cv;
 //--------------------------------------------------------------
 void Scan3dApp::setup(){
 
+    bDrawPointCloud = false;
+
     //Initializing sobel kernels
     sobelHorizontal[0][0] = -1; sobelHorizontal[0][1] = 0; sobelHorizontal[0][2] = 1;
     sobelHorizontal[1][0] = -2; sobelHorizontal[1][1] = 0; sobelHorizontal[1][2] = 2;
@@ -864,6 +866,7 @@ void Scan3dApp::processingUpdate(){
 
     diffFrame = grayscaleFrame;
     diffFrame -= shadowThreshImg;
+    diffFrame.blurGaussian();
     
 
 
@@ -923,18 +926,63 @@ void Scan3dApp::processingUpdate(){
     exitFrame.setFromPixels(exitFramePixels,width,height);
     temporalImg.setFromPixels(temporalImgPixels,width,height);
 
+    diffFrame.threshold(0);
+    diffFrame = computeGradientImage(diffFrame,RIGHT);
+
     
-    topLine = computeLineFromZeroCrossings(enterFrame,topSection);
-    bottomLine = computeLineFromZeroCrossings(enterFrame,bottomSection);  
+    topLine = computeLineFromZeroCrossings(diffFrame,topSection);
+    bottomLine = computeLineFromZeroCrossings(diffFrame,bottomSection);  
+
+    if(topLine.isInit() && bottomLine.isInit()){
+        planePts.setMode(OF_PRIMITIVE_POINTS);
+
+        testLine = ofxLine2d(ofVec2f(1,0),topLine.intersection(bottomLine));
+
+        ofxLine2d yMinLine = ofxLine2d(ofVec2f(1,0),ofPoint(0,0));
+        ofxLine2d yMaxLine = ofxLine2d(ofVec2f(1,0),ofPoint(0,height));
+        ofxRay3d ray;
+        ofPoint pt;
+        ofColor color;
+
+        ofPoint topLineTopPoint = yMinLine.intersection(topLine);
+        ray = pixelToRay(intrinsic_matrix,extrinsic_matrix,topLineTopPoint);
+        pt = ray.intersect(vertPlane);
+        planePts.addVertex((ofVec3f)pt);
+        color.setHsb(ofMap(frameIndex-1,0,numFrames,0.0,255.0),255,255);
+        planePts.addColor(color);
+
+        ofPoint topLineCrossPoint = testLine.intersection(topLine);
+        ray = pixelToRay(intrinsic_matrix,extrinsic_matrix,topLineCrossPoint);
+        pt = ray.intersect(vertPlane);
+        planePts.addVertex((ofVec3f)pt);
+        color.setHsb(ofMap(frameIndex-1,0,numFrames,0.0,255.0),255,255);
+        planePts.addColor(color);
+
+        ofPoint bottomLineCrossPoint = testLine.intersection(bottomLine);
+        ray = pixelToRay(intrinsic_matrix,extrinsic_matrix,bottomLineCrossPoint);
+        pt = ray.intersect(horizPlane);
+        planePts.addVertex((ofVec3f)pt);
+        color.setHsb(ofMap(frameIndex-1,0,numFrames,0.0,255.0),255,255);
+        planePts.addColor(color);
+
+        ofPoint bottomLineBottomPoint = yMaxLine.intersection(bottomLine);
+        ray = pixelToRay(intrinsic_matrix,extrinsic_matrix,bottomLineBottomPoint);
+        pt = ray.intersect(horizPlane);
+        planePts.addVertex((ofVec3f)pt);
+        color.setHsb(ofMap(frameIndex-1,0,numFrames,0.0,255.0),255,255);
+        planePts.addColor(color);
+
+        ofxLine3d top3dLine = projectLineOntoPlane(topLine,vertPlane,intrinsic_matrix,extrinsic_matrix);
+        ofxLine3d bottom3dLine = projectLineOntoPlane(bottomLine,horizPlane,intrinsic_matrix,extrinsic_matrix);
+
+        ofxPlane planeFromLines = ofxPlane(top3dLine, bottom3dLine);
+        planes[frameIndex] = planeFromLines;
+    }
 
     //cout << "topLine " << topLine.dir.x << " " << topLine.dir.y << endl;
     //cout << "bottomLine " << bottomLine.dir.x << " " << bottomLine.dir.y << endl;
 
-    ofxLine3d top3dLine = projectLineOntoPlane(topLine,vertPlane,intrinsic_matrix,extrinsic_matrix);
-    ofxLine3d bottom3dLine = projectLineOntoPlane(bottomLine,horizPlane,intrinsic_matrix,extrinsic_matrix);
-
-    ofxPlane planeFromLines = ofxPlane(top3dLine, bottom3dLine);
-    planes[frameIndex] = planeFromLines;
+    
 
         
         
@@ -983,9 +1031,34 @@ void Scan3dApp::processingUpdate(){
         bufferOfxCvColorImage = shadowThreshImg;
         bufferOfImage.setFromPixels(bufferOfxCvColorImage.getPixelsRef());
         bufferOfImage.saveImage("output/shadowThreshImg.tiff");
+        
+        ofxRay3d centerRay = pixelToRay(intrinsic_matrix,extrinsic_matrix, ofPoint(width/2,height/2));
+        ofVec3f centerPt = (ofVec3f)centerRay.intersect(horizPlane);
+        
+        ofNode lookat;
+        lookat.setPosition(centerPt);
+
+        ofVec3f easyCamPos = (ofVec3f)camPos;
+        
+
+        easyCam.setPosition(easyCamPos);
+        easyCam.setTarget(lookat);
+        //easyCam.setScale(1,1,-1);
+
+        cout << "camPos:" << endl;
+        cout << camPos << endl;
+
+        cout << "easyCam pos:" << endl;
+        cout << easyCam.getPosition() << endl;
+
+        cout << "easyCam distance:" << endl;
+        cout << easyCam.getDistance() << endl;
+
+        cout << "easyCam target position:" << endl;
+        cout << easyCam.getTarget().getPosition() << endl;
     }
 
-    diffFrame = enterFrame;
+    //diffFrame = enterFrame;
 }
 
 void Scan3dApp::points3dUpdate(){
@@ -999,10 +1072,6 @@ void Scan3dApp::points3dUpdate(){
     unsigned char* colorImgPixels = colorFrame.getPixels(); 
     switch(points3dSubstate){
             case POINTS3D_PROCESSING:
-                
-    
-                
-
                 for(int r = 0; r < height; r++){
                     for(int c = 0; c < width; c++){ 
                         
@@ -1025,6 +1094,7 @@ void Scan3dApp::points3dUpdate(){
                             ofxPlane plane = getPlaneFromFrameIndex(computedFrameIndex);
                             if(plane.isInit()){
                                 ofxRay3d ray = pixelToRay(intrinsic_matrix,extrinsic_matrix, ofPoint(c,r));
+                                //ofPoint pt = (((int)computedFrameIndex) % 2) == 0 ? ray.intersect(vertPlane) : ray.intersect(vertPlane);
                                 ofPoint pt = ray.intersect(plane);
                                 if(pt.x != pt.x || pt.y != pt.y || pt.z != pt.z){
                                     // not a valid point
@@ -1032,13 +1102,12 @@ void Scan3dApp::points3dUpdate(){
                                 else{
                                     ofPoint pixelPt = pt3DToPixel(intrinsic_matrix,extrinsic_matrix,pt);
                                     points[numPoints] = pt;
-                                    ofColor pixelColor = ofColor(0,255,0);
-                                    /*
+                                    
                                     ofColor pixelColor = ofColor(   (int)colorImgPixels[3*((int)pixelPt.x+(int)pixelPt.y*width)],
                                                                     (int)colorImgPixels[3*((int)pixelPt.x+(int)pixelPt.y*width)+1],
                                                                     (int)colorImgPixels[3*((int)pixelPt.x+(int)pixelPt.y*width)+2]
                                                                 );
-                                                                */
+                                                               
                                     colors[numPoints] = pixelColor;
                                     numPoints++;
                                 }
@@ -1057,10 +1126,11 @@ void Scan3dApp::points3dUpdate(){
                 messageBarText = "POINTS3D";
                 messageBarSubText = "Computing 3d Points...";
                 points3dSubstate = POINTS3D_WAITING;
-
+                bDrawPointCloud = true;
                 break;
             case POINTS3D_WAITING:
             {
+                
                 messageBarText = "POINTS3D";
                 messageBarSubText = "Done!";
                 break;
@@ -1155,9 +1225,22 @@ void Scan3dApp::draw(){
             captureDraw();
             break; 
         case PROCESSING:
-            processingDraw();
+            if(bDrawPointCloud){
+                easyCam.begin();
+                drawPointCloud();
+                easyCam.end();
+            }
+            else{
+                processingDraw();
+            }
             
-            
+            break;
+        case POINTS3D:
+            if(bDrawPointCloud){
+                easyCam.begin();
+                drawPointCloud();
+                easyCam.end();
+            }
             break;
     }
 }
@@ -1489,6 +1572,9 @@ void Scan3dApp::keyPressed(int key){
         case 'p':
             paused = !paused;
             break;
+        case 'o':
+            bDrawPointCloud = !bDrawPointCloud;
+            break;
         case 'c':
             if(programState == SETUP){
                 clearSettings();    
@@ -1750,7 +1836,7 @@ ofxLine3d Scan3dApp::projectLineOntoPlane(ofxLine2d line, ofxPlane plane, const 
 
 float Scan3dApp::getFrameFromColor(ofColor color){
     float hue = color.getHue();
-    float computedFrameIndex = (hue/255.0)*((float)numFrames);
+    float computedFrameIndex = ofMap(hue,0,255,0,numFrames);
     return computedFrameIndex;
 }
 
@@ -1769,14 +1855,63 @@ bool Scan3dApp::isPlaneAtFrameIndex(float fi){
 }
 
 ofxPlane Scan3dApp::getPlaneFromFrameIndex(float fi){
-    int discreteFrameIndex = (int)fi;
-    float interpolateFrameValue = fi - discreteFrameIndex;
-    if(discreteFrameIndex > 0){
-        ofxPlane plane0 = planes[discreteFrameIndex-1];
-        ofxPlane plane1 = planes[discreteFrameIndex];
-        return plane0.interpolate(plane1,interpolateFrameValue);
+    return planes[round(fi)];
+}
+
+void Scan3dApp::drawPointCloud() {
+    ofBackground(0);
+    ofMesh mesh;
+    int step = 1;
+    ofxPlane plane;
+    ofVec3f vec;
+
+    if(programState == POINTS3D){
+        switch(points3dSubstate){
+            case POINTS3D_WAITING:
+                mesh.setMode(OF_PRIMITIVE_POINTS);
+                
+                for(int i =0; i < points.size(); i += step){  
+                    mesh.addColor(colors[i]);
+                    mesh.addVertex((ofVec3f)points[i]);
+                }
+                glPointSize(3);
+                ofPushMatrix();
+                // the projected points are 'upside down' and 'backwards'
+                //ofScale(1, -1, -1);
+                //ofTranslate(camPos.x,camPos.y,camPos.z); // center the points a bit
+
+                glEnable(GL_DEPTH_TEST);
+                mesh.drawVertices();
+                glDisable(GL_DEPTH_TEST);
+                ofPopMatrix();
+
+                glPointSize(6);
+                ofPushMatrix();
+                // the projected points are 'upside down' and 'backwards'
+                //ofScale(1, -1, -1);
+                //ofTranslate(camPos.x,camPos.y,camPos.z); // center the points a bit
+
+                glEnable(GL_DEPTH_TEST);
+                planePts.drawVertices();
+                glDisable(GL_DEPTH_TEST);
+                ofPopMatrix();
+                break;
+        }
     }
-    else{
-        return planes[0];
+    if(programState == PROCESSING){
+        
+
+        glPointSize(5);
+        ofPushMatrix();
+        // the projected points are 'upside down' and 'backwards'
+        //ofScale(1, -1, -1);
+        //ofTranslate(camPos.x,camPos.y,camPos.z); // center the points a bit
+
+        glEnable(GL_DEPTH_TEST);
+        planePts.drawVertices();
+        glDisable(GL_DEPTH_TEST);
+        ofPopMatrix();
+
     }
+    
 }

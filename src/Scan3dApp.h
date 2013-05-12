@@ -76,6 +76,8 @@ class Scan3dApp : public ofBaseApp{
 
 		bool isPlaneAtFrameIndex(float fi);
 
+		void drawPointCloud();
+
 		int sobelHorizontal[3][3];
     	int sobelVertical[3][3];
 
@@ -194,6 +196,9 @@ class Scan3dApp : public ofBaseApp{
 
 		bool paused;
 
+		ofEasyCam easyCam;
 
+		bool bDrawPointCloud;
+		ofMesh planePts;
         
 };
