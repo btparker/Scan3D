@@ -792,6 +792,7 @@ void Scan3dApp::captureUpdate(){
         messageBarSubText = "";
         programState = PROCESSING;
         planes.resize(numFrames,ofxPlane());
+
         cout << "PROCESSING STATE" << endl;
         frameIndex = 0;
     }
@@ -863,8 +864,8 @@ void Scan3dApp::processingUpdate(){
 
     diffFrame = grayscaleFrame;
     diffFrame -= shadowThreshImg;
+    
 
-   
 
 
     /*  
@@ -881,11 +882,11 @@ void Scan3dApp::processingUpdate(){
             if(diffFramePixels[c+r*width] <= zeroCrossingThreshold){ // pixel in shadow
                 if(enterFramePixels[c+r*width] == 0){ // Never been in shadow before
                     float framePixelMapping = ofMap(frameIndex,0,numFrames,0.0,255.0);
-                    
 
                     enterFramePixels[c+r*width] = framePixelMapping; // Setting the enter frame to the current frame
 
                     ofColor temporalColor;
+
 
                     if(framePixelMapping <= zeroCrossingThreshold){
                         temporalColor = ofColor(0,0,0);
@@ -934,9 +935,12 @@ void Scan3dApp::processingUpdate(){
 
     ofxPlane planeFromLines = ofxPlane(top3dLine, bottom3dLine);
     planes[frameIndex] = planeFromLines;
-   
+
         
         
+
+        // cout << '[' << planeFromLines.normal.x << ',' << planeFromLines.normal.y << ',' << planeFromLines.normal.z << ']' << endl;
+
 
     // cout << '[' << planeFromLines.normal.x << ',' << planeFromLines.normal.y << ',' << planeFromLines.normal.z << ']' << endl;
 
