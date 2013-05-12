@@ -1,6 +1,8 @@
 #include "ofxPlane.h"
 
+
 ofxPlane::ofxPlane(){
+	initialized = false;
 }
 
 
@@ -12,14 +14,38 @@ ofxPlane::ofxPlane(ofPoint pt, ofVec3f normal){
 	setNormal(normal.x,normal.y,normal.z);
 	setPoint(pt.x,pt.y,pt.z);
 	computeD();
-}
-
-ofxPlane::ofxPlane(ofPoint* pts){
-	//best fit plane
+	initialized = true;
 }
 
 void ofxPlane::computeD(){
 	d = pt.x*normal.x+pt.y*normal.y+pt.z*normal.z;
+}
+
+ofxPlane::ofxPlane(ofxLine3d line0, ofxLine3d line1){
+	if(!line0.isInit() || !line1.isInit()){
+		initialized = false;
+	}
+	else{
+		// Computing 'good enough' fit plane
+		ofPoint pt0 = line0.pt+line0.dir;
+		ofPoint pt1 = line1.pt+line1.dir;
+		ofPoint pt2 = line0.pt+line1.dir;
+
+		
+
+		ofPoint pt01 = pt1-pt0;
+		ofPoint pt02 = pt2-pt0;
+
+		ofVec3f normal = pt01.cross(pt02);
+		normal.normalize();
+
+		setNormal(normal.x,normal.y,normal.z);
+		setPoint(pt0.x,pt0.y,pt0.z);
+		computeD();
+		initialized = true;
+	}
+	
+	
 }
 
 
@@ -51,11 +77,18 @@ void ofxPlane::setPoint(ofPoint pt){
 
 
 ofxPlane ofxPlane::interpolate(ofxPlane plane, float value){
+	if(!plane.isInit()){
+		return ofxPlane();
+	}
 	ofVec3f interNormal = normal.interpolate(plane.normal,value);
 	ofPoint interPoint = pt.interpolate(plane.pt,value);
 
 	interNormal.normalize();
 
 	return ofxPlane(interPoint,interNormal);
+}
+
+bool ofxPlane::isInit(){
+	return initialized;
 }
 

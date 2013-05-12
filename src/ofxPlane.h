@@ -2,6 +2,8 @@
 #define _OFX_PLANE
 
 #include "ofMain.h"
+#include "ofxLine3d.h"
+#include "ofxOpenCv.h"
 
 class ofxPlane{
 	public:
@@ -9,15 +11,19 @@ class ofxPlane{
 		ofPoint pt;
 		float d;
 
+		bool initialized;
+
 		ofxPlane();
 		ofxPlane(ofPoint pt, ofVec3f normal);
-		ofxPlane(ofPoint* pts);
+		ofxPlane(ofxLine3d line0, ofxLine3d line1);
+
 		void setNormal(float vx,float vy, float vz);
 		void setNormal(ofVec3f normal);
 		void setPoint(float x,float y, float z);
 		void setPoint(ofPoint pt);
 		void computeD();
 		ofxPlane interpolate(ofxPlane plane, float value);
+		bool isInit();
 
 };
 

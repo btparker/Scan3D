@@ -13,9 +13,9 @@ void Scan3dApp::setup(){
     sobelVertical[1][0] =  0; sobelVertical[1][1] =  0; sobelVertical[1][2] = 0;
     sobelVertical[2][0] = -1; sobelVertical[2][1] = -2; sobelVertical[2][2] = -1;
 
-    laplacianOfGaussian[0][0] = -1; laplacianOfGaussian[0][1] =  2; laplacianOfGaussian[0][2] = -1;
-    laplacianOfGaussian[1][0] =  2; laplacianOfGaussian[1][1] = -4; laplacianOfGaussian[1][2] =  2;
-    laplacianOfGaussian[2][0] = -1; laplacianOfGaussian[2][1] =  2; laplacianOfGaussian[2][2] = -1;
+    laplacianOfGaussian[0][0] = -1; laplacianOfGaussian[0][1] = -1; laplacianOfGaussian[0][2] = -1;
+    laplacianOfGaussian[1][0] = -1; laplacianOfGaussian[1][1] = 8; laplacianOfGaussian[1][2] = -1;
+    laplacianOfGaussian[2][0] = -1; laplacianOfGaussian[2][1] = -1; laplacianOfGaussian[2][2] = -1;
 
 
     ofBackground(0);
@@ -69,12 +69,11 @@ void Scan3dApp::setup(){
     maxImg.allocate(width,height);
     maxImg.set(0);
     temporalImg.allocate(width,height);
-    zeroCrossingFrame.allocate(width,height);
-    zeroCrossingImg.allocate(width,height);
-    zeroCrossingImg.set(0);
+    enterFrame.allocate(width,height);
+    enterFrame.set(0);
+    exitFrame.allocate(width,height);
+    exitFrame.set(0);
     diffFrame.allocate(width,height);
-    previousDiffFrame.allocate(width,height);
-    previousDiffFrame.set(0);
 
     
     shadowThreshImg.allocate(width,height);
@@ -103,8 +102,7 @@ void Scan3dApp::setup(){
     settingTopSection = false;
     settingBottomSection = false;
 
-    columnIndices.resize(height);
-
+    
     frameIndex = 0;
 
     // Calibration Variables (Adapted for use from Learning OpenCV Computer Vision with the OpenCV Library)
@@ -128,6 +126,8 @@ void Scan3dApp::setup(){
     horizPlane = ofxPlane(ofPoint(5,0,5),ofVec3f(0,1,0));
 
     paused = false;
+
+    points3dSubstate = POINTS3D_PROCESSING;
 }
 
 //--------------------------------------------------------------
@@ -403,9 +403,9 @@ void Scan3dApp::update(){
                 processingUpdate();
                 break;
             }
-            case VISUALIZATION:
+            case POINTS3D:
             {    
-                visualizationUpdate();
+                points3dUpdate();
                 break;
             }
 
@@ -649,6 +649,8 @@ void Scan3dApp::setupUpdate(){
 
             // cout << testPlane.normal << endl;
 
+
+
             setupSubState = WAITING;
             break;
         case WAITING:
@@ -789,8 +791,12 @@ void Scan3dApp::captureUpdate(){
         messageBarText = "PROCESSING";
         messageBarSubText = "";
         programState = PROCESSING;
+        planes.resize(numFrames,ofxPlane());
         cout << "PROCESSING STATE" << endl;
         frameIndex = 0;
+    }
+    else{
+        numFrames = frameIndex+1;
     }
 
     //Uncomment to save out color frames
@@ -847,119 +853,122 @@ void Scan3dApp::captureUpdate(){
 
     
     frameIndex++;
+    
 }
 
 void Scan3dApp::processingUpdate(){
-    bool interpolateColor = false;
-    unsigned char* temporalImgPixels = temporalImg.getPixels(); 
-
     grayscaleFrame = frames[frameIndex];
-    zeroCrossingFrame.set(0);
     diffFrame.set(0);
-    previousDiffFrame.set(0);
+    bufferOfxCvGrayscaleImage.set(0);
 
-    if(frameIndex>0){
-        previousDiffFrame = frames[frameIndex-1];
-        previousDiffFrame -= shadowThreshImg;
-        
-    }
-
-    
-
-    diffFrame = frames[frameIndex];
-
+    diffFrame = grayscaleFrame;
     diffFrame -= shadowThreshImg;
 
-    //diffFrame = computeGradientImage(diffFrame, LOG);
-    //diffFrame = computeGradientImage(diffFrame, BOTH);
-    // diffFrame.threshold(0,true);
-    //diffFrame.erode();
+   
 
 
+    /*  
+    *   Computing the enter and exit frames, used to create the temporal image
+    */
+    unsigned char* diffFramePixels = diffFrame.getPixels();
+    unsigned char* temporalImgPixels = temporalImg.getPixels();
+    unsigned char* enterFramePixels = enterFrame.getPixels();
+    unsigned char* exitFramePixels = exitFrame.getPixels();
     
+    
+    for(int r = 0; r < height; r++){
+        for(int c = 0; c < width; c++){
+            if(diffFramePixels[c+r*width] <= zeroCrossingThreshold){ // pixel in shadow
+                if(enterFramePixels[c+r*width] == 0){ // Never been in shadow before
+                    float framePixelMapping = ofMap(frameIndex,0,numFrames,0.0,255.0);
+                    
 
-    if(frameIndex>0){
+                    enterFramePixels[c+r*width] = framePixelMapping; // Setting the enter frame to the current frame
 
-        unsigned char* diffFramePixels = diffFrame.getPixels();
-        unsigned char* zeroCrossingFramePixels = zeroCrossingFrame.getPixels();
-        unsigned char* zeroCrossingImgPixels = zeroCrossingImg.getPixels();
-        
-        for(int r = 0; r < height; r++){
-            for(int c = columnIndices[r]; c < width; c++){
-                if(diffFramePixels[c+r*width] > zeroCrossingThreshold && zeroCrossingImgPixels[c+r*width] == 0){
-                    zeroCrossingFramePixels[c+r*width] = 255;
-                    zeroCrossingImgPixels[c+r*width] = 255;
-                    for(int j = columnIndices[r]; j < c; j++){
+                    ofColor temporalColor;
 
-                        float hue = ((float)frameIndex-1)/(float)frames.size()*255.0;
-                        float sat = 255;
-                        float bri = 255;
-
-                        ofColor c1Color = ofColor::fromHsb(hue,sat,bri);
-
-                        hue = ((float)frameIndex)/(float)frames.size()*255.0;
-
-                        ofColor c2Color = ofColor::fromHsb(hue,sat,bri);
-
-                        if(interpolateColor){
-                            ofColor interColor = c1Color;
-                            interColor.lerp(c2Color,ofMap(j,columnIndices[r],c,0.0,1.0));
-                            
-                            temporalImgPixels[3*(j+r*width)] = interColor[0];
-                            temporalImgPixels[3*(j+r*width)+1] = interColor[1];
-                            temporalImgPixels[3*(j+r*width)+2] = interColor[2];
-                        }
-                        else{
-                            temporalImgPixels[3*(j+r*width)] = c2Color[0];
-                            temporalImgPixels[3*(j+r*width)+1] = c2Color[1];
-                            temporalImgPixels[3*(j+r*width)+2] = c2Color[2];
-                        }
-                        
+                    if(framePixelMapping <= zeroCrossingThreshold){
+                        temporalColor = ofColor(0,0,0);
                     }
-                    columnIndices[r] = c;
-                    break;
+                    else{
+                        temporalColor = ofColor::fromHsb(framePixelMapping,255,255);
+                    }
+                    
+                    
+                    temporalImgPixels[3*(c+r*width)] =      temporalColor.r;
+                    temporalImgPixels[3*(c+r*width)+1] =    temporalColor.g;
+                    temporalImgPixels[3*(c+r*width)+2] =    temporalColor.b;
                 }
+                
+            }
+            else{ // Pixel is not in shadow
+                if(enterFramePixels[c+r*width] == 0){ // Never been in shadow before
+                    // do squat
+                }
+                else{ // Pixel has been in shadow but is no longer
+                    if(exitFramePixels[c+r*width]== 0){ // First time exiting shadow
+                        exitFramePixels[c+r*width]= ofMap(frameIndex,0,numFrames,0.0,255.0);
+                    }
+                    else{
+                        // do squat
+                    }
+                }
+                
             }
         }
-        temporalImg.setFromPixels(temporalImgPixels,width,height);
-        zeroCrossingFrame.setFromPixels(zeroCrossingFramePixels,width,height);
-        zeroCrossingImg.setFromPixels(zeroCrossingImgPixels,width,height);
+    }
+    
+    enterFrame.setFromPixels(enterFramePixels,width,height);
+    exitFrame.setFromPixels(exitFramePixels,width,height);
+    temporalImg.setFromPixels(temporalImgPixels,width,height);
 
+    
+    topLine = computeLineFromZeroCrossings(enterFrame,topSection);
+    bottomLine = computeLineFromZeroCrossings(enterFrame,bottomSection);  
 
-        if(frameIndex > 0){
-            topLine = computeLineFromZeroCrossings(zeroCrossingFrame,topSection);
-            bottomLine = computeLineFromZeroCrossings(zeroCrossingFrame,bottomSection);  
+    //cout << "topLine " << topLine.dir.x << " " << topLine.dir.y << endl;
+    //cout << "bottomLine " << bottomLine.dir.x << " " << bottomLine.dir.y << endl;
 
-            //cout << "topLine " << topLine.dir.x << " " << topLine.dir.y << endl;
-            //cout << "bottomLine " << bottomLine.dir.x << " " << bottomLine.dir.y << endl;
-        }
+    ofxLine3d top3dLine = projectLineOntoPlane(topLine,vertPlane,intrinsic_matrix,extrinsic_matrix);
+    ofxLine3d bottom3dLine = projectLineOntoPlane(bottomLine,horizPlane,intrinsic_matrix,extrinsic_matrix);
+
+    ofxPlane planeFromLines = ofxPlane(top3dLine, bottom3dLine);
+    planes[frameIndex] = planeFromLines;
+   
+        
         
 
-         //Uncomment to save out diff frames
-        // bufferOfxCvColorImage = diffFrame;
-        // bufferOfImage.setFromPixels(bufferOfxCvColorImage.getPixelsRef());
-        // filename = "output/diffFrames/diffFrame";
-        // filename += ofToString(frameIndex);
-        // filename += ".tiff";
-        // bufferOfImage.saveImage(filename);
+    // cout << '[' << planeFromLines.normal.x << ',' << planeFromLines.normal.y << ',' << planeFromLines.normal.z << ']' << endl;
 
-        //Uncomment to save out zero crossing frames
-        // bufferOfxCvColorImage = zeroCrossingFrame;
-        // bufferOfImage.setFromPixels(bufferOfxCvColorImage.getPixelsRef());
-        // filename = "output/zeroCrossingFrames/zeroCrossingFrame";
-        // filename += ofToString(frameIndex);
-        // filename += ".tiff";
-        // bufferOfImage.saveImage(filename);
-    }
+
+     //Uncomment to save out diff frames
+    // bufferOfxCvColorImage = diffFrame;
+    // bufferOfImage.setFromPixels(bufferOfxCvColorImage.getPixelsRef());
+    // filename = "output/diffFrames/diffFrame";
+    // filename += ofToString(frameIndex);
+    // filename += ".tiff";
+    // bufferOfImage.saveImage(filename);
+
+    //Uncomment to save out zero crossing frames
+    // bufferOfxCvColorImage = enterFrame;
+    // bufferOfImage.setFromPixels(bufferOfxCvColorImage.getPixelsRef());
+    // filename = "output/enterFrames/enterFrame";
+    // filename += ofToString(frameIndex);
+    // filename += ".tiff";
+    // bufferOfImage.saveImage(filename);
+
 
     frameIndex++;
-    if((unsigned)frameIndex == frames.size()){
+    if((unsigned)frameIndex == numFrames){
         //Uncomment to save out temporal image
         bufferOfImage.setFromPixels(temporalImg.getPixelsRef());
         bufferOfImage.saveImage("output/temporalImg.tiff");
 
-        programState = VISUALIZATION;
-        cout << "VISUALIZATION STATE" << endl;
+        programState = POINTS3D;
+
+        cout << "POINTS3D STATE" << endl;
+        messageBarText = "POINTS3D";
+        messageBarSubText = "Computing 3d Points...";
         //Uncomment to save out min/max/shadowthresh frames
         bufferOfxCvColorImage = minImg;
         bufferOfImage.setFromPixels(bufferOfxCvColorImage.getPixelsRef());
@@ -971,13 +980,136 @@ void Scan3dApp::processingUpdate(){
         bufferOfImage.setFromPixels(bufferOfxCvColorImage.getPixelsRef());
         bufferOfImage.saveImage("output/shadowThreshImg.tiff");
     }
+
+    diffFrame = enterFrame;
 }
 
-void Scan3dApp::visualizationUpdate(){
-    messageBarText = "VISUALIZATION";
-    messageBarSubText = "";
+void Scan3dApp::points3dUpdate(){
+    
+    
+    points.resize(width*height,ofPoint(5,5,5));
+    colors.resize(width*height,ofColor(255,255,255));
+    int numPoints = 0;
+
+    unsigned char* temporalImgPixels = temporalImg.getPixels(); 
+    unsigned char* colorImgPixels = colorFrame.getPixels(); 
+    switch(points3dSubstate){
+            case POINTS3D_PROCESSING:
+                
+    
+                
+
+                for(int r = 0; r < height; r++){
+                    for(int c = 0; c < width; c++){ 
+                        
+
+
+                        ofColor temporalPixel; 
+                        //cout << '[r,c] : [' << r << ',' << c << ']' << endl;         
+                        temporalPixel[0] = temporalImgPixels[3*(c+r*width)];
+                        temporalPixel[1] = temporalImgPixels[3*(c+r*width)+1];
+                        temporalPixel[2] = temporalImgPixels[3*(c+r*width)+2];
+
+                        if(temporalPixel.getBrightness() == 0){
+                            continue;
+                        }
+                        else{
+                            float computedFrameIndex = getFrameFromColor(temporalPixel);
+                            if(!isPlaneAtFrameIndex(computedFrameIndex)){
+                                continue;
+                            }
+                            ofxPlane plane = getPlaneFromFrameIndex(computedFrameIndex);
+                            if(plane.isInit()){
+                                ofxRay3d ray = pixelToRay(intrinsic_matrix,extrinsic_matrix, ofPoint(c,r));
+                                ofPoint pt = ray.intersect(plane);
+                                if(pt.x != pt.x || pt.y != pt.y || pt.z != pt.z){
+                                    // not a valid point
+                                }
+                                else{
+                                    ofPoint pixelPt = pt3DToPixel(intrinsic_matrix,extrinsic_matrix,pt);
+                                    points[numPoints] = pt;
+                                    ofColor pixelColor = ofColor(0,255,0);
+                                    /*
+                                    ofColor pixelColor = ofColor(   (int)colorImgPixels[3*((int)pixelPt.x+(int)pixelPt.y*width)],
+                                                                    (int)colorImgPixels[3*((int)pixelPt.x+(int)pixelPt.y*width)+1],
+                                                                    (int)colorImgPixels[3*((int)pixelPt.x+(int)pixelPt.y*width)+2]
+                                                                );
+                                                                */
+                                    colors[numPoints] = pixelColor;
+                                    numPoints++;
+                                }
+                                
+                                //cout << pt << endl;
+                            }
+                            
+                            
+                        }
+                    }
+                }
+
+                writePointsToFile(numPoints);
+                
+                
+                messageBarText = "POINTS3D";
+                messageBarSubText = "Computing 3d Points...";
+                points3dSubstate = POINTS3D_WAITING;
+
+                break;
+            case POINTS3D_WAITING:
+            {
+                messageBarText = "POINTS3D";
+                messageBarSubText = "Done!";
+                break;
+            }
+        }
+
+        
+   
 
     //do nothing
+}
+
+void Scan3dApp::writePointsToFile(int numPoints){
+    ofFile outputFile("scan3d_output.ply", ofFile::WriteOnly);
+    outputFile <<"ply\n";
+    outputFile <<"format ascii 1.0\n";
+    outputFile <<"element vertex ";
+    outputFile << ofToString(numPoints);
+    outputFile << "\n";
+    outputFile <<"property float32 x\n";
+    outputFile <<"property float32 y\n";
+    outputFile <<"property float32 z\n";
+    outputFile <<"property uchar red\n";
+    outputFile <<"property uchar green\n";
+    outputFile <<"property uchar blue\n";
+    outputFile <<"element face 0\n";
+    outputFile <<"property list uint8 int32 vertex_indices\n";
+    outputFile <<"end_header\n";
+    
+    for(int i = 0; i < numPoints; i++){
+        int r = colors[i].r;
+        int g = colors[i].g;
+        int b = colors[i].b;
+
+
+        ostringstream buff;
+        buff << fixed << points[i].x;
+        buff << " ";
+        buff << fixed << points[i].y;
+        buff << " ";
+        buff << fixed << points[i].z;
+        buff << " ";
+        buff << setw(0) << r;
+        buff << " ";
+        buff << setw(0) << g;
+        buff << " ";
+        buff << setw(0) << b;
+        buff << " ";
+        outputFile << buff.str();
+        outputFile <<" \n";
+    }
+    
+    outputFile.close();
 }
 
 //--------------------------------------------------------------
@@ -1497,6 +1629,7 @@ ofxCvGrayscaleImage Scan3dApp::computeGradientImage(ofxCvGrayscaleImage &input, 
     int heightVal = input.getHeight();
     int widthVal = input.getWidth();
 
+
     unsigned char* outputPixelData = new unsigned char[widthVal*heightVal];
 
     for(int yPx = 0; yPx < heightVal; yPx++){
@@ -1576,6 +1709,9 @@ ofxCvGrayscaleImage Scan3dApp::computeGradientImage(ofxCvGrayscaleImage &input, 
                     case BOTH:
                         sum = abs(sumX)+abs(sumY);
                         break;
+                    case LOG:
+                        sum = abs(sumX)+abs(sumY);
+                        break;
                 }
             }
             if(sum > 255){
@@ -1588,6 +1724,7 @@ ofxCvGrayscaleImage Scan3dApp::computeGradientImage(ofxCvGrayscaleImage &input, 
         }
     }
     ofxCvGrayscaleImage out;
+    out.allocate(widthVal,heightVal);
     out.setFromPixels(outputPixelData,widthVal,heightVal);
     return out;
 }
@@ -1605,4 +1742,37 @@ ofxLine3d Scan3dApp::projectLineOntoPlane(ofxLine2d line, ofxPlane plane, const 
     ofVec3f dir = worldPt1 - worldPt0;
 
     return ofxLine3d(dir.x,dir.y,dir.z,worldPt0.x,worldPt0.y,worldPt0.z);
+}
+
+float Scan3dApp::getFrameFromColor(ofColor color){
+    float hue = color.getHue();
+    float computedFrameIndex = (hue/255.0)*((float)numFrames);
+    return computedFrameIndex;
+}
+
+bool Scan3dApp::isPlaneAtFrameIndex(float fi){
+    int discreteFrameIndex = (int)fi;
+    float interpolateFrameValue = fi - discreteFrameIndex;
+    if(discreteFrameIndex > 0){
+        ofxPlane plane0 = planes[discreteFrameIndex-1];
+        ofxPlane plane1 = planes[discreteFrameIndex];
+        return plane0.isInit() && plane1.isInit();
+
+    }
+    else{
+        return planes[0].isInit();
+    }
+}
+
+ofxPlane Scan3dApp::getPlaneFromFrameIndex(float fi){
+    int discreteFrameIndex = (int)fi;
+    float interpolateFrameValue = fi - discreteFrameIndex;
+    if(discreteFrameIndex > 0){
+        ofxPlane plane0 = planes[discreteFrameIndex-1];
+        ofxPlane plane1 = planes[discreteFrameIndex];
+        return plane0.interpolate(plane1,interpolateFrameValue);
+    }
+    else{
+        return planes[0];
+    }
 }
