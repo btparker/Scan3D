@@ -124,12 +124,43 @@ void Scan3dApp::setup(){
     distortion_coeffs = cvCreateMat(5,1,CV_32FC1);
     corners = new CvPoint2D32f[ boardPatternSize ];
 
-    vertPlane = ofxPlane(ofPoint(5,5,0),ofVec3f(0,0,-1));
-    horizPlane = ofxPlane(ofPoint(5,0,5),ofVec3f(0,1,0));
+    vertPlane = ofxPlane(ofPoint(0,0,0),ofVec3f(0,0,1));
+    horizPlane = ofxPlane(ofPoint(0,0,0),ofVec3f(0,1,0));
+
+    cout << "Asserting vertical plane direction is in proper coordinates ... ";
+    assertPoint(vertPlane.pt+vertPlane.normal);
+    cout << "passed!" << endl;
+    cout << "Asserting horizontal plane direction is in proper coordinates ... ";
+    assertPoint(horizPlane.pt+horizPlane.normal);
+    cout << "passed!" << endl;
+
+    cout << "Asserting input vertical plane points are in proper coordinates ... ";
+    assertPoint(verticalPlaneObjectPts[0]);
+    assertPoint(verticalPlaneObjectPts[1]);
+    assertPoint(verticalPlaneObjectPts[2]);
+    assertPoint(verticalPlaneObjectPts[3]);
+    cout << "passed!" << endl;
+    cout << "Asserting input horizontal plane points are in proper coordinates ... ";
+    assertPoint(horizontalPlaneObjectPts[0]);
+    assertPoint(horizontalPlaneObjectPts[1]);
+    assertPoint(horizontalPlaneObjectPts[2]);
+    assertPoint(horizontalPlaneObjectPts[3]);
+    cout << "passed!" << endl;
+
+    ofVec3f tN = ofVec3f(0,1,1);
+    tN.normalize();
+    negYnegZPlane = ofxPlane(ofPoint(0,50,50),tN);
+
+
 
     paused = false;
 
     points3dSubstate = POINTS3D_PROCESSING;
+}
+
+void Scan3dApp::assertPoint(ofPoint pt){
+    assert(pt.y >= -FLT_EPSILON); // Bloody negative y coordinates
+    assert(pt.z >= -FLT_EPSILON); // At least the z coordinate is normal
 }
 
 //--------------------------------------------------------------
@@ -511,18 +542,44 @@ void Scan3dApp::camCalUpdate(){
                 //
                 CV_MAT_ELEM( *intrinsic_matrix, float, 0, 0 ) = 1.0f;
                 CV_MAT_ELEM( *intrinsic_matrix, float, 1, 1 ) = 1.0f;
-                
+                //CV_MAT_ELEM( *intrinsic_matrix, float, 2, 2) = 1.0f;
+
+
                 
                 //CALIBRATE THE CAMERA!
                 cvCalibrateCamera2(
                     object_points2, 
                     image_points2,
                     point_counts2, 
-                    cvGetSize( colorFrame.getCvImage() ),
+                    cvSize(width,height),
                     intrinsic_matrix, 
                     distortion_coeffs,
                     NULL, NULL,0 //CV_CALIB_FIX_ASPECT_RATIO
                 );
+
+                printf("\n");
+                printf("Intrinsic Matrix: ");
+                printf("\n");
+                for(int r = 0; r < 3; r++){
+                    for(int c = 0; c < 3; c++){
+                        CvScalar scal = cvGet2D(intrinsic_matrix,r,c); 
+                        printf( "%f\t", scal.val[0]); 
+                    }
+                    printf("\n");
+                }
+                printf("\n");
+                printf("\n");
+
+                focal_length = ofVec2f(CV_MAT_ELEM( *intrinsic_matrix, float, 0, 0 ),CV_MAT_ELEM( *intrinsic_matrix, float, 1,1));
+                cout << "Focal length not absurd ... ";
+                assert(focal_length.x > 0 && focal_length.y > 0);
+                cout << " passed! [" << focal_length << ']' << endl;
+
+                principal_point = ofVec2f(CV_MAT_ELEM( *intrinsic_matrix, float, 0,2 ),CV_MAT_ELEM( *intrinsic_matrix, float, 1,2));
+
+                cout << "Principal point near image center not absurd   pp[" << principal_point << "], center[" << ofPoint(width/2,height/2) << "] ... ";
+                assert(abs(principal_point.x - width/2) < width/4 && abs(principal_point.y - height/2) < height/4);
+                cout << " passed!"<< endl;
                 
                 // SAVE THE INTRINSICS AND DISTORTIONS
                 cvSave(intrinsicFilename.c_str(),intrinsic_matrix);
@@ -559,8 +616,29 @@ void Scan3dApp::camCalUpdate(){
             }
             intrinsic_matrix = (CvMat*)cvLoad(intrinsicFilename.c_str());
             distortion_coeffs = (CvMat*)cvLoad(distortionFilename.c_str());
+            
+            printf("\n");
+            printf("Intrinsic Matrix: ");
+            printf("\n");
+            for(int r = 0; r < 3; r++){
+                for(int c = 0; c < 3; c++){
+                    CvScalar scal = cvGet2D(intrinsic_matrix,r,c); 
+                    printf( "%f\t", scal.val[0]); 
+                }
+                printf("\n");
+            }
+            printf("\n");
+            printf("\n");
 
+            focal_length = ofVec2f(CV_MAT_ELEM( *intrinsic_matrix, float, 0, 0 ),CV_MAT_ELEM( *intrinsic_matrix, float, 1,1));
+            cout << "Focal length not absurd ... ";
+            assert(focal_length.x > 0 && focal_length.y > 0);
+            cout << " passed! [" << focal_length << ']' << endl;
 
+            principal_point = ofVec2f(CV_MAT_ELEM( *intrinsic_matrix, float, 0,2 ),CV_MAT_ELEM( *intrinsic_matrix, float, 1,2));
+            cout << "Principal point near image center not absurd   pp[" << principal_point << "], center[" << ofPoint(width/2,height/2) << "] ... ";
+            assert(abs(principal_point.x - width/2) < width/4 && abs(principal_point.y - height/2) < height/4);
+            cout << " passed!"<< endl;
 
             mapx = cvCreateImage( cvGetSize(colorFrame.getCvImage()), IPL_DEPTH_32F, 1 );
             mapy = cvCreateImage( cvGetSize(colorFrame.getCvImage()), IPL_DEPTH_32F, 1 );
@@ -585,7 +663,10 @@ void Scan3dApp::setupUpdate(){
     ofxRay3d ray;
     ofxPlane testPlane;
     ofPoint intersectPt;
-
+    ofxRay3d centerRay;
+    ofVec3f centerPt;
+    ofNode lookat;
+    ofVec3f easyCamPos;
 
     messageBarText = "SETUP";
     switch(setupSubState){
@@ -652,7 +733,32 @@ void Scan3dApp::setupUpdate(){
             // cout << testPlane.normal << endl;
 
 
+            centerRay = pixelToRay(intrinsic_matrix,extrinsic_matrix, ofPoint(width/2,height/2));
+            centerPt = (ofVec3f)centerRay.intersect(horizPlane);
+            if(centerPt.z <=0){
+                centerPt = (ofVec3f)centerRay.intersect(vertPlane);
+            }
+            
+            lookat.setPosition(centerPt);
 
+            easyCamPos = (ofVec3f)camPos;
+            
+
+            easyCam.setPosition(easyCamPos);
+            easyCam.setTarget(lookat);
+            //easyCam.setScale(1,1,-1);
+
+            cout << "camPos:" << endl;
+            cout << camPos << endl;
+
+            cout << "easyCam pos:" << endl;
+            cout << easyCam.getPosition() << endl;
+
+            cout << "easyCam distance:" << endl;
+            cout << easyCam.getDistance() << endl;
+
+            cout << "easyCam target position:" << endl;
+            cout << easyCam.getTarget().getPosition() << endl;
             setupSubState = WAITING;
             break;
         case WAITING:
@@ -943,6 +1049,7 @@ void Scan3dApp::processingUpdate(){
         ofxRay3d ray;
         ofPoint pt;
         ofColor color;
+        ofxPlane testPlane;
 
         ofPoint topLineTopPoint = yMinLine.intersection(topLine);
         ray = pixelToRay(intrinsic_matrix,extrinsic_matrix,topLineTopPoint);
@@ -955,27 +1062,35 @@ void Scan3dApp::processingUpdate(){
         ray = pixelToRay(intrinsic_matrix,extrinsic_matrix,topLineCrossPoint);
         pt = ray.intersect(vertPlane);
         planePts.addVertex((ofVec3f)pt);
-        color.setHsb(ofMap(frameIndex-1,0,numFrames,0.0,255.0),255,255);
-        planePts.addColor(color);
-
-        ofPoint bottomLineCrossPoint = testLine.intersection(bottomLine);
-        ray = pixelToRay(intrinsic_matrix,extrinsic_matrix,bottomLineCrossPoint);
-        pt = ray.intersect(horizPlane);
-        planePts.addVertex((ofVec3f)pt);
-        color.setHsb(ofMap(frameIndex-1,0,numFrames,0.0,255.0),255,255);
         planePts.addColor(color);
 
         ofPoint bottomLineBottomPoint = yMaxLine.intersection(bottomLine);
         ray = pixelToRay(intrinsic_matrix,extrinsic_matrix,bottomLineBottomPoint);
         pt = ray.intersect(horizPlane);
         planePts.addVertex((ofVec3f)pt);
-        color.setHsb(ofMap(frameIndex-1,0,numFrames,0.0,255.0),255,255);
         planePts.addColor(color);
+
+        ofPoint bottomLineCrossPoint = testLine.intersection(bottomLine);
+        ray = pixelToRay(intrinsic_matrix,extrinsic_matrix,bottomLineCrossPoint);
+        pt = ray.intersect(horizPlane);
+        planePts.addVertex((ofVec3f)pt);
+        planePts.addColor(color);
+
+
+        
 
         ofxLine3d top3dLine = projectLineOntoPlane(topLine,vertPlane,intrinsic_matrix,extrinsic_matrix);
         ofxLine3d bottom3dLine = projectLineOntoPlane(bottomLine,horizPlane,intrinsic_matrix,extrinsic_matrix);
 
         ofxPlane planeFromLines = ofxPlane(top3dLine, bottom3dLine);
+
+      
+
+        pt = ray.intersect(negYnegZPlane);
+        planePts.addVertex((ofVec3f)pt);
+        planePts.addColor(ofColor(255,255,255));
+
+       
         planes[frameIndex] = planeFromLines;
     }
 
@@ -1032,30 +1147,7 @@ void Scan3dApp::processingUpdate(){
         bufferOfImage.setFromPixels(bufferOfxCvColorImage.getPixelsRef());
         bufferOfImage.saveImage("output/shadowThreshImg.tiff");
         
-        ofxRay3d centerRay = pixelToRay(intrinsic_matrix,extrinsic_matrix, ofPoint(width/2,height/2));
-        ofVec3f centerPt = (ofVec3f)centerRay.intersect(horizPlane);
         
-        ofNode lookat;
-        lookat.setPosition(centerPt);
-
-        ofVec3f easyCamPos = (ofVec3f)camPos;
-        
-
-        easyCam.setPosition(easyCamPos);
-        easyCam.setTarget(lookat);
-        //easyCam.setScale(1,1,-1);
-
-        cout << "camPos:" << endl;
-        cout << camPos << endl;
-
-        cout << "easyCam pos:" << endl;
-        cout << easyCam.getPosition() << endl;
-
-        cout << "easyCam distance:" << endl;
-        cout << easyCam.getDistance() << endl;
-
-        cout << "easyCam target position:" << endl;
-        cout << easyCam.getTarget().getPosition() << endl;
     }
 
     //diffFrame = enterFrame;
@@ -1094,8 +1186,23 @@ void Scan3dApp::points3dUpdate(){
                             ofxPlane plane = getPlaneFromFrameIndex(computedFrameIndex);
                             if(plane.isInit()){
                                 ofxRay3d ray = pixelToRay(intrinsic_matrix,extrinsic_matrix, ofPoint(c,r));
-                                //ofPoint pt = (((int)computedFrameIndex) % 2) == 0 ? ray.intersect(vertPlane) : ray.intersect(vertPlane);
-                                ofPoint pt = ray.intersect(plane);
+                                
+                                ofPoint pt = (((int)computedFrameIndex) % 2) == 0 ? ray.intersect(vertPlane) : ray.intersect(horizPlane);
+                                //ofPoint pt = ray.intersect(plane);
+                                // cout << "Ray origin should be camera pos: " << endl;
+                                // cout << "   camPos: ";
+                                // cout << camPos << endl;
+                                // cout << "   ray.origin: ";
+                                // cout << ray.origin << endl;
+                                // cout << "Ray dir and tes vec (intersect pt minus ray.origin, normalized) should be the same: " << endl;
+                                // cout << "   ray.dir: ";
+                                // cout << ray.dir << endl;
+                                // ofVec3f testVec = pt-ray.origin;
+                                // testVec.normalize();
+                                // cout << "   testVec: ";
+                                // cout << testVec << endl;
+
+
                                 if(pt.x != pt.x || pt.y != pt.y || pt.z != pt.z){
                                     // not a valid point
                                 }
@@ -1107,7 +1214,8 @@ void Scan3dApp::points3dUpdate(){
                                                                     (int)colorImgPixels[3*((int)pixelPt.x+(int)pixelPt.y*width)+1],
                                                                     (int)colorImgPixels[3*((int)pixelPt.x+(int)pixelPt.y*width)+2]
                                                                 );
-                                                               
+
+
                                     colors[numPoints] = pixelColor;
                                     numPoints++;
                                 }

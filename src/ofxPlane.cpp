@@ -18,7 +18,7 @@ ofxPlane::ofxPlane(ofPoint pt, ofVec3f normal){
 }
 
 void ofxPlane::computeD(){
-	d = pt.x*normal.x+pt.y*normal.y+pt.z*normal.z;
+	d = -(pt.x*normal.x+pt.y*normal.y+pt.z*normal.z);
 }
 
 ofxPlane::ofxPlane(ofxLine3d line0, ofxLine3d line1){
@@ -27,20 +27,23 @@ ofxPlane::ofxPlane(ofxLine3d line0, ofxLine3d line1){
 	}
 	else{
 		// Computing 'good enough' fit plane
-		ofPoint pt0 = line0.pt+line0.dir;
-		ofPoint pt1 = line1.pt+line1.dir;
-		ofPoint pt2 = line0.pt+line1.dir;
+		ofPoint pt0 = line0.pt;
+		ofPoint pt1 = line1.pt;
+		ofPoint pt2 = (line0.pt+line0.dir)+(line1.pt+line1.dir);
+		pt2 /= 2;
 
 		
 
-		ofPoint pt01 = pt1-pt0;
-		ofPoint pt02 = pt2-pt0;
+		ofVec3f pt01 = pt1-pt0;
+		ofVec3f pt02 = pt2-pt0;
 
-		ofVec3f normal = pt01.cross(pt02);
-		normal.normalize();
+		ofVec3f normalVec = pt01.cross(pt02);
+		normalVec.normalize();
 
-		setNormal(normal.x,normal.y,normal.z);
-		setPoint(pt0.x,pt0.y,pt0.z);
+		setNormal(normalVec.x,normalVec.y,normalVec.z);
+		cout << "Line Crossed Plane normal " << endl;
+		cout << normal << endl;
+		setPoint(pt2.x,pt2.y,pt2.z);
 		computeD();
 		initialized = true;
 	}
@@ -90,5 +93,24 @@ ofxPlane ofxPlane::interpolate(ofxPlane plane, float value){
 
 bool ofxPlane::isInit(){
 	return initialized;
+}
+
+ofPoint ofxPlane::getPointAt(int i, float x, float y, float z){
+	ofPoint pointAt;
+	switch(i){
+		case 0:
+			x = -1*(normal.y*y+normal.z*z+d)/normal.x;
+			break;
+		case 1:
+			y = -1*(normal.x*x+normal.z*z+d)/normal.y;
+			break;
+		case 2:
+			z = -1*(normal.x*x+normal.y*y+d)/normal.z;
+			break;
+			
+	}
+	
+	pointAt.set(x,y,z);
+	return pointAt;
 }
 

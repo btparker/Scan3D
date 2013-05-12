@@ -25,6 +25,8 @@ class ofxPlane{
 		ofxPlane interpolate(ofxPlane plane, float value);
 		bool isInit();
 
+		ofPoint getPointAt(int i, float x, float y, float z);
+
 };
 
 #endif

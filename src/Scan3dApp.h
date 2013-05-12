@@ -78,6 +78,8 @@ class Scan3dApp : public ofBaseApp{
 
 		void drawPointCloud();
 
+		void assertPoint(ofPoint pt);
+
 		int sobelHorizontal[3][3];
     	int sobelVertical[3][3];
 
@@ -193,6 +195,7 @@ class Scan3dApp : public ofBaseApp{
 
 		ofxPlane vertPlane;
 		ofxPlane horizPlane;
+		ofxPlane negYnegZPlane;
 
 		bool paused;
 
@@ -200,5 +203,9 @@ class Scan3dApp : public ofBaseApp{
 
 		bool bDrawPointCloud;
 		ofMesh planePts;
+
+		ofVec2f focal_length;
+		ofVec2f principal_point;
+
         
 };
