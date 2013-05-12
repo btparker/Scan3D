@@ -13,9 +13,9 @@ void Scan3dApp::setup(){
     sobelVertical[1][0] =  0; sobelVertical[1][1] =  0; sobelVertical[1][2] = 0;
     sobelVertical[2][0] = -1; sobelVertical[2][1] = -2; sobelVertical[2][2] = -1;
 
-    laplacianOfGaussian[0][0] = -1; laplacianOfGaussian[0][1] =  2; laplacianOfGaussian[0][2] = -1;
-    laplacianOfGaussian[1][0] =  2; laplacianOfGaussian[1][1] = -4; laplacianOfGaussian[1][2] =  2;
-    laplacianOfGaussian[2][0] = -1; laplacianOfGaussian[2][1] =  2; laplacianOfGaussian[2][2] = -1;
+    laplacianOfGaussian[0][0] = -1; laplacianOfGaussian[0][1] = -1; laplacianOfGaussian[0][2] = -1;
+    laplacianOfGaussian[1][0] = -1; laplacianOfGaussian[1][1] = 8; laplacianOfGaussian[1][2] = -1;
+    laplacianOfGaussian[2][0] = -1; laplacianOfGaussian[2][1] = -1; laplacianOfGaussian[2][2] = -1;
 
 
     ofBackground(0);
@@ -73,8 +73,6 @@ void Scan3dApp::setup(){
     zeroCrossingImg.allocate(width,height);
     zeroCrossingImg.set(0);
     diffFrame.allocate(width,height);
-    previousDiffFrame.allocate(width,height);
-    previousDiffFrame.set(0);
 
     
     shadowThreshImg.allocate(width,height);
@@ -861,22 +859,29 @@ void Scan3dApp::processingUpdate(){
     grayscaleFrame = frames[frameIndex];
     zeroCrossingFrame.set(0);
     diffFrame.set(0);
-    previousDiffFrame.set(0);
+    bufferOfxCvGrayscaleImage.set(0);
 
-    if(frameIndex>0){
-        previousDiffFrame = frames[frameIndex-1];
-        previousDiffFrame -= shadowThreshImg;
-        
-    }
+    diffFrame = grayscaleFrame;
+    diffFrame -= shadowThreshImg;
+    
+    diffFrame.blurGaussian();
+    diffFrame.threshold(0);
+    diffFrame = computeGradientImage(diffFrame, LOG);
+
+    bufferOfxCvGrayscaleImage = maxImg;
+    bufferOfxCvGrayscaleImage -= minImg;
+    bufferOfxCvGrayscaleImage.threshold(50,true);
+    bufferOfxCvGrayscaleImage.dilate();
+    diffFrame -= bufferOfxCvGrayscaleImage;
+    bufferOfxCvGrayscaleImage = maxImg;
+    bufferOfxCvGrayscaleImage -= minImg;
+    bufferOfxCvGrayscaleImage.threshold(50);
+    bufferOfxCvGrayscaleImage = computeGradientImage(bufferOfxCvGrayscaleImage, LOG);
+    bufferOfxCvGrayscaleImage.dilate();
 
     
-
-    diffFrame = frames[frameIndex];
-
-    diffFrame -= shadowThreshImg;
-
-    //diffFrame = computeGradientImage(diffFrame, LOG);
-    //diffFrame = computeGradientImage(diffFrame, BOTH);
+    diffFrame -= bufferOfxCvGrayscaleImage;
+    // diffFrame = computeGradientImage(diffFrame, BOTH);
     // diffFrame.threshold(0,true);
     //diffFrame.erode();
 
@@ -1638,6 +1643,7 @@ ofxCvGrayscaleImage Scan3dApp::computeGradientImage(ofxCvGrayscaleImage &input, 
     int heightVal = input.getHeight();
     int widthVal = input.getWidth();
 
+
     unsigned char* outputPixelData = new unsigned char[widthVal*heightVal];
 
     for(int yPx = 0; yPx < heightVal; yPx++){
@@ -1717,6 +1723,9 @@ ofxCvGrayscaleImage Scan3dApp::computeGradientImage(ofxCvGrayscaleImage &input, 
                     case BOTH:
                         sum = abs(sumX)+abs(sumY);
                         break;
+                    case LOG:
+                        sum = abs(sumX)+abs(sumY);
+                        break;
                 }
             }
             if(sum > 255){
@@ -1729,6 +1738,7 @@ ofxCvGrayscaleImage Scan3dApp::computeGradientImage(ofxCvGrayscaleImage &input, 
         }
     }
     ofxCvGrayscaleImage out;
+    out.allocate(widthVal,heightVal);
     out.setFromPixels(outputPixelData,widthVal,heightVal);
     return out;
 }
