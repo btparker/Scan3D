@@ -8,14 +8,16 @@
 #include "ofxLine3d.h"
 #include "ofxRay3d.h"
 #include "ofxPlane.h"
+#include <sstream>
 
-enum {CAMERA_CALIBRATION, SETUP, CAPTURE, PROCESSING,RECONSTRUCTION,VISUALIZATION};
+enum {CAMERA_CALIBRATION, SETUP, CAPTURE, PROCESSING,RECONSTRUCTION,POINTS3D};
 
 
 enum Setup{TOP_SECTION, BOTTOM_SECTION, T_TL, T_TR, T_BL, T_BR, B_TL, B_TR, B_BL, B_BR,ESTIMATE_CAMERA, WAITING};
 
 
 enum CameraCalibration{CAM_CAL_PROCESSING, CAM_CAL_LOADING, CAM_CAL_WAITING};
+enum Points3d{POINTS3D_PROCESSING, POINTS3D_WAITING};
 
 
 enum { COLOR, GRAYSCALE, MINIMAGE, MAXIMAGE, SHADOWTHRESHIMAGE, DIFF, THRESH, EDGE, CORNER};
@@ -33,7 +35,7 @@ class Scan3dApp : public ofBaseApp{
 		void setupUpdate();
 		void captureUpdate();
 		void processingUpdate();
-		void visualizationUpdate();
+		void points3dUpdate();
 
 		void draw();
 		void camCalDraw();
@@ -67,9 +69,12 @@ class Scan3dApp : public ofBaseApp{
 		ofxLine3d projectLineOntoPlane(ofxLine2d line, ofxPlane plane, const CvMat* intrinsicMat, const CvMat* extrinsicMat);
 
 		ofxCvGrayscaleImage computeGradientImage(ofxCvGrayscaleImage &input, int direction);
+		ofxPlane getPlaneFromFrameIndex(float fi);
 
 		float getFrameFromColor(ofColor color);
+		void writePointsToFile(int numPoints);
 
+		bool isPlaneAtFrameIndex(float fi);
 
 		int sobelHorizontal[3][3];
     	int sobelVertical[3][3];
@@ -98,6 +103,7 @@ class Scan3dApp : public ofBaseApp{
         int programState;
         int setupSubState;
         int camCalSubstate;
+        int points3dSubstate;
         int inputType;
 
         int width,height;
@@ -117,6 +123,7 @@ class Scan3dApp : public ofBaseApp{
         ofxCvGrayscaleImage bufferOfxCvGrayscaleImage;
 
         vector<ofxCvGrayscaleImage> frames;
+        vector<ofxPlane> planes;
 
         unsigned int frameBufferSize;
         int zeroCrossingThreshold;
@@ -146,6 +153,8 @@ class Scan3dApp : public ofBaseApp{
 		string filename;
 
 		vector<int> columnIndices;
+		vector<ofPoint> points;
+		vector<ofColor> colors;
 
 		ofDirectory dir;
 

@@ -11,6 +11,8 @@ class ofxPlane{
 		ofPoint pt;
 		float d;
 
+		bool initialized;
+
 		ofxPlane();
 		ofxPlane(ofPoint pt, ofVec3f normal);
 		ofxPlane(ofxLine3d line0, ofxLine3d line1);
@@ -21,6 +23,7 @@ class ofxPlane{
 		void setPoint(ofPoint pt);
 		void computeD();
 		ofxPlane interpolate(ofxPlane plane, float value);
+		bool isInit();
 
 };
 

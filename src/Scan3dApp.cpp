@@ -128,6 +128,8 @@ void Scan3dApp::setup(){
     horizPlane = ofxPlane(ofPoint(5,0,5),ofVec3f(0,1,0));
 
     paused = false;
+
+    points3dSubstate = POINTS3D_PROCESSING;
 }
 
 //--------------------------------------------------------------
@@ -403,9 +405,9 @@ void Scan3dApp::update(){
                 processingUpdate();
                 break;
             }
-            case VISUALIZATION:
+            case POINTS3D:
             {    
-                visualizationUpdate();
+                points3dUpdate();
                 break;
             }
 
@@ -791,6 +793,7 @@ void Scan3dApp::captureUpdate(){
         messageBarText = "PROCESSING";
         messageBarSubText = "";
         programState = PROCESSING;
+        planes.resize(frames.size(),ofxPlane());
         cout << "PROCESSING STATE" << endl;
         frameIndex = 0;
     }
@@ -938,6 +941,10 @@ void Scan3dApp::processingUpdate(){
             ofxLine3d bottom3dLine = projectLineOntoPlane(bottomLine,horizPlane,intrinsic_matrix,extrinsic_matrix);
 
             ofxPlane planeFromLines = ofxPlane(top3dLine, bottom3dLine);
+            planes[frameIndex] = planeFromLines;
+        }
+        else{
+            planes[frameIndex] = ofxPlane();
         }
         
         
@@ -968,8 +975,11 @@ void Scan3dApp::processingUpdate(){
         bufferOfImage.setFromPixels(temporalImg.getPixelsRef());
         bufferOfImage.saveImage("output/temporalImg.tiff");
 
-        programState = VISUALIZATION;
-        cout << "VISUALIZATION STATE" << endl;
+        programState = POINTS3D;
+
+        cout << "POINTS3D STATE" << endl;
+        messageBarText = "POINTS3D";
+        messageBarSubText = "Computing 3d Points...";
         //Uncomment to save out min/max/shadowthresh frames
         bufferOfxCvColorImage = minImg;
         bufferOfImage.setFromPixels(bufferOfxCvColorImage.getPixelsRef());
@@ -983,11 +993,132 @@ void Scan3dApp::processingUpdate(){
     }
 }
 
-void Scan3dApp::visualizationUpdate(){
-    messageBarText = "VISUALIZATION";
-    messageBarSubText = "";
+void Scan3dApp::points3dUpdate(){
+    
+    
+    points.resize(width*height,ofPoint(5,5,5));
+    colors.resize(width*height,ofColor(255,255,255));
+    int numPoints = 0;
+
+    unsigned char* temporalImgPixels = temporalImg.getPixels(); 
+    unsigned char* colorImgPixels = colorFrame.getPixels(); 
+    switch(points3dSubstate){
+            case POINTS3D_PROCESSING:
+                
+    
+                
+
+                for(int r = 0; r < height; r++){
+                    for(int c = 0; c < width; c++){ 
+                        
+
+
+                        ofColor temporalPixel; 
+                        //cout << '[r,c] : [' << r << ',' << c << ']' << endl;         
+                        temporalPixel[0] = temporalImgPixels[3*(c+r*width)];
+                        temporalPixel[1] = temporalImgPixels[3*(c+r*width)+1];
+                        temporalPixel[2] = temporalImgPixels[3*(c+r*width)+2];
+
+                        if(temporalPixel.getBrightness() == 0){
+                            continue;
+                        }
+                        else{
+                            float computedFrameIndex = getFrameFromColor(temporalPixel);
+                            if(!isPlaneAtFrameIndex(computedFrameIndex)){
+                                continue;
+                            }
+                            ofxPlane plane = getPlaneFromFrameIndex(computedFrameIndex);
+                            if(plane.isInit()){
+                                ofxRay3d ray = pixelToRay(intrinsic_matrix,extrinsic_matrix, ofPoint(c,r));
+                                ofPoint pt = ray.intersect(plane);
+                                if(pt.x != pt.x || pt.y != pt.y || pt.z != pt.z){
+                                    // not a valid point
+                                }
+                                else{
+                                    ofPoint pixelPt = pt3DToPixel(intrinsic_matrix,extrinsic_matrix,pt);
+                                    points[numPoints] = pt;
+                                    ofColor pixelColor = ofColor(0,255,0);
+                                    /*
+                                    ofColor pixelColor = ofColor(   (int)colorImgPixels[3*((int)pixelPt.x+(int)pixelPt.y*width)],
+                                                                    (int)colorImgPixels[3*((int)pixelPt.x+(int)pixelPt.y*width)+1],
+                                                                    (int)colorImgPixels[3*((int)pixelPt.x+(int)pixelPt.y*width)+2]
+                                                                );
+                                                                */
+                                    colors[numPoints] = pixelColor;
+                                    numPoints++;
+                                }
+                                
+                                //cout << pt << endl;
+                            }
+                            
+                            
+                        }
+                    }
+                }
+
+                writePointsToFile(numPoints);
+                
+                
+                messageBarText = "POINTS3D";
+                messageBarSubText = "Computing 3d Points...";
+                points3dSubstate = POINTS3D_WAITING;
+
+                break;
+            case POINTS3D_WAITING:
+            {
+                messageBarText = "POINTS3D";
+                messageBarSubText = "Done!";
+                break;
+            }
+        }
+
+        
+   
 
     //do nothing
+}
+
+void Scan3dApp::writePointsToFile(int numPoints){
+    ofFile outputFile("scan3d_output.ply", ofFile::WriteOnly);
+    outputFile <<"ply\n";
+    outputFile <<"format ascii 1.0\n";
+    outputFile <<"element vertex ";
+    outputFile << ofToString(numPoints);
+    outputFile << "\n";
+    outputFile <<"property float32 x\n";
+    outputFile <<"property float32 y\n";
+    outputFile <<"property float32 z\n";
+    outputFile <<"property uchar red\n";
+    outputFile <<"property uchar green\n";
+    outputFile <<"property uchar blue\n";
+    outputFile <<"element face 0\n";
+    outputFile <<"property list uint8 int32 vertex_indices\n";
+    outputFile <<"end_header\n";
+    
+    for(int i = 0; i < numPoints; i++){
+        int r = colors[i].r;
+        int g = colors[i].g;
+        int b = colors[i].b;
+
+
+        ostringstream buff;
+        buff << fixed << points[i].x;
+        buff << " ";
+        buff << fixed << points[i].y;
+        buff << " ";
+        buff << fixed << points[i].z;
+        buff << " ";
+        buff << setw(0) << r;
+        buff << " ";
+        buff << setw(0) << g;
+        buff << " ";
+        buff << setw(0) << b;
+        buff << " ";
+        outputFile << buff.str();
+        outputFile <<" \n";
+    }
+    
+    outputFile.close();
 }
 
 //--------------------------------------------------------------
@@ -1621,4 +1752,31 @@ float Scan3dApp::getFrameFromColor(ofColor color){
     float hue = color.getHue();
     float computedFrameIndex = (hue/255.0)*frames.size();
     return computedFrameIndex;
+}
+
+bool Scan3dApp::isPlaneAtFrameIndex(float fi){
+    int discreteFrameIndex = (int)fi;
+    float interpolateFrameValue = fi - discreteFrameIndex;
+    if(discreteFrameIndex > 0){
+        ofxPlane plane0 = planes[discreteFrameIndex-1];
+        ofxPlane plane1 = planes[discreteFrameIndex];
+        return plane0.isInit() && plane1.isInit();
+
+    }
+    else{
+        return planes[0].isInit();
+    }
+}
+
+ofxPlane Scan3dApp::getPlaneFromFrameIndex(float fi){
+    int discreteFrameIndex = (int)fi;
+    float interpolateFrameValue = fi - discreteFrameIndex;
+    if(discreteFrameIndex > 0){
+        ofxPlane plane0 = planes[discreteFrameIndex-1];
+        ofxPlane plane1 = planes[discreteFrameIndex];
+        return plane0.interpolate(plane1,interpolateFrameValue);
+    }
+    else{
+        return planes[0];
+    }
 }
