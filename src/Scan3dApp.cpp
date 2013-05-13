@@ -76,7 +76,7 @@ void Scan3dApp::setup(){
     exitFrame.allocate(width,height);
     exitFrame.set(0);
     diffFrame.allocate(width,height);
-    bincodeImg.allocate(width,height);
+    
 
     
     shadowThreshImg.allocate(width,height);
@@ -158,8 +158,9 @@ void Scan3dApp::setup(){
 
     points3dSubstate = POINTS3D_PROCESSING;
 
+    bincodeImg.allocate(640,480);
 
-    bincodeImg = computeGrayCodeImage(width,height,3,false,HORIZONTAL);
+    bincodeImg = computeGrayCodeImage(640,480,3,false,HORIZONTAL);
     
 }
 
@@ -2060,8 +2061,8 @@ ofxCvGrayscaleImage Scan3dApp::computeBinCodeImage(int w, int h, int power, bool
         return output;
     }
     else{
-        stepSize = (type == HORIZONTAL) ? (int)(width/pow(2,power)) : (int)(height/pow(2,power));
-        numSteps = (width/stepSize);
+        stepSize = (type == HORIZONTAL) ? (int)(w/pow(2,power)) : (int)(h/pow(2,power));
+        numSteps = (w/stepSize);
         for(int step = 1; step < numSteps; step+= 2){
             (type == HORIZONTAL) ? output.setROI(step*stepSize,0,stepSize,h) : output.setROI(0,step*stepSize,w,stepSize);
 
@@ -2090,12 +2091,15 @@ ofxCvGrayscaleImage Scan3dApp::computeGrayCodeImage(int w, int h, int power, boo
         return output;
     }
     else{
-        stepSize = (type == HORIZONTAL) ? (int)(width/pow(2,power-1)) : (int)(height/pow(2,power-1));
+        stepSize = (type == HORIZONTAL) ? (int)(w/pow(2,power-1)) : (int)(h/pow(2,power-1));
         stepOffset = stepSize/2;
-        numSteps = width/stepSize;
+        numSteps = w/stepSize;
+        //cout << "[w,h,stepSize,numSteps] : ["<< w << ", " << h << ", " << stepSize << ", " << numSteps << "]" <<endl;
+        
         for(int step = 0; step < numSteps; step+= 2){
+            //cout << "roi[x,w] : ["<< step*stepSize+stepOffset << ", " << stepSize << "]" << endl;
             (type == HORIZONTAL) ? output.setROI(step*stepSize+stepOffset,0,stepSize,h) : output.setROI(0,step*stepSize+stepOffset,w,stepSize);
-
+            //cout << "ROI now: ["<< output.getROI().x << ", " << output.getROI().y << ", " << output.getROI().width << ", " << output.getROI().height << "]" <<endl;
             output.set(255);
 
 
