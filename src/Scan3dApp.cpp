@@ -76,6 +76,7 @@ void Scan3dApp::setup(){
     exitFrame.allocate(width,height);
     exitFrame.set(0);
     diffFrame.allocate(width,height);
+    bincodeImg.allocate(width,height);
 
     
     shadowThreshImg.allocate(width,height);
@@ -158,76 +159,7 @@ void Scan3dApp::setup(){
     points3dSubstate = POINTS3D_PROCESSING;
 
 
-
-    ofPoint pts[3];
-
-    pts[0] = ofPoint(0,0,0);
-    pts[1] = ofPoint(0,1,0);
-    pts[2] = ofPoint(1,0,0);
-
-    ofVec3f expectedNormal = ofVec3f(0,0,1);
-    expectedNormal.normalize();
-    float expectedD = (expectedNormal.x*pts[0].x+expectedNormal.y*pts[0].y+expectedNormal.z*pts[0].z);
-
-    ofxPlane testPlane = ofxPlane(3,pts);
-    cout << endl;
-    cout << endl;
-    cout << "Test plane params [" << testPlane.normal.x << ", " << testPlane.normal.y << ", " << testPlane.normal.z << ", " << testPlane.d << "]" << endl;
-    cout << "Expected plane params [" << expectedNormal.x << ", " << expectedNormal.y << ", " << expectedNormal.z << ", " << expectedD << "]" << endl;
-
-    pts[0] = ofPoint(-1,2,0);
-    pts[1] = ofPoint(3,1,4);
-    pts[2] = ofPoint(0,-1,2);
-
-    expectedNormal = ofVec3f(2,-8,5);
-    expectedNormal.normalize();
-    expectedD = (expectedNormal.x*pts[0].x+expectedNormal.y*pts[0].y+expectedNormal.z*pts[0].z);
-    testPlane = ofxPlane(3,pts);
-    cout << endl;
-    cout << endl;
-    cout << "Test plane params [" << testPlane.normal.x << ", " << testPlane.normal.y << ", " << testPlane.normal.z << ", " << testPlane.d << "]" << endl;
-    cout << "Expected plane params [" << expectedNormal.x << ", " << expectedNormal.y << ", " << expectedNormal.z << ", " << expectedD << "]" << endl;
-    pts[0] = ofPoint(0,0,5);
-    pts[1] = ofPoint(1,0,5);
-    pts[2] = ofPoint(0,1,5);
-
-    expectedNormal = ofVec3f(0,0,1);
-    expectedNormal.normalize();
-    expectedD = (expectedNormal.x*pts[0].x+expectedNormal.y*pts[0].y+expectedNormal.z*pts[0].z);
-    testPlane = ofxPlane(3,pts);
-    cout << endl;
-    cout << endl;
-    cout << "Test plane params [" << testPlane.normal.x << ", " << testPlane.normal.y << ", " << testPlane.normal.z << ", " << testPlane.d << "]" << endl;
-    cout << "Expected plane params [" << expectedNormal.x << ", " << expectedNormal.y << ", " << expectedNormal.z << ", " << expectedD << "]" << endl;
-
-    pts[0] = ofPoint(1, -6, 0);
-    pts[1] = ofPoint(-4, 2, -2);
-    pts[2] = ofPoint(-2, 4, 1);
-
-    expectedNormal = ofVec3f(28,11,-26);
-    expectedNormal.normalize();
-    expectedD = (expectedNormal.x*pts[0].x+expectedNormal.y*pts[0].y+expectedNormal.z*pts[0].z);
-    testPlane = ofxPlane(3,pts);
-    cout << endl;
-    cout << endl;
-    cout << "Test plane params [" << testPlane.normal.x << ", " << testPlane.normal.y << ", " << testPlane.normal.z << ", " << testPlane.d << "]" << endl;
-    cout << "Expected plane params [" << expectedNormal.x << ", " << expectedNormal.y << ", " << expectedNormal.z << ", " << expectedD << "]" << endl;
-
-    pts[0] = ofPoint(-8,-3,7);
-    pts[1] = ofPoint(-8, 7, 4);
-    pts[2] = ofPoint(-2, -4,-8);
-
-    expectedNormal = ofVec3f(147,18,60);
-    expectedNormal.normalize();
-    expectedD = (expectedNormal.x*pts[0].x+expectedNormal.y*pts[0].y+expectedNormal.z*pts[0].z);
-    testPlane = ofxPlane(3,pts);
-    cout << endl;
-    cout << endl;
-    cout << "Test plane params [" << testPlane.normal.x << ", " << testPlane.normal.y << ", " << testPlane.normal.z << ", " << testPlane.d << "]" << endl;
-    cout << "Expected plane params [" << expectedNormal.x << ", " << expectedNormal.y << ", " << expectedNormal.z << ", " << expectedD << "]" << endl;
-
-    cout << endl;
-    cout << endl;
+    bincodeImg = computeBinCodeImage(width,height,log2(width)-1,true,HORIZONTAL);
     
 }
 
@@ -491,6 +423,7 @@ void Scan3dApp::clearSettings(){
 //--------------------------------------------------------------
 void Scan3dApp::update(){
     if(!paused){
+        
         switch(programState){
             case CAMERA_CALIBRATION:
                 camCalUpdate();
@@ -1398,6 +1331,9 @@ void Scan3dApp::draw(){
         case DIFF:
             diffFrame.draw(0, 0);
             break;
+        case BINCODE:
+            bincodeImg.draw(0, 0);
+            break;
 
     }
 
@@ -1749,6 +1685,9 @@ void Scan3dApp::keyPressed(int key){
             break;
         case 54:
             displayState = DIFF;
+            break;
+        case 55:
+            displayState = BINCODE;
             break;
         case 'q':
             std::exit(1);
@@ -2111,19 +2050,33 @@ void Scan3dApp::drawPointCloud() {
     
 }
 
-ofxCvGrayscaleImage Scan3dApp::computeBinCodeImage(int w, int h, int power, int type){
-
-    ofxCvGrayscaleImage bincodeImg;
-    bincodeImg.allocate(w,h);
-    if (power == 0)
-    {
-        bincodeImg.set(255);
-        return bincodeImg;
+ofxCvGrayscaleImage Scan3dApp::computeBinCodeImage(int w, int h, int power, bool inverse, int type){
+    int stepSize = 0;
+    int numSteps = 0;
+    ofxCvGrayscaleImage output;
+    output.allocate(w,h);
+    output.set(0);
+    if(power == 0){ //Skipping all the other nonsense
+        return output;
     }
-    
-    bincodeImg.set(0);
-    
-    return bincodeImg;
+    else{
+        stepSize = (type == HORIZONTAL) ? (int)(width/pow(2,power)) : (int)(height/pow(2,power));
+        numSteps = (width/stepSize);
+        for(int step = 0; step <= numSteps; step+= 2){
+            (type == HORIZONTAL) ? output.setROI(step*stepSize,0,stepSize,h) : output.setROI(0,step*stepSize,w,stepSize);
+
+            output.set(255);
+
+
+            output.resetROI();
+        }
+    }
+
+    if(inverse){
+        output.invert();
+    }
+
+    return output;
 }
 
 

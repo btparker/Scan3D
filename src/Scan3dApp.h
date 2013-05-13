@@ -20,7 +20,7 @@ enum CameraCalibration{CAM_CAL_PROCESSING, CAM_CAL_LOADING, CAM_CAL_WAITING};
 enum Points3d{POINTS3D_PROCESSING, POINTS3D_WAITING};
 
 
-enum { COLOR, GRAYSCALE, MINIMAGE, MAXIMAGE, SHADOWTHRESHIMAGE, DIFF, THRESH, EDGE, CORNER};
+enum { COLOR, GRAYSCALE, MINIMAGE, MAXIMAGE, SHADOWTHRESHIMAGE, DIFF, THRESH, EDGE, CORNER, BINCODE};
 enum { UP, DOWN, LEFT, RIGHT, VERTICAL, HORIZONTAL, BOTH, LOG};
 enum {VIDEO,IMAGE_SEQUENCE,NONE};
 
@@ -80,7 +80,7 @@ class Scan3dApp : public ofBaseApp{
 
 		void assertPoint(ofPoint pt);
 
-		ofxCvGrayscaleImage computeBinCodeImage(int w, int h, int power, int type);
+		ofxCvGrayscaleImage computeBinCodeImage(int w, int h, int power, bool inverse, int type);
 
 		int sobelHorizontal[3][3];
     	int sobelVertical[3][3];
@@ -124,6 +124,7 @@ class Scan3dApp : public ofBaseApp{
 	    ofxCvGrayscaleImage previousDiffFrame;
 	    ofxCvGrayscaleImage enterFrame;
 	    ofxCvGrayscaleImage exitFrame;
+	    ofxCvGrayscaleImage bincodeImg;
 
         ofImage bufferOfImage;
         ofxCvColorImage bufferOfxCvColorImage;
