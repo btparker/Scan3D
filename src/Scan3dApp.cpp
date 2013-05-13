@@ -110,20 +110,20 @@ void Scan3dApp::setup(){
 
     // Calibration Variables (Adapted for use from Learning OpenCV Computer Vision with the OpenCV Library)
     camCalFrame = 0;
-    boardXCount = 8;
-    boardYCount = 6;
-    numBoards = camCalDir.numFiles();
-    successes = 0;
-    boardPatternSize = boardXCount*boardYCount;
-    boardSquareSize = 30.0; // in mm
-    boardNumInternalCornersCV = cvSize( boardXCount, boardYCount);
+    camBoardXCount = 8;
+    camBoardYCount = 6;
+    camNumBoards = camCalDir.numFiles();
+    camSuccesses = 0;
+    camBoardPatternSize = camBoardXCount*camBoardYCount;
+    camBoardSquareSize = 30.0; // in mm
+    camBoardNumInternalCornersCV = cvSize( camBoardXCount, camBoardYCount);
 
-    image_points = cvCreateMat(numBoards*boardPatternSize,2,CV_32FC1);
-    object_points = cvCreateMat(numBoards*boardPatternSize,3,CV_32FC1);
-    point_counts = cvCreateMat(numBoards,1,CV_32SC1);
-    intrinsic_matrix = cvCreateMat(3,3,CV_32FC1);
-    distortion_coeffs = cvCreateMat(5,1,CV_32FC1);
-    corners = new CvPoint2D32f[ boardPatternSize ];
+    cam_image_points = cvCreateMat(camNumBoards*camBoardPatternSize,2,CV_32FC1);
+    cam_object_points = cvCreateMat(camNumBoards*camBoardPatternSize,3,CV_32FC1);
+    cam_point_counts = cvCreateMat(camNumBoards,1,CV_32SC1);
+    cam_intrinsic_matrix = cvCreateMat(3,3,CV_32FC1);
+    cam_distortion_coeffs = cvCreateMat(5,1,CV_32FC1);
+    cam_corners = new CvPoint2D32f[ camBoardPatternSize ];
 
     vertPlane = ofxPlane(ofPoint(0,0,0),ofVec3f(0,0,1));
     horizPlane = ofxPlane(ofPoint(0,0,0),ofVec3f(0,1,0));
@@ -202,11 +202,11 @@ void Scan3dApp::loadSettings(){
                     settings.pushTag("cam");
                         programState = CAMERA_CALIBRATION;
                         camCalDir = ofDirectory(settings.getValue("frames",""));
-                        intrinsicFilename = ofToDataPath("intrinsic.xml");
-                        distortionFilename = ofToDataPath("distortion.xml");
-                        if(settings.tagExists("intrinsicFile") && settings.tagExists("distortionFile")){
-                            intrinsicFilename = settings.getValue("intrinsicFile","intrinsic.xml");
-                            distortionFilename = settings.getValue("distortionFile","distortion.xml");
+                        camIntrinsicFilename = ofToDataPath("cam_intrinsic.xml");
+                        camDistortionFilename = ofToDataPath("cam_distortion.xml");
+                        if(settings.tagExists("camIntrinsicFile") && settings.tagExists("camDistortionFile")){
+                            camIntrinsicFilename = settings.getValue("camIntrinsicFile","cam_intrinsic.xml");
+                            camDistortionFilename = settings.getValue("camDistortionFile","cam_distortion.xml");
                             camCalSubstate = CAM_CAL_LOADING;
                         }
                         else{
@@ -295,8 +295,6 @@ void Scan3dApp::loadSettings(){
 	else {
 		cout << "No settings file to load." << endl;
 	}
-
-
 }
 
 //--------------------------------------------------------------
@@ -331,8 +329,8 @@ void Scan3dApp::saveSettings(){
                 settings.addTag("cam");
                 settings.pushTag("cam");
                     settings.setValue("frames",camCalDir.path());
-                    settings.setValue("intrinsicFile",intrinsicFilename);
-                    settings.setValue("distortionFile",distortionFilename);
+                    settings.setValue("camIntrinsicFile",camIntrinsicFilename);
+                    settings.setValue("camDistortionFile",camDistortionFilename);
                 settings.popTag(); //pop cam
             settings.popTag(); //pop calibration
             settings.addTag("misc");
@@ -454,13 +452,13 @@ void Scan3dApp::update(){
     }
 }
 void Scan3dApp::camCalUpdate(){
-    ofFile intrinsicFile;
-    ofFile distortionFile;
+    ofFile camIntrinsicFile;
+    ofFile camDistortionFile;
     messageBarText = "CAMERA CALIBRATION";
     switch(camCalSubstate){
         case CAM_CAL_PROCESSING:
             messageBarSubText = "Processing calibration frames";
-            if(camCalFrame < numBoards){
+            if(camCalFrame < camNumBoards){
                 bufferOfImage.loadImage(camCalDir.getPath(camCalFrame));
                 colorFrame.setFromPixels(bufferOfImage.getPixels(),width,height);
                 grayscaleFrame = colorFrame;
@@ -470,23 +468,23 @@ void Scan3dApp::camCalUpdate(){
                 IplImage* gray_image = grayscaleFrame.getCvImage();
 
                  
-                //Find chessboard corners:
+                //Find chessboard cam_corners:
                 int found = cvFindChessboardCorners(
                     image, 
-                    boardNumInternalCornersCV, 
-                    corners, 
-                    &corner_count,
+                    camBoardNumInternalCornersCV, 
+                    cam_corners, 
+                    &cam_corner_count,
                     CV_CALIB_CB_ADAPTIVE_THRESH | CV_CALIB_CB_FILTER_QUADS
                 );
 
                 
                
-                //Get Subpixel accuracy on those corners
+                //Get Subpixel accuracy on those cam_corners
 
                 cvFindCornerSubPix(
                     gray_image, 
-                    corners, 
-                    corner_count,
+                    cam_corners, 
+                    cam_corner_count,
                     cvSize(11,11),
                     cvSize(-1,-1), 
                     cvTermCriteria(
@@ -498,25 +496,25 @@ void Scan3dApp::camCalUpdate(){
                 //Draw it
                 cvDrawChessboardCorners(
                     image, 
-                    boardNumInternalCornersCV, 
-                    corners,
-                    corner_count, 
+                    camBoardNumInternalCornersCV, 
+                    cam_corners,
+                    cam_corner_count, 
                     found
                 );
                 
                
                 // If we got a good board, add it to our data
-                if( corner_count == boardPatternSize ) {
-                    int step = successes*boardPatternSize;
-                    for( int i=step, j=0; j<boardPatternSize; ++i,++j ) {
-                        CV_MAT_ELEM(*image_points, float,i,0) = corners[j].x;
-                        CV_MAT_ELEM(*image_points, float,i,1) = corners[j].y;
-                        CV_MAT_ELEM(*object_points,float,i,0) = j/boardXCount;
-                        CV_MAT_ELEM(*object_points,float,i,1) = j%boardXCount;
-                        CV_MAT_ELEM(*object_points,float,i,2) = 0.0f;
+                if( cam_corner_count == camBoardPatternSize ) {
+                    int step = camSuccesses*camBoardPatternSize;
+                    for( int i=step, j=0; j<camBoardPatternSize; ++i,++j ) {
+                        CV_MAT_ELEM(*cam_image_points, float,i,0) = cam_corners[j].x;
+                        CV_MAT_ELEM(*cam_image_points, float,i,1) = cam_corners[j].y;
+                        CV_MAT_ELEM(*cam_object_points,float,i,0) = j/camBoardXCount;
+                        CV_MAT_ELEM(*cam_object_points,float,i,1) = j%camBoardXCount;
+                        CV_MAT_ELEM(*cam_object_points,float,i,2) = 0.0f;
                     }
-                    CV_MAT_ELEM(*point_counts, int,successes,0) = boardPatternSize;
-                    successes++;
+                    CV_MAT_ELEM(*cam_point_counts, int,camSuccesses,0) = camBoardPatternSize;
+                    camSuccesses++;
                 }
 
                 
@@ -526,42 +524,42 @@ void Scan3dApp::camCalUpdate(){
             }
             else{
                 //ALLOCATE MATRICES ACCORDING TO HOW MANY CHESSBOARDS FOUND
-                CvMat* object_points2 = cvCreateMat(successes*boardPatternSize,3,CV_32FC1);
-                CvMat* image_points2 = cvCreateMat(successes*boardPatternSize,2,CV_32FC1);
-                CvMat* point_counts2 = cvCreateMat(successes,1,CV_32SC1);
+                CvMat* cam_object_points2 = cvCreateMat(camSuccesses*camBoardPatternSize,3,CV_32FC1);
+                CvMat* cam_image_points2 = cvCreateMat(camSuccesses*camBoardPatternSize,2,CV_32FC1);
+                CvMat* cam_point_counts2 = cvCreateMat(camSuccesses,1,CV_32SC1);
                 //TRANSFER THE POINTS INTO THE CORRECT SIZE MATRICES
                
-                for(int i = 0; i<successes*boardPatternSize; ++i) {
-                    CV_MAT_ELEM( *image_points2, float, i, 0) = CV_MAT_ELEM( *image_points, float, i, 0);
-                    CV_MAT_ELEM( *image_points2, float,i,1) = CV_MAT_ELEM( *image_points, float, i, 1);
-                    CV_MAT_ELEM(*object_points2, float, i, 0) = CV_MAT_ELEM( *object_points, float, i, 0) ;
-                    CV_MAT_ELEM( *object_points2, float, i, 1) = CV_MAT_ELEM( *object_points, float, i, 1) ;
-                    CV_MAT_ELEM( *object_points2, float, i, 2) = CV_MAT_ELEM( *object_points, float, i, 2) ;
+                for(int i = 0; i<camSuccesses*camBoardPatternSize; ++i) {
+                    CV_MAT_ELEM( *cam_image_points2, float, i, 0) = CV_MAT_ELEM( *cam_image_points, float, i, 0);
+                    CV_MAT_ELEM( *cam_image_points2, float,i,1) = CV_MAT_ELEM( *cam_image_points, float, i, 1);
+                    CV_MAT_ELEM(*cam_object_points2, float, i, 0) = CV_MAT_ELEM( *cam_object_points, float, i, 0) ;
+                    CV_MAT_ELEM( *cam_object_points2, float, i, 1) = CV_MAT_ELEM( *cam_object_points, float, i, 1) ;
+                    CV_MAT_ELEM( *cam_object_points2, float, i, 2) = CV_MAT_ELEM( *cam_object_points, float, i, 2) ;
                 }
-                for(int i=0; i<successes; ++i){ //These are all the same number
-                    CV_MAT_ELEM( *point_counts2, int, i, 0) = CV_MAT_ELEM( *point_counts, int, i, 0);
+                for(int i=0; i<camSuccesses; ++i){ //These are all the same number
+                    CV_MAT_ELEM( *cam_point_counts2, int, i, 0) = CV_MAT_ELEM( *cam_point_counts, int, i, 0);
                 }
-                cvReleaseMat(&object_points);
-                cvReleaseMat(&image_points);
-                cvReleaseMat(&point_counts);
-                // At this point we have all of the chessboard corners we need.
+                cvReleaseMat(&cam_object_points);
+                cvReleaseMat(&cam_image_points);
+                cvReleaseMat(&cam_point_counts);
+                // At this point we have all of the chessboard cam_corners we need.
                 // Initialize the intrinsic matrix such that the two focal
                 // lengths have a ratio of 1.0
                 //
-                CV_MAT_ELEM( *intrinsic_matrix, float, 0, 0 ) = 1.0f;
-                CV_MAT_ELEM( *intrinsic_matrix, float, 1, 1 ) = 1.0f;
-                //CV_MAT_ELEM( *intrinsic_matrix, float, 2, 2) = 1.0f;
+                CV_MAT_ELEM( *cam_intrinsic_matrix, float, 0, 0 ) = 1.0f;
+                CV_MAT_ELEM( *cam_intrinsic_matrix, float, 1, 1 ) = 1.0f;
+                //CV_MAT_ELEM( *cam_intrinsic_matrix, float, 2, 2) = 1.0f;
 
 
                 
                 //CALIBRATE THE CAMERA!
                 cvCalibrateCamera2(
-                    object_points2, 
-                    image_points2,
-                    point_counts2, 
+                    cam_object_points2, 
+                    cam_image_points2,
+                    cam_point_counts2, 
                     cvSize(width,height),
-                    intrinsic_matrix, 
-                    distortion_coeffs,
+                    cam_intrinsic_matrix, 
+                    cam_distortion_coeffs,
                     NULL, NULL,0 //CV_CALIB_FIX_ASPECT_RATIO
                 );
 
@@ -570,7 +568,7 @@ void Scan3dApp::camCalUpdate(){
                 printf("\n");
                 for(int r = 0; r < 3; r++){
                     for(int c = 0; c < 3; c++){
-                        CvScalar scal = cvGet2D(intrinsic_matrix,r,c); 
+                        CvScalar scal = cvGet2D(cam_intrinsic_matrix,r,c); 
                         printf( "%f\t", scal.val[0]); 
                     }
                     printf("\n");
@@ -578,26 +576,26 @@ void Scan3dApp::camCalUpdate(){
                 printf("\n");
                 printf("\n");
 
-                focal_length = ofVec2f(CV_MAT_ELEM( *intrinsic_matrix, float, 0, 0 ),CV_MAT_ELEM( *intrinsic_matrix, float, 1,1));
+                cam_focal_length = ofVec2f(CV_MAT_ELEM( *cam_intrinsic_matrix, float, 0, 0 ),CV_MAT_ELEM( *cam_intrinsic_matrix, float, 1,1));
                 cout << "Focal length not absurd ... ";
-                assert(focal_length.x > 0 && focal_length.y > 0);
-                cout << " passed! [" << focal_length << ']' << endl;
+                assert(cam_focal_length.x > 0 && cam_focal_length.y > 0);
+                cout << " passed! [" << cam_focal_length << ']' << endl;
 
-                principal_point = ofVec2f(CV_MAT_ELEM( *intrinsic_matrix, float, 0,2 ),CV_MAT_ELEM( *intrinsic_matrix, float, 1,2));
+                cam_principal_point = ofVec2f(CV_MAT_ELEM( *cam_intrinsic_matrix, float, 0,2 ),CV_MAT_ELEM( *cam_intrinsic_matrix, float, 1,2));
 
-                cout << "Principal point near image center not absurd   pp[" << principal_point << "], center[" << ofPoint(width/2,height/2) << "] ... ";
-                assert(abs(principal_point.x - width/2) < width/4 && abs(principal_point.y - height/2) < height/4);
+                cout << "Principal point near image center not absurd   pp[" << cam_principal_point << "], center[" << ofPoint(width/2,height/2) << "] ... ";
+                assert(abs(cam_principal_point.x - width/2) < width/4 && abs(cam_principal_point.y - height/2) < height/4);
                 cout << " passed!"<< endl;
                 
                 // SAVE THE INTRINSICS AND DISTORTIONS
-                cvSave(intrinsicFilename.c_str(),intrinsic_matrix);
-                cvSave(distortionFilename.c_str(),distortion_coeffs);
+                cvSave(camIntrinsicFilename.c_str(),cam_intrinsic_matrix);
+                cvSave(camDistortionFilename.c_str(),cam_distortion_coeffs);
 
                 mapx = cvCreateImage( cvGetSize(colorFrame.getCvImage()), IPL_DEPTH_32F, 1 );
                 mapy = cvCreateImage( cvGetSize(colorFrame.getCvImage()), IPL_DEPTH_32F, 1 );
                 cvInitUndistortMap(
-                    intrinsic_matrix,
-                    distortion_coeffs,
+                    cam_intrinsic_matrix,
+                    cam_distortion_coeffs,
                     mapx,
                     mapy
                 );
@@ -605,32 +603,35 @@ void Scan3dApp::camCalUpdate(){
                 
                 
                 programState = SETUP;
+
+                
+                cvReleaseMat(&cam_image_points);
             }
             break;
 
         case CAM_CAL_LOADING:
             messageBarSubText = "Loading calibration file";
             
-            intrinsicFile.open(intrinsicFilename, ofFile::ReadWrite, false);
-            if(!intrinsicFile.exists()){
+            camIntrinsicFile.open(camIntrinsicFilename, ofFile::ReadWrite, false);
+            if(!camIntrinsicFile.exists()){
                 camCalSubstate = CAM_CAL_PROCESSING;
                 update();
             }
 
-            distortionFile.open(distortionFilename, ofFile::ReadWrite, false);
-            if(!distortionFile.exists()){
+            camDistortionFile.open(camDistortionFilename, ofFile::ReadWrite, false);
+            if(!camDistortionFile.exists()){
                 camCalSubstate = CAM_CAL_PROCESSING;
                 update();
             }
-            intrinsic_matrix = (CvMat*)cvLoad(intrinsicFilename.c_str());
-            distortion_coeffs = (CvMat*)cvLoad(distortionFilename.c_str());
+            cam_intrinsic_matrix = (CvMat*)cvLoad(camIntrinsicFilename.c_str());
+            cam_distortion_coeffs = (CvMat*)cvLoad(camDistortionFilename.c_str());
             
             printf("\n");
             printf("Intrinsic Matrix: ");
             printf("\n");
             for(int r = 0; r < 3; r++){
                 for(int c = 0; c < 3; c++){
-                    CvScalar scal = cvGet2D(intrinsic_matrix,r,c); 
+                    CvScalar scal = cvGet2D(cam_intrinsic_matrix,r,c); 
                     printf( "%f\t", scal.val[0]); 
                 }
                 printf("\n");
@@ -638,21 +639,21 @@ void Scan3dApp::camCalUpdate(){
             printf("\n");
             printf("\n");
 
-            focal_length = ofVec2f(CV_MAT_ELEM( *intrinsic_matrix, float, 0, 0 ),CV_MAT_ELEM( *intrinsic_matrix, float, 1,1));
+            cam_focal_length = ofVec2f(CV_MAT_ELEM( *cam_intrinsic_matrix, float, 0, 0 ),CV_MAT_ELEM( *cam_intrinsic_matrix, float, 1,1));
             cout << "Focal length not absurd ... ";
-            assert(focal_length.x > 0 && focal_length.y > 0);
-            cout << " passed! [" << focal_length << ']' << endl;
+            assert(cam_focal_length.x > 0 && cam_focal_length.y > 0);
+            cout << " passed! [" << cam_focal_length << ']' << endl;
 
-            principal_point = ofVec2f(CV_MAT_ELEM( *intrinsic_matrix, float, 0,2 ),CV_MAT_ELEM( *intrinsic_matrix, float, 1,2));
-            cout << "Principal point near image center not absurd   pp[" << principal_point << "], center[" << ofPoint(width/2,height/2) << "] ... ";
-            assert(abs(principal_point.x - width/2) < width/4 && abs(principal_point.y - height/2) < height/4);
+            cam_principal_point = ofVec2f(CV_MAT_ELEM( *cam_intrinsic_matrix, float, 0,2 ),CV_MAT_ELEM( *cam_intrinsic_matrix, float, 1,2));
+            cout << "Principal point near image center not absurd   pp[" << cam_principal_point << "], center[" << ofPoint(width/2,height/2) << "] ... ";
+            assert(abs(cam_principal_point.x - width/2) < width/4 && abs(cam_principal_point.y - height/2) < height/4);
             cout << " passed!"<< endl;
 
             mapx = cvCreateImage( cvGetSize(colorFrame.getCvImage()), IPL_DEPTH_32F, 1 );
             mapy = cvCreateImage( cvGetSize(colorFrame.getCvImage()), IPL_DEPTH_32F, 1 );
             cvInitUndistortMap(
-                intrinsic_matrix,
-                distortion_coeffs,
+                cam_intrinsic_matrix,
+                cam_distortion_coeffs,
                 mapx,
                 mapy
             );
@@ -721,16 +722,16 @@ void Scan3dApp::setupUpdate(){
                 }
                 
             }
-            computeExtrinsicMatrix(objectPts,imagePts,intrinsic_matrix, distortion_coeffs);
+            computeExtrinsicMatrix(objectPts,imagePts,cam_intrinsic_matrix, cam_distortion_coeffs);
             // cout << "Points and such "<< endl;
             // cout << verticalPlaneObjectPts[0] << endl;
             // cout << verticalPlaneImagePts[0] << endl;
 
-            // pixelCoord = pt3DToPixel(intrinsic_matrix,extrinsic_matrix,verticalPlaneObjectPts[0]);
+            // pixelCoord = pt3DToPixel(cam_intrinsic_matrix,cam_extrinsic_matrix,verticalPlaneObjectPts[0]);
 
             // cout << pixelCoord << endl;
 
-            // ray = pixelToRay(intrinsic_matrix,extrinsic_matrix,verticalPlaneImagePts[2]);
+            // ray = camPixelToRay(cam_intrinsic_matrix,cam_extrinsic_matrix,verticalPlaneImagePts[2]);
 
             // intersectPt = ray.intersect(vertPlane);
 
@@ -741,7 +742,7 @@ void Scan3dApp::setupUpdate(){
             // cout << testPlane.normal << endl;
 
 
-            centerRay = pixelToRay(intrinsic_matrix,extrinsic_matrix, ofPoint(width/2,height/2));
+            centerRay = camPixelToRay(cam_intrinsic_matrix,cam_extrinsic_matrix, ofPoint(width/2,height/2));
             centerPt = (ofVec3f)centerRay.intersect(horizPlane);
             if(centerPt.z <=0){
                 centerPt = (ofVec3f)centerRay.intersect(vertPlane);
@@ -807,7 +808,7 @@ void Scan3dApp::setupUpdate(){
 
 ofPoint Scan3dApp::pt3DToPixel(const CvMat* intrinsicMat, const CvMat* extrinsicMat, ofPoint pt3D){
     CvMat* A = cvCreateMat( 3, 4, CV_32FC1 );
-    cvMatMul(intrinsic_matrix,extrinsic_matrix,A); //combining into one matrix
+    cvMatMul(cam_intrinsic_matrix,cam_extrinsic_matrix,A); //combining into one matrix
     CvMat* x = cvCreateMat( 4, 1, CV_32FC1 ); // homogenized point
     CV_MAT_ELEM(*x, float, 0,0) = pt3D.x;
     CV_MAT_ELEM(*x, float, 1,0) = pt3D.y;
@@ -1049,6 +1050,7 @@ void Scan3dApp::processingUpdate(){
     exitFrame.setFromPixels(exitFramePixels,width,height);
     temporalImg.setFromPixels(temporalImgPixels,width,height);
 
+
     diffFrame.threshold(0);
     diffFrame = computeGradientImage(diffFrame,RIGHT);
 
@@ -1070,7 +1072,7 @@ void Scan3dApp::processingUpdate(){
         
 
         ofPoint topLineTopPoint = yMinLine.intersection(topLine);
-        ray = pixelToRay(intrinsic_matrix,extrinsic_matrix,topLineTopPoint);
+        ray = camPixelToRay(cam_intrinsic_matrix,cam_extrinsic_matrix,topLineTopPoint);
         pt = ray.intersect(vertPlane);
         pts[0] = pt;
         planePts.addVertex((ofVec3f)pt);
@@ -1078,7 +1080,7 @@ void Scan3dApp::processingUpdate(){
         planePts.addColor(color);
 
         ofPoint lineCrossPoint = bottomLine.intersection(topLine);
-        ray = pixelToRay(intrinsic_matrix,extrinsic_matrix,lineCrossPoint);
+        ray = camPixelToRay(cam_intrinsic_matrix,cam_extrinsic_matrix,lineCrossPoint);
         pt = ray.intersect(vertPlane);
         if(pt.y <= FLT_EPSILON || pt.z <= FLT_EPSILON){
             pt = ray.intersect(horizPlane);
@@ -1088,7 +1090,7 @@ void Scan3dApp::processingUpdate(){
         planePts.addColor(color);
 
         ofPoint bottomLineBottomPoint = yMaxLine.intersection(bottomLine);
-        ray = pixelToRay(intrinsic_matrix,extrinsic_matrix,bottomLineBottomPoint);
+        ray = camPixelToRay(cam_intrinsic_matrix,cam_extrinsic_matrix,bottomLineBottomPoint);
         pt = ray.intersect(horizPlane);
         pts[2] = pt;
         planePts.addVertex((ofVec3f)pt);
@@ -1153,8 +1155,14 @@ void Scan3dApp::processingUpdate(){
         bufferOfxCvColorImage = shadowThreshImg;
         bufferOfImage.setFromPixels(bufferOfxCvColorImage.getPixelsRef());
         bufferOfImage.saveImage("output/shadowThreshImg.tiff");
+
+        // IplImage* img = temporalImg.getCvImage();
+        // IplImage* out = cvCreateImage( cvGetSize(img), IPL_DEPTH_8U, 3 );
         
-        
+        // cvSmooth( img, out, CV_GAUSSIAN, 5,5 );
+
+        // temporalImg = out;
+
     }
 
     diffFrame = bufferOfxCvGrayscaleImage;
@@ -1169,10 +1177,17 @@ void Scan3dApp::points3dUpdate(){
 
     unsigned char* temporalImgPixels = temporalImg.getPixels(); 
     unsigned char* colorImgPixels = colorFrame.getPixels(); 
+    // unsigned char* enterFramePixels = enterFrame.getPixels(); 
+
+    // float enterFramePixel = 0.0;
     switch(points3dSubstate){
             case POINTS3D_PROCESSING:
                 for(int r = 0; r < height; r++){
                     for(int c = 0; c < width; c++){ 
+
+                        // enterFramePixel = enterFramePixels[c+r*width];
+
+                        // printf("FramePixel %f\n",(enterFramePixel));
                         
                         ofColor temporalPixel; 
                         //cout << '[r,c] : [' << r << ',' << c << ']' << endl;         
@@ -1190,7 +1205,11 @@ void Scan3dApp::points3dUpdate(){
                             }
                             ofxPlane plane = getPlaneFromFrameIndex(computedFrameIndex);
                             if(plane.isInit()){
-                                ofxRay3d ray = pixelToRay(intrinsic_matrix,extrinsic_matrix, ofPoint(c,r));
+                                ofxRay3d ray = camPixelToRay(cam_intrinsic_matrix,cam_extrinsic_matrix, ofPoint(c,r));
+
+                                if(ray.dir.dot(plane.normal) < 0.1){ // too orthogonal, prone to high error
+                                    continue;
+                                }
                                 
                                 //ofPoint pt = (((int)computedFrameIndex) % 2) == 0 ? ray.intersect(vertPlane) : ray.intersect(horizPlane);
                                 ofPoint pt = ray.intersect(plane);
@@ -1217,7 +1236,7 @@ void Scan3dApp::points3dUpdate(){
                                     // not a valid point
                                 }
                                 else{
-                                    ofPoint pixelPt = pt3DToPixel(intrinsic_matrix,extrinsic_matrix,pt);
+                                    ofPoint pixelPt = pt3DToPixel(cam_intrinsic_matrix,cam_extrinsic_matrix,pt);
                                     points[numPoints] = pt;
                                     
                                     ofColor pixelColor = ofColor(   (int)colorImgPixels[3*((int)pixelPt.x+(int)pixelPt.y*width)],
@@ -1566,15 +1585,15 @@ void Scan3dApp::computeExtrinsicMatrix(ofPoint *objectPoints, ofPoint *imagePoin
 
     cvRodrigues2(rvec,rotmat);
 
-    extrinsic_matrix = cvCreateMat( 3, 4, CV_32FC1 );
+    cam_extrinsic_matrix = cvCreateMat( 3, 4, CV_32FC1 );
     for(int i = 0; i < 3; i++){
         for(int j = 0; j < 3; j++){
-            CV_MAT_ELEM(*extrinsic_matrix,float,i,j) = CV_MAT_ELEM(*rotmat,float,i,j);
+            CV_MAT_ELEM(*cam_extrinsic_matrix,float,i,j) = CV_MAT_ELEM(*rotmat,float,i,j);
         }  
     }
 
     for(int i = 0; i < 3; i++){
-        CV_MAT_ELEM(*extrinsic_matrix,float,i,3) = CV_MAT_ELEM(*tvec,float,i,0); 
+        CV_MAT_ELEM(*cam_extrinsic_matrix,float,i,3) = CV_MAT_ELEM(*tvec,float,i,0); 
     }
 
     CvMat* transRotmat = cvCreateMat( 3,3, CV_32FC1 );
@@ -1595,8 +1614,8 @@ void Scan3dApp::computeExtrinsicMatrix(ofPoint *objectPoints, ofPoint *imagePoin
 
     camPos = ofPoint(CV_MAT_ELEM(*camTransVec,float,0,0),CV_MAT_ELEM(*camTransVec,float,1,0),CV_MAT_ELEM(*camTransVec,float,2,0));
 
-    invIntrinsic = cvCreateMat( 3,3, CV_32FC1 );
-    cvInv(cameraMatrix,invIntrinsic);
+    camInvIntrinsic = cvCreateMat( 3,3, CV_32FC1 );
+    cvInv(cameraMatrix,camInvIntrinsic);
 
 
     cvReleaseMat(&tvec);
@@ -1604,7 +1623,7 @@ void Scan3dApp::computeExtrinsicMatrix(ofPoint *objectPoints, ofPoint *imagePoin
     cvReleaseMat(&rotmat);   
 }
 
-ofxRay3d Scan3dApp::pixelToRay(const CvMat* intrinsicMat, const CvMat* extrinsicMat, ofPoint imagePt){
+ofxRay3d Scan3dApp::camPixelToRay(const CvMat* intrinsicMat, const CvMat* extrinsicMat, ofPoint imagePt){
     CvMat* homoImgPt = cvCreateMat(3,1, CV_32FC1); 
 
     CV_MAT_ELEM(*homoImgPt,float,0,0) = imagePt.x;
@@ -1613,7 +1632,7 @@ ofxRay3d Scan3dApp::pixelToRay(const CvMat* intrinsicMat, const CvMat* extrinsic
 
     CvMat* resPt = cvCreateMat(3,1, CV_32FC1); 
 
-    cvMatMul(invIntrinsic,homoImgPt,resPt);
+    cvMatMul(camInvIntrinsic,homoImgPt,resPt);
 
     CvMat* rotResPt = cvCreateMat(3,1, CV_32FC1); 
 
@@ -1629,6 +1648,7 @@ ofxRay3d Scan3dApp::pixelToRay(const CvMat* intrinsicMat, const CvMat* extrinsic
 
     return ofxRay3d(camPos,dir);
 }
+
 
 // ofPoint Scan3dApp::rayPlaneIntersection(ofPoint planePt, ofVec3f planeNormal, ofPoint rayOrigin, ofVec3f rayDirection){
 
@@ -1947,8 +1967,8 @@ ofxLine3d Scan3dApp::projectLineOntoPlane(ofxLine2d line, ofxPlane plane, const 
     ofPoint pixPt0 = line.pt;
     ofPoint pixPt1 = line.pt+line.dir;
 
-    ofxRay3d ray0 = pixelToRay(intrinsicMat,extrinsicMat,pixPt0);
-    ofxRay3d ray1 = pixelToRay(intrinsicMat,extrinsicMat,pixPt1);
+    ofxRay3d ray0 = camPixelToRay(intrinsicMat,extrinsicMat,pixPt0);
+    ofxRay3d ray1 = camPixelToRay(intrinsicMat,extrinsicMat,pixPt1);
 
     ofPoint worldPt0 = ray0.intersect(plane);
     ofPoint worldPt1 = ray1.intersect(plane);

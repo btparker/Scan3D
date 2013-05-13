@@ -63,7 +63,7 @@ class Scan3dApp : public ofBaseApp{
 		ofPoint getNearestCorner(ofxCvGrayscaleImage img, int windowSize, int x, int y);
 		void computeExtrinsicMatrix(ofPoint *objectPoints, ofPoint *imagePoints, CvMat* cameraMatrix, CvMat* distCoeffs);
 		void convertOfPointsToCvMat(ofPoint *pts, int dimensions, int size, CvMat* output);
-		ofxRay3d pixelToRay(const CvMat* intrinsicMat, const CvMat* extrinsicMat, ofPoint imagePt);
+		ofxRay3d camPixelToRay(const CvMat* intrinsicMat, const CvMat* extrinsicMat, ofPoint imagePt);
 		ofPoint pt3DToPixel(const CvMat* intrinsicMat, const CvMat* extrinsicMat, ofPoint pt3D);
 		//ofPoint rayPlaneIntersection(ofPoint planePt, ofVec3f planeNormal, ofPoint rayOrigin, ofVec3f rayDirection);
 		ofxLine3d projectLineOntoPlane(ofxLine2d line, ofxPlane plane, const CvMat* intrinsicMat, const CvMat* extrinsicMat);
@@ -123,8 +123,8 @@ class Scan3dApp : public ofBaseApp{
 	    ofxCvColorImage temporalImg;
 	    ofxCvGrayscaleImage diffFrame;
 	    ofxCvGrayscaleImage previousDiffFrame;
-	    ofxCvGrayscaleImage enterFrame;
-	    ofxCvGrayscaleImage exitFrame;
+	    ofxCvFloatImage enterFrame;
+	    ofxCvFloatImage exitFrame;
 	    ofxCvGrayscaleImage bincodeImg;
 
         ofImage bufferOfImage;
@@ -171,31 +171,31 @@ class Scan3dApp : public ofBaseApp{
 		ofDirectory camCalDir;
 
 		unsigned int camCalFrame;
-		int boardXCount, boardYCount;
-		unsigned int numBoards;
-		int boardPatternSize;
-		float boardSquareSize; //in mm
-		int successes;
-		CvSize boardNumInternalCornersCV;
+		int camBoardXCount, camBoardYCount;
+		unsigned int camNumBoards;
+		int camBoardPatternSize;
+		float camBoardSquareSize; //in mm
+		int camSuccesses;
+		CvSize camBoardNumInternalCornersCV;
 
-		CvMat* image_points;
-		CvMat* object_points;
-		CvMat* point_counts;
-		CvMat* intrinsic_matrix;
-		CvMat* extrinsic_matrix;
-		CvMat* distortion_coeffs;
+		CvMat* cam_image_points;
+		CvMat* cam_object_points;
+		CvMat* cam_point_counts;
+		CvMat* cam_intrinsic_matrix;
+		CvMat* cam_extrinsic_matrix;
+		CvMat* cam_distortion_coeffs;
 
-		CvPoint2D32f* corners;
-		int corner_count;
+		CvPoint2D32f* cam_corners;
+		int cam_corner_count;
 		IplImage* mapx;
 		IplImage* mapy;
 
-		string intrinsicFilename;
-		string distortionFilename;
+		string camIntrinsicFilename;
+		string camDistortionFilename;
 
 		ofPoint camPos;
 		CvMat* camRotMat;
-		CvMat* invIntrinsic;
+		CvMat* camInvIntrinsic;
 
 		ofxPlane vertPlane;
 		ofxPlane horizPlane;
@@ -208,8 +208,8 @@ class Scan3dApp : public ofBaseApp{
 		bool bDrawPointCloud;
 		ofMesh planePts;
 
-		ofVec2f focal_length;
-		ofVec2f principal_point;
+		ofVec2f cam_focal_length;
+		ofVec2f cam_principal_point;
 
         
 };

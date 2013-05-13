@@ -7,8 +7,8 @@
         <calibration>
             <cam>
                 <frames>/home/btparker/Dropbox/Projects/Active/3D Scanning/oF/apps/myApps/Scan3D/bin/data/calib</frames>
-                <intrinsicFile>/home/btparker/Dropbox/Projects/Active/3D Scanning/oF/apps/myApps/Scan3D/bin/data/intrinsic.xml</intrinsicFile>
-                <distortionFile>/home/btparker/Dropbox/Projects/Active/3D Scanning/oF/apps/myApps/Scan3D/bin/data/distortion.xml</distortionFile>
+                <camIntrinsicFile>/home/btparker/Dropbox/Projects/Active/3D Scanning/oF/apps/myApps/Scan3D/bin/data/cam_intrinsic.xml</camIntrinsicFile>
+                <camDistortionFile>/home/btparker/Dropbox/Projects/Active/3D Scanning/oF/apps/myApps/Scan3D/bin/data/cam_distortion.xml</camDistortionFile>
             </cam>
         </calibration>
         <misc>
