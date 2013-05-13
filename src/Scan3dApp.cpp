@@ -2110,3 +2110,22 @@ void Scan3dApp::drawPointCloud() {
     }
     
 }
+
+ofxCvGrayscaleImage Scan3dApp::computeBinCodeImage(int w, int h, int power, int type){
+
+    ofxCvGrayscaleImage bincodeImg;
+    bincodeImg.allocate(w,h);
+    if (power == 0)
+    {
+        bincodeImg.set(255);
+        return bincodeImg;
+    }
+    
+    bincodeImg.set(0);
+    
+    return bincodeImg;
+}
+
+
+
+

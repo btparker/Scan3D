@@ -80,6 +80,8 @@ class Scan3dApp : public ofBaseApp{
 
 		void assertPoint(ofPoint pt);
 
+		ofxCvGrayscaleImage computeBinCodeImage(int w, int h, int power, int type);
+
 		int sobelHorizontal[3][3];
     	int sobelVertical[3][3];
 
