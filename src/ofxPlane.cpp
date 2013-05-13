@@ -199,7 +199,10 @@ ofxPlane ofxPlane::bestFitPlaneEquation(int n, ofPoint pts[]){
     */
 
 
-
+    cvReleaseMat(&A);
+    cvReleaseMat(&invA);
+    cvReleaseMat(&b);
+    cvReleaseMat(&x);
     return ofxPlane(pointRes,normalRes);
 
 }

@@ -1040,6 +1040,7 @@ void Scan3dApp::captureUpdate(){
 }
 
 void Scan3dApp::processingUpdate(){
+    ofPoint pts[3];
     grayscaleFrame = frames[frameIndex];
     diffFrame.set(0);
     bufferOfxCvGrayscaleImage.set(0);
@@ -1128,7 +1129,7 @@ void Scan3dApp::processingUpdate(){
         ofPoint pt;
         ofColor color;
 
-        ofPoint pts[3];
+        
 
         ofPoint topLineTopPoint = yMinLine.intersection(topLine);
         ray = pixelToRay(intrinsic_matrix,extrinsic_matrix,topLineTopPoint);
@@ -1166,14 +1167,11 @@ void Scan3dApp::processingUpdate(){
         // ofxPlane plane = ofxPlane(top3dLine, bottom3dLine);
         ofxPlane plane = ofxPlane(3,pts);
 
-        cout << "plane.normal: ";
-        cout << plane.normal << endl;
-
         pt = plane.getPointAt(0,0,200,200);//ray.intersect(negYnegZPlane);
         planePts.addVertex((ofVec3f)pt);
         planePts.addColor(color);
 
-       
+        
         planes[frameIndex] = plane;
     }
 
