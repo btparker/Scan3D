@@ -2,7 +2,7 @@
     <user>
         <input>
             <type>IMAGE_SEQUENCE</type>
-            <src>/home/btparker/Dropbox/Projects/Active/3D Scanning/oF/apps/myApps/Scan3D/bin/data/frog_scan</src>
+            <src>/home/btparker/Dropbox/Projects/Active/3D Scanning/oF/apps/myApps/Scan3D/bin/data/v1</src>
         </input>
         <calibration>
             <cam>
@@ -19,16 +19,16 @@
         <verticalPlane>
             <section>
                 <imagePts>
-                    <x>192.000000000</x>
-                    <y>86.000000000</y>
-                    <width>642.000000000</width>
-                    <height>231.000000000</height>
+                    <x>233.000000000</x>
+                    <y>12.000000000</y>
+                    <width>567.000000000</width>
+                    <height>194.000000000</height>
                 </imagePts>
             </section>
             <marker0>
                 <imagePt>
-                    <x>832.696044922</x>
-                    <y>352.480804443</y>
+                    <x>832.817077637</x>
+                    <y>352.494537354</y>
                 </imagePt>
                 <objectPt>
                     <x>558.799987793</x>
@@ -38,8 +38,8 @@
             </marker0>
             <marker1>
                 <imagePt>
-                    <x>845.715270996</x>
-                    <y>25.649944305</y>
+                    <x>845.717895508</x>
+                    <y>25.799987793</y>
                 </imagePt>
                 <objectPt>
                     <x>558.799987793</x>
@@ -49,8 +49,8 @@
             </marker1>
             <marker2>
                 <imagePt>
-                    <x>183.874740601</x>
-                    <y>39.650123596</y>
+                    <x>183.758514404</x>
+                    <y>40.001155853</y>
                 </imagePt>
                 <objectPt>
                     <x>0.000000000</x>
@@ -60,8 +60,8 @@
             </marker2>
             <marker3>
                 <imagePt>
-                    <x>217.217636108</x>
-                    <y>361.863311768</y>
+                    <x>217.199569702</x>
+                    <y>362.150970459</y>
                 </imagePt>
                 <objectPt>
                     <x>0.000000000</x>
@@ -73,16 +73,16 @@
         <horizontalPlane>
             <section>
                 <imagePts>
-                    <x>192.000000000</x>
-                    <y>654.000000000</y>
-                    <width>642.000000000</width>
-                    <height>110.000000000</height>
+                    <x>233.000000000</x>
+                    <y>662.000000000</y>
+                    <width>567.000000000</width>
+                    <height>90.000000000</height>
                 </imagePts>
             </section>
             <marker0>
                 <imagePt>
-                    <x>884.533386230</x>
-                    <y>697.390258789</y>
+                    <x>885.275756836</x>
+                    <y>697.350402832</y>
                 </imagePt>
                 <objectPt>
                     <x>558.799987793</x>
@@ -92,8 +92,8 @@
             </marker0>
             <marker1>
                 <imagePt>
-                    <x>839.599060059</x>
-                    <y>500.260101318</y>
+                    <x>840.020568848</x>
+                    <y>500.530517578</y>
                 </imagePt>
                 <objectPt>
                     <x>558.799987793</x>
@@ -103,8 +103,8 @@
             </marker1>
             <marker2>
                 <imagePt>
-                    <x>208.331512451</x>
-                    <y>507.368835449</y>
+                    <x>208.402923584</x>
+                    <y>507.867431641</y>
                 </imagePt>
                 <objectPt>
                     <x>0.000000000</x>
@@ -114,8 +114,8 @@
             </marker2>
             <marker3>
                 <imagePt>
-                    <x>144.480102539</x>
-                    <y>705.244995117</y>
+                    <x>144.975708008</x>
+                    <y>705.643859863</y>
                 </imagePt>
                 <objectPt>
                     <x>0.000000000</x>

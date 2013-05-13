@@ -159,7 +159,7 @@ void Scan3dApp::setup(){
     points3dSubstate = POINTS3D_PROCESSING;
 
 
-    bincodeImg = computeBinCodeImage(width,height,log2(width)-1,true,HORIZONTAL);
+    bincodeImg = computeGrayCodeImage(width,height,3,false,HORIZONTAL);
     
 }
 
@@ -2062,8 +2062,39 @@ ofxCvGrayscaleImage Scan3dApp::computeBinCodeImage(int w, int h, int power, bool
     else{
         stepSize = (type == HORIZONTAL) ? (int)(width/pow(2,power)) : (int)(height/pow(2,power));
         numSteps = (width/stepSize);
-        for(int step = 0; step <= numSteps; step+= 2){
+        for(int step = 1; step < numSteps; step+= 2){
             (type == HORIZONTAL) ? output.setROI(step*stepSize,0,stepSize,h) : output.setROI(0,step*stepSize,w,stepSize);
+
+            output.set(255);
+
+
+            output.resetROI();
+        }
+    }
+
+    if(inverse){
+        output.invert();
+    }
+
+    return output;
+}
+
+ofxCvGrayscaleImage Scan3dApp::computeGrayCodeImage(int w, int h, int power, bool inverse, int type){
+    int stepSize = 0;
+    int stepOffset = 0;
+    int numSteps = 0;
+    ofxCvGrayscaleImage output;
+    output.allocate(w,h);
+    output.set(0);
+    if(power == 0){ //Skipping all the other nonsense
+        return output;
+    }
+    else{
+        stepSize = (type == HORIZONTAL) ? (int)(width/pow(2,power-1)) : (int)(height/pow(2,power-1));
+        stepOffset = stepSize/2;
+        numSteps = width/stepSize;
+        for(int step = 0; step < numSteps; step+= 2){
+            (type == HORIZONTAL) ? output.setROI(step*stepSize+stepOffset,0,stepSize,h) : output.setROI(0,step*stepSize+stepOffset,w,stepSize);
 
             output.set(255);
 
