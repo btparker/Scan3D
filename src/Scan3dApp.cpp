@@ -1161,14 +1161,6 @@ void Scan3dApp::processingUpdate(){
         planePts.addColor(color);
 
         
-
-        
-        
-
-        // ofxLine3d top3dLine = projectLineOntoPlane(topLine,vertPlane,intrinsic_matrix,extrinsic_matrix);
-        // ofxLine3d bottom3dLine = projectLineOntoPlane(bottomLine,horizPlane,intrinsic_matrix,extrinsic_matrix);
-
-        // ofxPlane plane = ofxPlane(top3dLine, bottom3dLine);
         ofxPlane plane = ofxPlane(3,pts);
 
         
