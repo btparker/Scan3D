@@ -1043,11 +1043,9 @@ void Scan3dApp::processingUpdate(){
     grayscaleFrame = frames[frameIndex];
     diffFrame.set(0);
     bufferOfxCvGrayscaleImage.set(0);
-    bufferOfxCvGrayscaleImage = shadowThreshImg;
-    bufferOfxCvGrayscaleImage -= minImg;
-    bufferOfxCvGrayscaleImage.blurGaussian();
-    bufferOfxCvGrayscaleImage.threshold(20,true);
-    bufferOfxCvGrayscaleImage.dilate();
+    bufferOfxCvGrayscaleImage = frames[0];;
+    bufferOfxCvGrayscaleImage -= shadowThreshImg;
+    bufferOfxCvGrayscaleImage.threshold(25,true);
 
     diffFrame = grayscaleFrame;
     diffFrame -= shadowThreshImg;
@@ -1129,50 +1127,54 @@ void Scan3dApp::processingUpdate(){
         ofxRay3d ray;
         ofPoint pt;
         ofColor color;
-        ofxPlane testPlane;
+
+        ofPoint pts[3];
 
         ofPoint topLineTopPoint = yMinLine.intersection(topLine);
         ray = pixelToRay(intrinsic_matrix,extrinsic_matrix,topLineTopPoint);
         pt = ray.intersect(vertPlane);
+        pts[0] = pt;
         planePts.addVertex((ofVec3f)pt);
         color.setHsb(ofMap(frameIndex,0,numFrames,0.0,255.0),255,255);
         planePts.addColor(color);
 
-        ofPoint topLineCrossPoint = testLine.intersection(topLine);
-        ray = pixelToRay(intrinsic_matrix,extrinsic_matrix,topLineCrossPoint);
+        ofPoint lineCrossPoint = bottomLine.intersection(topLine);
+        ray = pixelToRay(intrinsic_matrix,extrinsic_matrix,lineCrossPoint);
         pt = ray.intersect(vertPlane);
+        if(pt.y <= FLT_EPSILON || pt.z <= FLT_EPSILON){
+            pt = ray.intersect(horizPlane);
+        }
+        pts[1] = pt;
         planePts.addVertex((ofVec3f)pt);
         planePts.addColor(color);
 
         ofPoint bottomLineBottomPoint = yMaxLine.intersection(bottomLine);
         ray = pixelToRay(intrinsic_matrix,extrinsic_matrix,bottomLineBottomPoint);
         pt = ray.intersect(horizPlane);
+        pts[2] = pt;
         planePts.addVertex((ofVec3f)pt);
         planePts.addColor(color);
-
-        ofPoint bottomLineCrossPoint = testLine.intersection(bottomLine);
-        ray = pixelToRay(intrinsic_matrix,extrinsic_matrix,bottomLineCrossPoint);
-        pt = ray.intersect(horizPlane);
-        planePts.addVertex((ofVec3f)pt);
-        planePts.addColor(color);
-
 
         
 
-        ofxLine3d top3dLine = projectLineOntoPlane(topLine,vertPlane,intrinsic_matrix,extrinsic_matrix);
-        ofxLine3d bottom3dLine = projectLineOntoPlane(bottomLine,horizPlane,intrinsic_matrix,extrinsic_matrix);
+        
+        
 
-        ofxPlane planeFromLines = ofxPlane(top3dLine, bottom3dLine);
+        // ofxLine3d top3dLine = projectLineOntoPlane(topLine,vertPlane,intrinsic_matrix,extrinsic_matrix);
+        // ofxLine3d bottom3dLine = projectLineOntoPlane(bottomLine,horizPlane,intrinsic_matrix,extrinsic_matrix);
 
-        cout << "planeFromLines.normal: ";
-        cout << planeFromLines.normal << endl;
+        // ofxPlane plane = ofxPlane(top3dLine, bottom3dLine);
+        ofxPlane plane = ofxPlane(3,pts);
 
-        pt = planeFromLines.getPointAt(0,0,200,200);//ray.intersect(negYnegZPlane);
+        cout << "plane.normal: ";
+        cout << plane.normal << endl;
+
+        pt = plane.getPointAt(0,0,200,200);//ray.intersect(negYnegZPlane);
         planePts.addVertex((ofVec3f)pt);
         planePts.addColor(color);
 
        
-        planes[frameIndex] = planeFromLines;
+        planes[frameIndex] = plane;
     }
 
     //cout << "topLine " << topLine.dir.x << " " << topLine.dir.y << endl;
