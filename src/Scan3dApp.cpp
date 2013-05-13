@@ -1046,7 +1046,11 @@ void Scan3dApp::processingUpdate(){
     bufferOfxCvGrayscaleImage.set(0);
     bufferOfxCvGrayscaleImage = frames[0];;
     bufferOfxCvGrayscaleImage -= shadowThreshImg;
-    bufferOfxCvGrayscaleImage.threshold(25,true);
+    bufferOfxCvGrayscaleImage.blurGaussian();
+    bufferOfxCvGrayscaleImage.blurGaussian();
+    bufferOfxCvGrayscaleImage.blurGaussian();
+    bufferOfxCvGrayscaleImage -= 5;
+    bufferOfxCvGrayscaleImage.threshold(30,true);
 
     diffFrame = grayscaleFrame;
     diffFrame -= shadowThreshImg;
@@ -1166,10 +1170,6 @@ void Scan3dApp::processingUpdate(){
 
         // ofxPlane plane = ofxPlane(top3dLine, bottom3dLine);
         ofxPlane plane = ofxPlane(3,pts);
-
-        pt = plane.getPointAt(0,0,200,200);//ray.intersect(negYnegZPlane);
-        planePts.addVertex((ofVec3f)pt);
-        planePts.addColor(color);
 
         
         planes[frameIndex] = plane;
@@ -2048,7 +2048,17 @@ bool Scan3dApp::isPlaneAtFrameIndex(float fi){
 }
 
 ofxPlane Scan3dApp::getPlaneFromFrameIndex(float fi){
-    return planes[round(fi)];
+    int discreteFrameIndex = (int)fi;
+    float interpolateFrameValue = fi - discreteFrameIndex;
+    if(discreteFrameIndex > 0){
+        ofxPlane plane0 = planes[discreteFrameIndex];
+        ofxPlane plane1 = planes[discreteFrameIndex+1];
+        return plane0.interpolate(plane1,interpolateFrameValue);
+
+    }
+    else{
+        return planes[0];
+    }
 }
 
 void Scan3dApp::drawPointCloud() {
