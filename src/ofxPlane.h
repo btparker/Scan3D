@@ -27,6 +27,11 @@ class ofxPlane{
 
 		ofPoint getPointAt(int i, float x, float y, float z);
 
+		ofxPlane bestFitPlaneEquation(int n, ofPoint pts[]);
+		ofxPlane(int n, ofPoint pts[]);
+
+		ofVec4f getEqtnParams();
+
 };
 
 #endif

@@ -156,12 +156,86 @@ void Scan3dApp::setup(){
     paused = false;
 
     points3dSubstate = POINTS3D_PROCESSING;
+
+
+
+    ofPoint pts[3];
+
+    pts[0] = ofPoint(0,0,0);
+    pts[1] = ofPoint(0,1,0);
+    pts[2] = ofPoint(1,0,0);
+
+    ofVec3f expectedNormal = ofVec3f(0,0,1);
+    expectedNormal.normalize();
+    float expectedD = (expectedNormal.x*pts[0].x+expectedNormal.y*pts[0].y+expectedNormal.z*pts[0].z);
+
+    ofxPlane testPlane = ofxPlane(3,pts);
+    cout << endl;
+    cout << endl;
+    cout << "Test plane params [" << testPlane.normal.x << ", " << testPlane.normal.y << ", " << testPlane.normal.z << ", " << testPlane.d << "]" << endl;
+    cout << "Expected plane params [" << expectedNormal.x << ", " << expectedNormal.y << ", " << expectedNormal.z << ", " << expectedD << "]" << endl;
+
+    pts[0] = ofPoint(-1,2,0);
+    pts[1] = ofPoint(3,1,4);
+    pts[2] = ofPoint(0,-1,2);
+
+    expectedNormal = ofVec3f(2,-8,5);
+    expectedNormal.normalize();
+    expectedD = (expectedNormal.x*pts[0].x+expectedNormal.y*pts[0].y+expectedNormal.z*pts[0].z);
+    testPlane = ofxPlane(3,pts);
+    cout << endl;
+    cout << endl;
+    cout << "Test plane params [" << testPlane.normal.x << ", " << testPlane.normal.y << ", " << testPlane.normal.z << ", " << testPlane.d << "]" << endl;
+    cout << "Expected plane params [" << expectedNormal.x << ", " << expectedNormal.y << ", " << expectedNormal.z << ", " << expectedD << "]" << endl;
+    pts[0] = ofPoint(0,0,5);
+    pts[1] = ofPoint(1,0,5);
+    pts[2] = ofPoint(0,1,5);
+
+    expectedNormal = ofVec3f(0,0,1);
+    expectedNormal.normalize();
+    expectedD = (expectedNormal.x*pts[0].x+expectedNormal.y*pts[0].y+expectedNormal.z*pts[0].z);
+    testPlane = ofxPlane(3,pts);
+    cout << endl;
+    cout << endl;
+    cout << "Test plane params [" << testPlane.normal.x << ", " << testPlane.normal.y << ", " << testPlane.normal.z << ", " << testPlane.d << "]" << endl;
+    cout << "Expected plane params [" << expectedNormal.x << ", " << expectedNormal.y << ", " << expectedNormal.z << ", " << expectedD << "]" << endl;
+
+    pts[0] = ofPoint(1, -6, 0);
+    pts[1] = ofPoint(-4, 2, -2);
+    pts[2] = ofPoint(-2, 4, 1);
+
+    expectedNormal = ofVec3f(28,11,-26);
+    expectedNormal.normalize();
+    expectedD = (expectedNormal.x*pts[0].x+expectedNormal.y*pts[0].y+expectedNormal.z*pts[0].z);
+    testPlane = ofxPlane(3,pts);
+    cout << endl;
+    cout << endl;
+    cout << "Test plane params [" << testPlane.normal.x << ", " << testPlane.normal.y << ", " << testPlane.normal.z << ", " << testPlane.d << "]" << endl;
+    cout << "Expected plane params [" << expectedNormal.x << ", " << expectedNormal.y << ", " << expectedNormal.z << ", " << expectedD << "]" << endl;
+
+    pts[0] = ofPoint(-8,-3,7);
+    pts[1] = ofPoint(-8, 7, 4);
+    pts[2] = ofPoint(-2, -4,-8);
+
+    expectedNormal = ofVec3f(147,18,60);
+    expectedNormal.normalize();
+    expectedD = (expectedNormal.x*pts[0].x+expectedNormal.y*pts[0].y+expectedNormal.z*pts[0].z);
+    testPlane = ofxPlane(3,pts);
+    cout << endl;
+    cout << endl;
+    cout << "Test plane params [" << testPlane.normal.x << ", " << testPlane.normal.y << ", " << testPlane.normal.z << ", " << testPlane.d << "]" << endl;
+    cout << "Expected plane params [" << expectedNormal.x << ", " << expectedNormal.y << ", " << expectedNormal.z << ", " << expectedD << "]" << endl;
+
+    cout << endl;
+    cout << endl;
+    
 }
 
 void Scan3dApp::assertPoint(ofPoint pt){
     assert(pt.y >= -FLT_EPSILON); // Bloody negative y coordinates
     assert(pt.z >= -FLT_EPSILON); // At least the z coordinate is normal
 }
+
 
 //--------------------------------------------------------------
 /**
@@ -969,10 +1043,16 @@ void Scan3dApp::processingUpdate(){
     grayscaleFrame = frames[frameIndex];
     diffFrame.set(0);
     bufferOfxCvGrayscaleImage.set(0);
+    bufferOfxCvGrayscaleImage = shadowThreshImg;
+    bufferOfxCvGrayscaleImage -= minImg;
+    bufferOfxCvGrayscaleImage.blurGaussian();
+    bufferOfxCvGrayscaleImage.threshold(20,true);
+    bufferOfxCvGrayscaleImage.dilate();
 
     diffFrame = grayscaleFrame;
     diffFrame -= shadowThreshImg;
-    diffFrame.blurGaussian();
+    diffFrame -= bufferOfxCvGrayscaleImage;
+    //diffFrame.blurGaussian();
     
 
 
@@ -988,7 +1068,7 @@ void Scan3dApp::processingUpdate(){
     
     for(int r = 0; r < height; r++){
         for(int c = 0; c < width; c++){
-            if(diffFramePixels[c+r*width] <= zeroCrossingThreshold){ // pixel in shadow
+            if(diffFramePixels[c+r*width] == 0){ // pixel in shadow
                 if(enterFramePixels[c+r*width] == 0){ // Never been in shadow before
                     float framePixelMapping = ofMap(frameIndex,0,numFrames,0.0,255.0);
 
@@ -1055,7 +1135,7 @@ void Scan3dApp::processingUpdate(){
         ray = pixelToRay(intrinsic_matrix,extrinsic_matrix,topLineTopPoint);
         pt = ray.intersect(vertPlane);
         planePts.addVertex((ofVec3f)pt);
-        color.setHsb(ofMap(frameIndex-1,0,numFrames,0.0,255.0),255,255);
+        color.setHsb(ofMap(frameIndex,0,numFrames,0.0,255.0),255,255);
         planePts.addColor(color);
 
         ofPoint topLineCrossPoint = testLine.intersection(topLine);
@@ -1084,11 +1164,12 @@ void Scan3dApp::processingUpdate(){
 
         ofxPlane planeFromLines = ofxPlane(top3dLine, bottom3dLine);
 
-      
+        cout << "planeFromLines.normal: ";
+        cout << planeFromLines.normal << endl;
 
-        pt = ray.intersect(negYnegZPlane);
+        pt = planeFromLines.getPointAt(0,0,200,200);//ray.intersect(negYnegZPlane);
         planePts.addVertex((ofVec3f)pt);
-        planePts.addColor(ofColor(255,255,255));
+        planePts.addColor(color);
 
        
         planes[frameIndex] = planeFromLines;
@@ -1150,7 +1231,7 @@ void Scan3dApp::processingUpdate(){
         
     }
 
-    //diffFrame = enterFrame;
+    diffFrame = bufferOfxCvGrayscaleImage;
 }
 
 void Scan3dApp::points3dUpdate(){
@@ -1167,8 +1248,6 @@ void Scan3dApp::points3dUpdate(){
                 for(int r = 0; r < height; r++){
                     for(int c = 0; c < width; c++){ 
                         
-
-
                         ofColor temporalPixel; 
                         //cout << '[r,c] : [' << r << ',' << c << ']' << endl;         
                         temporalPixel[0] = temporalImgPixels[3*(c+r*width)];
@@ -1949,9 +2028,10 @@ ofxLine3d Scan3dApp::projectLineOntoPlane(ofxLine2d line, ofxPlane plane, const 
 
 float Scan3dApp::getFrameFromColor(ofColor color){
     float hue = color.getHue();
-    float computedFrameIndex = ofMap(hue,0,255,0,numFrames);
+    float computedFrameIndex = ofMap(hue,0.0,255.0,0,numFrames);
     return computedFrameIndex;
 }
+
 
 bool Scan3dApp::isPlaneAtFrameIndex(float fi){
     int discreteFrameIndex = (int)fi;
