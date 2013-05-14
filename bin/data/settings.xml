@@ -2,70 +2,123 @@
     <user>
         <input>
             <type>IMAGE_SEQUENCE</type>
-            <src>/home/btparker/Dropbox/Projects/Active/3D Scanning/oF/apps/myApps/Scan3D/bin/data/v1</src>
+            <src>/home/btparker/Dropbox/Projects/Active/3D Scanning/oF/apps/myApps/Scan3D/bin/data/man_bin</src>
         </input>
         <calibration>
             <cam>
-                <frames>/home/btparker/Dropbox/Projects/Active/3D Scanning/oF/apps/myApps/Scan3D/bin/data/calib</frames>
-                <camIntrinsicFile>/home/btparker/Dropbox/Projects/Active/3D Scanning/oF/apps/myApps/Scan3D/bin/data/cam_intrinsic.xml</camIntrinsicFile>
-                <camDistortionFile>/home/btparker/Dropbox/Projects/Active/3D Scanning/oF/apps/myApps/Scan3D/bin/data/cam_distortion.xml</camDistortionFile>
+                <frames>/home/btparker/Dropbox/Projects/Active/3D Scanning/oF/apps/myApps/Scan3D/bin/data/calib_2/cam</frames>
+                <camBoardXCount>8</camBoardXCount>
+                <camBoardYCount>7</camBoardYCount>
+                <camBoardSquareSize>38.000000000</camBoardSquareSize>
             </cam>
+            <proj>
+                <frames>/home/btparker/Dropbox/Projects/Active/3D Scanning/oF/apps/myApps/Scan3D/bin/data/calib_2/proj</frames>
+                <projBoardXCount>7</projBoardXCount>
+                <projBoardYCount>7</projBoardYCount>
+                <projBoardSquareSize>38.000000000</projBoardSquareSize>
+                <plane>
+                    <marker0>
+                        <imagePt>
+                            <x>809.759277344</x>
+                            <y>628.574157715</y>
+                        </imagePt>
+                        <objectPt>
+                            <x>0.000000000</x>
+                            <y>0.000000000</y>
+                            <z>0.000000000</z>
+                        </objectPt>
+                    </marker0>
+                    <marker1>
+                        <imagePt>
+                            <x>792.791381836</x>
+                            <y>106.667121887</y>
+                        </imagePt>
+                        <objectPt>
+                            <x>0.000000000</x>
+                            <y>0.000000000</y>
+                            <z>0.000000000</z>
+                        </objectPt>
+                    </marker1>
+                    <marker2>
+                        <imagePt>
+                            <x>147.425430298</x>
+                            <y>100.407241821</y>
+                        </imagePt>
+                        <objectPt>
+                            <x>0.000000000</x>
+                            <y>0.000000000</y>
+                            <z>0.000000000</z>
+                        </objectPt>
+                    </marker2>
+                    <marker3>
+                        <imagePt>
+                            <x>168.181274414</x>
+                            <y>675.835083008</y>
+                        </imagePt>
+                        <objectPt>
+                            <x>0.000000000</x>
+                            <y>0.000000000</y>
+                            <z>0.000000000</z>
+                        </objectPt>
+                    </marker3>
+                </plane>
+            </proj>
         </calibration>
         <misc>
-            <zeroCrossingThreshold>20</zeroCrossingThreshold>
+            <zeroCrossingThreshold>0</zeroCrossingThreshold>
         </misc>
     </user>
     <scene>
         <verticalPlane>
             <section>
                 <imagePts>
-                    <x>233.000000000</x>
-                    <y>12.000000000</y>
-                    <width>567.000000000</width>
-                    <height>194.000000000</height>
+                    <x>170.000000000</x>
+                    <y>31.000000000</y>
+                    <width>581.000000000</width>
+                    <height>266.000000000</height>
                 </imagePts>
             </section>
             <marker0>
                 <imagePt>
-                    <x>832.817077637</x>
-                    <y>352.494537354</y>
+                    <x>128.000000000</x>
+                    <y>395.000000000</y>
                 </imagePt>
                 <objectPt>
-                    <x>558.799987793</x>
-                    <y>90.000000000</y>
+                    <x>0.000000000</x>
+                    <y>0.000000000</y>
                     <z>0.000000000</z>
                 </objectPt>
             </marker0>
             <marker1>
                 <imagePt>
-                    <x>845.717895508</x>
-                    <y>25.799987793</y>
+                    <x>105.571891785</x>
+                    <y>173.254806519</y>
                 </imagePt>
                 <objectPt>
-                    <x>558.799987793</x>
-                    <y>393.212493896</y>
+                    <x>0.000000000</x>
+                    <y>0.000000000</y>
                     <z>0.000000000</z>
                 </objectPt>
             </marker1>
             <marker2>
                 <imagePt>
-                    <x>183.758514404</x>
-                    <y>40.001155853</y>
+                    <x>825.433837891</x>
+                    <y>159.677856445</y>
                 </imagePt>
                 <objectPt>
                     <x>0.000000000</x>
-                    <y>393.212493896</y>
+                    <y>0.000000000</y>
                     <z>0.000000000</z>
                 </objectPt>
             </marker2>
             <marker3>
                 <imagePt>
-                    <x>217.199569702</x>
-                    <y>362.150970459</y>
+                    <x>836.000000000</x>
+                    <y>351.000000000</y>
                 </imagePt>
                 <objectPt>
                     <x>0.000000000</x>
-                    <y>90.000000000</y>
+                    <y>0.000000000</y>
                     <z>0.000000000</z>
                 </objectPt>
             </marker3>
@@ -73,54 +126,54 @@
         <horizontalPlane>
             <section>
                 <imagePts>
-                    <x>233.000000000</x>
-                    <y>662.000000000</y>
-                    <width>567.000000000</width>
-                    <height>90.000000000</height>
+                    <x>170.000000000</x>
+                    <y>562.000000000</y>
+                    <width>581.000000000</width>
+                    <height>168.000000000</height>
                 </imagePts>
             </section>
             <marker0>
                 <imagePt>
-                    <x>885.275756836</x>
-                    <y>697.350402832</y>
+                    <x>818.790222168</x>
+                    <y>638.580200195</y>
                 </imagePt>
                 <objectPt>
-                    <x>558.799987793</x>
+                    <x>0.000000000</x>
                     <y>0.000000000</y>
-                    <z>393.212493896</z>
+                    <z>0.000000000</z>
                 </objectPt>
             </marker0>
             <marker1>
                 <imagePt>
-                    <x>840.020568848</x>
-                    <y>500.530517578</y>
+                    <x>773.000000000</x>
+                    <y>501.000000000</y>
                 </imagePt>
                 <objectPt>
-                    <x>558.799987793</x>
+                    <x>0.000000000</x>
                     <y>0.000000000</y>
-                    <z>90.000000000</z>
+                    <z>0.000000000</z>
                 </objectPt>
             </marker1>
             <marker2>
                 <imagePt>
-                    <x>208.402923584</x>
-                    <y>507.867431641</y>
+                    <x>60.251960754</x>
+                    <y>525.119750977</y>
                 </imagePt>
                 <objectPt>
                     <x>0.000000000</x>
                     <y>0.000000000</y>
-                    <z>90.000000000</z>
+                    <z>0.000000000</z>
                 </objectPt>
             </marker2>
             <marker3>
                 <imagePt>
-                    <x>144.975708008</x>
-                    <y>705.643859863</y>
+                    <x>52.751487732</x>
+                    <y>694.398803711</y>
                 </imagePt>
                 <objectPt>
                     <x>0.000000000</x>
                     <y>0.000000000</y>
-                    <z>393.212493896</z>
+                    <z>0.000000000</z>
                 </objectPt>
             </marker3>
         </horizontalPlane>

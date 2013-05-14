@@ -21,7 +21,7 @@ void Scan3dApp::setup(){
 
 
     ofBackground(0);
-    ofSetWindowTitle("3D SCAN ALL THE THINGS");
+    ofSetWindowTitle("3D SCAN");
     ofSetFrameRate(30);
 
 
@@ -37,8 +37,6 @@ void Scan3dApp::setup(){
     messageBarSubTextFont.loadFont("HelveticaNeueLTStd-Lt.otf", 15);
 
     //Setting and notifying states
-    //programState = SETUP;
-    cout << "SETUP STATE (press SPACE to continue)" << endl;
     displayState = COLOR;
 
     switch(inputType){
@@ -58,6 +56,8 @@ void Scan3dApp::setup(){
             height = bufferOfImage.getHeight();
             break;
     }
+
+    printf("[width,height] = [%d,%d]\n",width,height);
 
     //bufferOfImage.allocate(width,height,OF_IMAGE_COLOR);
     bufferOfxCvColorImage.allocate(width,height);
@@ -82,6 +82,7 @@ void Scan3dApp::setup(){
     shadowThreshImg.allocate(width,height);
 
     ofSetWindowShape(width,height+messageBarHeight);
+
 
     frameBufferSize = 100;
     frames.resize(frameBufferSize,bufferOfxCvGrayscaleImage);
@@ -108,14 +109,11 @@ void Scan3dApp::setup(){
     
     frameIndex = 0;
 
-    // Calibration Variables (Adapted for use from Learning OpenCV Computer Vision with the OpenCV Library)
+    // Camera Calibration Variables (Adapted for use from Learning OpenCV Computer Vision with the OpenCV Library)
     camCalFrame = 0;
-    camBoardXCount = 8;
-    camBoardYCount = 6;
     camNumBoards = camCalDir.numFiles();
     camSuccesses = 0;
     camBoardPatternSize = camBoardXCount*camBoardYCount;
-    camBoardSquareSize = 30.0; // in mm
     camBoardNumInternalCornersCV = cvSize( camBoardXCount, camBoardYCount);
 
     cam_image_points = cvCreateMat(camNumBoards*camBoardPatternSize,2,CV_32FC1);
@@ -125,28 +123,23 @@ void Scan3dApp::setup(){
     cam_distortion_coeffs = cvCreateMat(5,1,CV_32FC1);
     cam_corners = new CvPoint2D32f[ camBoardPatternSize ];
 
-    vertPlane = ofxPlane(ofPoint(0,0,0),ofVec3f(0,0,1));
-    horizPlane = ofxPlane(ofPoint(0,0,0),ofVec3f(0,1,0));
+    // Projector Calibration Variables (Adapted for use from Learning OpenCV Computer Vision with the OpenCV Library)
+    projCalFrame = 0;
+    projNumBoards = projCalDir.numFiles();
+    projSuccesses = 0;
+    projBoardPatternSize = projBoardXCount*projBoardYCount;
+    projBoardNumInternalCornersCV = cvSize( projBoardXCount, projBoardYCount);
 
-    cout << "Asserting vertical plane direction is in proper coordinates ... ";
-    assertPoint(vertPlane.pt+vertPlane.normal);
-    cout << "passed!" << endl;
-    cout << "Asserting horizontal plane direction is in proper coordinates ... ";
-    assertPoint(horizPlane.pt+horizPlane.normal);
-    cout << "passed!" << endl;
+    proj_image_points = cvCreateMat(projNumBoards*projBoardPatternSize,2,CV_32FC1);
+    proj_object_points = cvCreateMat(projNumBoards*projBoardPatternSize,3,CV_32FC1);
+    proj_point_counts = cvCreateMat(projNumBoards,1,CV_32SC1);
+    proj_intrinsic_matrix = cvCreateMat(3,3,CV_32FC1);
+    proj_distortion_coeffs = cvCreateMat(5,1,CV_32FC1);
+    proj_corners = new CvPoint2D32f[ projBoardPatternSize ];
 
-    cout << "Asserting input vertical plane points are in proper coordinates ... ";
-    assertPoint(verticalPlaneObjectPts[0]);
-    assertPoint(verticalPlaneObjectPts[1]);
-    assertPoint(verticalPlaneObjectPts[2]);
-    assertPoint(verticalPlaneObjectPts[3]);
-    cout << "passed!" << endl;
-    cout << "Asserting input horizontal plane points are in proper coordinates ... ";
-    assertPoint(horizontalPlaneObjectPts[0]);
-    assertPoint(horizontalPlaneObjectPts[1]);
-    assertPoint(horizontalPlaneObjectPts[2]);
-    assertPoint(horizontalPlaneObjectPts[3]);
-    cout << "passed!" << endl;
+
+    // Scene planes
+
 
     ofVec3f tN = ofVec3f(0,1,1);
     tN.normalize();
@@ -161,7 +154,6 @@ void Scan3dApp::setup(){
     bincodeImg.allocate(640,480);
 
     bincodeImg = computeGrayCodeImage(640,480,3,false,HORIZONTAL);
-    
 }
 
 void Scan3dApp::assertPoint(ofPoint pt){
@@ -204,6 +196,9 @@ void Scan3dApp::loadSettings(){
                         camCalDir = ofDirectory(settings.getValue("frames",""));
                         camIntrinsicFilename = ofToDataPath("cam_intrinsic.xml");
                         camDistortionFilename = ofToDataPath("cam_distortion.xml");
+                        camBoardXCount = settings.getValue("camBoardXCount",8);
+                        camBoardYCount = settings.getValue("camBoardYCount",6);
+                        camBoardSquareSize = settings.getValue("camBoardSquareSize",30.0); //in mm 
                         if(settings.tagExists("camIntrinsicFile") && settings.tagExists("camDistortionFile")){
                             camIntrinsicFilename = settings.getValue("camIntrinsicFile","cam_intrinsic.xml");
                             camDistortionFilename = settings.getValue("camDistortionFile","cam_distortion.xml");
@@ -217,78 +212,47 @@ void Scan3dApp::loadSettings(){
                             camCalSubstate = CAM_CAL_PROCESSING;  
                         }
                     settings.popTag();
+                    settings.pushTag("proj");
+                        projCalDir = ofDirectory(settings.getValue("frames",""));
+                        projIntrinsicFilename = ofToDataPath("proj_intrinsic.xml");
+                        projDistortionFilename = ofToDataPath("proj_distortion.xml");
+                        projBoardXCount = settings.getValue("projBoardXCount",7);
+                        projBoardYCount = settings.getValue("projBoardYCount",7);
+                        projBoardSquareSize = settings.getValue("projBoardSquareSize",30.0); //in mm 
+
+
+                        if(settings.tagExists("projIntrinsicFile") && settings.tagExists("projDistortionFile")){
+                            projIntrinsicFilename = settings.getValue("projIntrinsicFile","proj_intrinsic.xml");
+                            projDistortionFilename = settings.getValue("projDistortionFile","proj_distortion.xml");
+                            projCalSubstate = PROJ_CAL_LOADING;
+                        }
+                        else{
+                            projCalDir.listDir();
+                            projCalDir.sort();
+
+                            cout << "   Using projector calibration sequence folder: " << projCalDir.path() << endl;
+                            projCalSubstate = PROJ_CAL_PROCESSING;  
+                        }
+                        settings.pushTag("plane");
+                            for(int i = 0; i < 4; i++){
+                                settings.pushTag("marker"+ofToString(i));
+                                    settings.pushTag("imagePt");
+                                        projPlaneImagePts[i].set(settings.getValue("x",0.0),settings.getValue("y",0.0));
+                                        cout << "      image:[" << projPlaneImagePts[i].x << ", " << projPlaneImagePts[i].y << "]";
+                                    settings.popTag(); // pop pts
+                                    settings.pushTag("objectPt");
+                                        projPlaneObjectPts[i].set(settings.getValue("x",0.0),settings.getValue("y",0.0),settings.getValue("z",0.0));
+                                        cout << "      object:[" << projPlaneObjectPts[i].x << ", " << projPlaneObjectPts[i].y << ", " << projPlaneObjectPts[i].z << "]" << endl;
+                                    settings.popTag(); // pop pts
+                                settings.popTag(); // pop markers
+                            }
+                        settings.popTag();
+                    settings.popTag();
                 settings.popTag();
                 settings.pushTag("misc");
                     zeroCrossingThreshold = settings.getValue("zeroCrossingThreshold", 0);
                 settings.popTag();// pop misc
             settings.popTag(); // pop user
-			settings.pushTag("scene");
-
-				settings.pushTag("verticalPlane");
-
-                    settings.pushTag("section");
-                        if(settings.tagExists("imagePts")){
-                            setupSubState = BOTTOM_SECTION;
-                        }
-                        settings.pushTag("imagePts");
-                            topSection.x = settings.getValue("x",0.0);
-                            topSection.y = settings.getValue("y",0.0);
-                            topSection.width = settings.getValue("width",0.0);
-                            topSection.height = settings.getValue("height",0.0);
-                        settings.popTag();
-                    settings.popTag(); // pop section
-					cout << "   Loaded vertical plane points as [BR,TR,TL,BL]:"<< endl;
-
-                    for(int i = 0; i < 4; i++){
-                        settings.pushTag("marker"+ofToString(i));
-                            if(settings.tagExists("imagePt")){
-                                setupSubState = B_TL;
-                            }
-        					settings.pushTag("imagePt");
-        					    verticalPlaneImagePts[i].set(settings.getValue("x",0.0),settings.getValue("y",0.0));
-        					    cout << "      image:[" << verticalPlaneImagePts[i].x << ", " << verticalPlaneImagePts[i].y << "]";
-        					settings.popTag(); // pop pts
-                            settings.pushTag("objectPt");
-                                verticalPlaneObjectPts[i].set(settings.getValue("x",0.0),settings.getValue("y",0.0),settings.getValue("z",0.0));
-                                cout << "      object:[" << verticalPlaneObjectPts[i].x << ", " << verticalPlaneObjectPts[i].y << ", " << verticalPlaneObjectPts[i].z << "]" << endl;
-                            settings.popTag(); // pop pts
-                        settings.popTag(); // pop markers
-                    }
-				settings.popTag(); // pop verticalPlane
-
-				settings.pushTag("horizontalPlane");
-                    settings.pushTag("section");
-                        if(settings.tagExists("imagePts")){
-                            setupSubState = T_TL;
-                        }
-                        settings.pushTag("imagePts");
-                            bottomSection.x = settings.getValue("x",0.0);
-                            bottomSection.y = settings.getValue("y",0.0);
-                            bottomSection.width = settings.getValue("width",0.0);
-                            bottomSection.height = settings.getValue("height",0.0);
-                        settings.popTag();
-                    settings.popTag(); // pop section
-					cout << "   Loaded horizontal plane points as [BR,TR,TL,BL]:"<< endl;
-                    for(int i = 0; i < 4; i++){
-    					settings.pushTag("marker"+ofToString(i));
-                            if(settings.tagExists("imagePt")){
-                                setupSubState = ESTIMATE_CAMERA;
-                            }
-                            settings.pushTag("imagePt");
-        					    horizontalPlaneImagePts[i].set(settings.getValue("x",0.0),settings.getValue("y",0.0));
-        					    cout << "      image:[" << horizontalPlaneImagePts[i].x << ", " << horizontalPlaneImagePts[i].y << "]";
-    					    settings.popTag(); // pop pts
-                            settings.pushTag("objectPt");
-                                 horizontalPlaneObjectPts[i].set(settings.getValue("x",0.0),settings.getValue("y",0.0),settings.getValue("z",0.0));
-                                 cout << "      object:[" << horizontalPlaneObjectPts[i].x << ", " << horizontalPlaneObjectPts[i].y << ", " << horizontalPlaneObjectPts[i].z << "]" << endl;
-                            settings.popTag(); // pop pts
-                        settings.popTag(); // pop markers
-                    }   
-                settings.popTag(); // pop verticalPlane
-
-			settings.popTag(); // pop scene
-            
-
 		settings.popTag(); // pop settings
 		cout << "** Done Loading Settings **" << endl;
 	}
@@ -329,9 +293,39 @@ void Scan3dApp::saveSettings(){
                 settings.addTag("cam");
                 settings.pushTag("cam");
                     settings.setValue("frames",camCalDir.path());
+                    settings.setValue("camBoardXCount",camBoardXCount);
+                    settings.setValue("camBoardYCount",camBoardYCount);
+                    settings.setValue("camBoardSquareSize",camBoardSquareSize);
                     settings.setValue("camIntrinsicFile",camIntrinsicFilename);
                     settings.setValue("camDistortionFile",camDistortionFilename);
                 settings.popTag(); //pop cam
+                settings.addTag("proj");
+                settings.pushTag("proj");
+                    settings.setValue("frames",projCalDir.path());
+                    settings.setValue("projBoardXCount",projBoardXCount);
+                    settings.setValue("projBoardYCount",projBoardYCount);
+                    settings.setValue("projBoardSquareSize",projBoardSquareSize);
+                    settings.setValue("projIntrinsicFile",projIntrinsicFilename);
+                    settings.setValue("projDistortionFile",projDistortionFilename);
+                    settings.addTag("plane");
+                    settings.pushTag("plane");
+                        cout << "   Setting projector plane points as [BR,TR,TL,BL]:"<< endl;
+                        for(int i = 0; i < 4; i++){
+                            settings.addTag("marker"+ofToString(i));
+                            settings.pushTag("marker"+ofToString(i));
+                                settings.addTag("imagePt");
+                                settings.pushTag("imagePt");
+                                    settings.setValue("x",projPlaneImagePts[i].x); settings.setValue("y",projPlaneImagePts[i].y);
+                                    cout << "      [" << projPlaneImagePts[i].x << ", " << projPlaneImagePts[i].y << "]" << endl;
+                                settings.popTag(); // pop imagePt
+                                settings.addTag("objectPt");
+                                settings.pushTag("objectPt");
+                                    settings.setValue("x",projPlaneObjectPts[i].x); settings.setValue("y",projPlaneObjectPts[i].y); settings.setValue("z",projPlaneObjectPts[i].z);
+                                settings.popTag(); // pop objectPt
+                            settings.popTag(); // pop markers
+                        }
+                    settings.popTag(); // pop plane
+                settings.popTag(); //pop proj
             settings.popTag(); //pop calibration
             settings.addTag("misc");
             settings.pushTag("misc");
@@ -339,84 +333,19 @@ void Scan3dApp::saveSettings(){
             settings.popTag();// pop misc
         settings.popTag(); //pop user
         settings.addTag("scene");
-        settings.pushTag("scene");
-            settings.addTag("verticalPlane");
-            settings.pushTag("verticalPlane");
-                settings.addTag("section");
-                settings.pushTag("section");
-                    settings.addTag("imagePts");
-                    settings.pushTag("imagePts");
-                        settings.setValue("x",topSection.x);
-                        settings.setValue("y",topSection.y);
-                        settings.setValue("width",topSection.width);
-                        settings.setValue("height",topSection.height);
-                    settings.popTag(); // pop imagePts
-                settings.popTag(); // pop section
-                cout << "   Setting vertical plane points as [BR,TR,TL,BL]:"<< endl;
-                for(int i = 0; i < 4; i++){
-                    settings.addTag("marker"+ofToString(i));
-                    settings.pushTag("marker"+ofToString(i));
-                        settings.addTag("imagePt");
-                        settings.pushTag("imagePt");
-                            settings.setValue("x",verticalPlaneImagePts[i].x); settings.setValue("y",verticalPlaneImagePts[i].y);
-                            cout << "      [" << verticalPlaneImagePts[i].x << ", " << verticalPlaneImagePts[i].y << "]" << endl;
-                        settings.popTag(); // pop imagePt
-                        settings.addTag("objectPt");
-                        settings.pushTag("objectPt");
-                            settings.setValue("x",verticalPlaneObjectPts[i].x); settings.setValue("y",verticalPlaneObjectPts[i].y); settings.setValue("z",verticalPlaneObjectPts[i].z);
-                        settings.popTag(); // pop objectPt
-                    settings.popTag(); // pop markers
-                }
-            settings.popTag(); // pop verticalPlane
-
-            settings.addTag("horizontalPlane");
-            settings.pushTag("horizontalPlane");
-                settings.addTag("section");
-                settings.pushTag("section");
-                    settings.addTag("imagePts");
-                    settings.pushTag("imagePts");
-                        settings.setValue("x",bottomSection.x);
-                        settings.setValue("y",bottomSection.y);
-                        settings.setValue("width",bottomSection.width);
-                        settings.setValue("height",bottomSection.height);
-                    settings.popTag(); // pop imagePts
-                settings.popTag(); // pop section
-                cout << "   Setting horizontal plane points as [BR,TR,TL,BL]:"<< endl;
-                for(int i = 0; i < 4; i++){
-                    settings.addTag("marker"+ofToString(i));
-                    settings.pushTag("marker"+ofToString(i));
-                        settings.addTag("imagePt");
-                        settings.pushTag("imagePt");
-                            settings.setValue("x",horizontalPlaneImagePts[i].x); settings.setValue("y",horizontalPlaneImagePts[i].y);
-                            cout << "      [" << horizontalPlaneImagePts[i].x << ", " << horizontalPlaneImagePts[i].y << "]" << endl;
-                        settings.popTag(); // pop imagePt
-                        settings.addTag("objectPt");
-                        settings.pushTag("objectPt");
-                            settings.setValue("x",horizontalPlaneObjectPts[i].x); settings.setValue("y",horizontalPlaneObjectPts[i].y); settings.setValue("z",horizontalPlaneObjectPts[i].z);
-                        settings.popTag(); // pop objectPt
-                    settings.popTag(); // pop marker
-                }
-            settings.popTag(); // pop horizontalPlane
-
-        settings.popTag(); // pop scene
-
     settings.popTag(); // pop settings
     settings.saveFile("settings.xml");
     cout << "** Done Saving Settings **" << endl;
 }
 
 //--------------------------------------------------------------
-void Scan3dApp::clearSettings(){
-   topSection.set(0,0,0,0);
-   bottomSection.set(0,0,0,0);
+void Scan3dApp::clearProjectorSettings(){
    for(int i = 0; i < 4; i++){
-        verticalPlaneImagePts[i].x = 0;
-        verticalPlaneImagePts[i].y = 0;
-        horizontalPlaneImagePts[i].x = 0;
-        horizontalPlaneImagePts[i].y = 0;
+        projPlaneImagePts[i].x = 0;
+        projPlaneImagePts[i].y = 0;
     }
-    programState = SETUP;
-    setupSubState = TOP_SECTION;
+    programState = PROJECTOR_CALIBRATION;
+    projCalSubstate = BR;
 }
 
 //--------------------------------------------------------------
@@ -427,11 +356,9 @@ void Scan3dApp::update(){
             case CAMERA_CALIBRATION:
                 camCalUpdate();
                 break;
-            case SETUP:
-            {
-                setupUpdate();
+            case PROJECTOR_CALIBRATION:
+                projCalUpdate();
                 break;
-            }
             case CAPTURE:
             {
                 captureUpdate();
@@ -451,13 +378,14 @@ void Scan3dApp::update(){
         }
     }
 }
+
 void Scan3dApp::camCalUpdate(){
     ofFile camIntrinsicFile;
     ofFile camDistortionFile;
     messageBarText = "CAMERA CALIBRATION";
     switch(camCalSubstate){
         case CAM_CAL_PROCESSING:
-            messageBarSubText = "Processing calibration frames";
+            messageBarSubText = "Processing camera calibration frames";
             if(camCalFrame < camNumBoards){
                 bufferOfImage.loadImage(camCalDir.getPath(camCalFrame));
                 colorFrame.setFromPixels(bufferOfImage.getPixels(),width,height);
@@ -591,18 +519,18 @@ void Scan3dApp::camCalUpdate(){
                 cvSave(camIntrinsicFilename.c_str(),cam_intrinsic_matrix);
                 cvSave(camDistortionFilename.c_str(),cam_distortion_coeffs);
 
-                mapx = cvCreateImage( cvGetSize(colorFrame.getCvImage()), IPL_DEPTH_32F, 1 );
-                mapy = cvCreateImage( cvGetSize(colorFrame.getCvImage()), IPL_DEPTH_32F, 1 );
+                cammapx = cvCreateImage( cvGetSize(colorFrame.getCvImage()), IPL_DEPTH_32F, 1 );
+                cammapy = cvCreateImage( cvGetSize(colorFrame.getCvImage()), IPL_DEPTH_32F, 1 );
                 cvInitUndistortMap(
                     cam_intrinsic_matrix,
                     cam_distortion_coeffs,
-                    mapx,
-                    mapy
+                    cammapx,
+                    cammapy
                 );
 
                 
                 
-                programState = SETUP;
+                programState = PROJECTOR_CALIBRATION;
 
                 
                 cvReleaseMat(&cam_image_points);
@@ -610,7 +538,7 @@ void Scan3dApp::camCalUpdate(){
             break;
 
         case CAM_CAL_LOADING:
-            messageBarSubText = "Loading calibration file";
+            messageBarSubText = "Loading camera calibration files";
             
             camIntrinsicFile.open(camIntrinsicFilename, ofFile::ReadWrite, false);
             if(!camIntrinsicFile.exists()){
@@ -649,161 +577,253 @@ void Scan3dApp::camCalUpdate(){
             assert(abs(cam_principal_point.x - width/2) < width/4 && abs(cam_principal_point.y - height/2) < height/4);
             cout << " passed!"<< endl;
 
-            mapx = cvCreateImage( cvGetSize(colorFrame.getCvImage()), IPL_DEPTH_32F, 1 );
-            mapy = cvCreateImage( cvGetSize(colorFrame.getCvImage()), IPL_DEPTH_32F, 1 );
+            cammapx = cvCreateImage( cvGetSize(colorFrame.getCvImage()), IPL_DEPTH_32F, 1 );
+            cammapy = cvCreateImage( cvGetSize(colorFrame.getCvImage()), IPL_DEPTH_32F, 1 );
             cvInitUndistortMap(
                 cam_intrinsic_matrix,
                 cam_distortion_coeffs,
-                mapx,
-                mapy
+                cammapx,
+                cammapy
             );
 
-            programState = SETUP;
+            programState = PROJECTOR_CALIBRATION;
             break;
     }
     
     
 }
 
-void Scan3dApp::setupUpdate(){
-    ofPoint imagePts[8];
-    ofPoint objectPts[8];
-    ofPoint pixelCoord;
-    ofxRay3d ray;
-    ofxPlane testPlane;
-    ofPoint intersectPt;
-    ofxRay3d centerRay;
-    ofVec3f centerPt;
-    ofNode lookat;
-    ofVec3f easyCamPos;
+void Scan3dApp::projCalUpdate(){
+    ofFile projIntrinsicFile;
+    ofFile projDistortionFile;
+    messageBarText = "PROJECTOR CALIBRATION";
 
-    messageBarText = "SETUP";
-    switch(setupSubState){
-        case TOP_SECTION:
-            messageBarSubText = "Click and drag top rectangle (or press c to clear settings and start over)";
-            break;
-        case  BOTTOM_SECTION:
-            messageBarSubText = "Click and drag bottom rectangle (or press c to clear settings and start over)";
-            break;
-        case  T_TL:
-            messageBarSubText = "Click to select the top left marker on the vertical backplane (or press c to clear settings and start over)";
-            break;
-        case  T_TR:
-            messageBarSubText = "Click to select the top right marker on the vertical backplane (or press c to clear settings and start over)";
-            break;
-        case  T_BR:
-            messageBarSubText = "Click to select the bottom right marker on the vertical backplane (or press c to clear settings and start over)";
-            break;
-        case  T_BL:
-            messageBarSubText = "Click to select the bottom left marker on the vertical backplane (or press c to clear settings and start over)";
-            break;
-        case  B_TL:
-            messageBarSubText = "Click to select the top left marker on the horizontal backplane (or press c to clear settings and start over)";
-            break;
-        case  B_TR:
-            messageBarSubText = "Click to select the top right marker on the horizontal backplane (or press c to clear settings and start over)";
-            break;
-        case  B_BL:
-            messageBarSubText = "Click to select the bottom left marker on the horizontal backplane (or press c to clear settings and start over)";
-            break;
-        case B_BR:
-            messageBarSubText = "Click to select the bottom right marker on the horizontal backplane (or press c to clear settings and start over)";
-            break;
-        case ESTIMATE_CAMERA:
-            messageBarSubText = "Estimating camera pose...";
-            for(int i = 0; i < 8; i++){
-                if(i < 4){
-                    imagePts[i] = verticalPlaneImagePts[i];
-                    objectPts[i] = verticalPlaneObjectPts[i];
-                }
-                else{
-                    imagePts[i] = horizontalPlaneImagePts[i-4];
-                    objectPts[i] = horizontalPlaneObjectPts[i-4];
-                }
-                
-            }
-            computeExtrinsicMatrix(objectPts,imagePts,cam_intrinsic_matrix, cam_distortion_coeffs);
-            // cout << "Points and such "<< endl;
-            // cout << verticalPlaneObjectPts[0] << endl;
-            // cout << verticalPlaneImagePts[0] << endl;
-
-            // pixelCoord = pt3DToPixel(cam_intrinsic_matrix,cam_extrinsic_matrix,verticalPlaneObjectPts[0]);
-
-            // cout << pixelCoord << endl;
-
-            // ray = camPixelToRay(cam_intrinsic_matrix,cam_extrinsic_matrix,verticalPlaneImagePts[2]);
-
-            // intersectPt = ray.intersect(vertPlane);
-
-            // cout << intersectPt << endl;
-
-            // testPlane = vertPlane.interpolate(ofxPlane(ofPoint(0,0,0),ofVec3f(0,-1,0)), 0.5);
-
-            // cout << testPlane.normal << endl;
-
-
-            centerRay = camPixelToRay(cam_intrinsic_matrix,cam_extrinsic_matrix, ofPoint(width/2,height/2));
-            centerPt = (ofVec3f)centerRay.intersect(horizPlane);
-            if(centerPt.z <=0){
-                centerPt = (ofVec3f)centerRay.intersect(vertPlane);
-            }
-            
-            lookat.setPosition(centerPt);
-
-            easyCamPos = (ofVec3f)camPos;
-            
-
-            easyCam.setPosition(easyCamPos);
-            easyCam.setTarget(lookat);
-            //easyCam.setScale(1,1,-1);
-
-            cout << "camPos:" << endl;
-            cout << camPos << endl;
-
-            cout << "easyCam pos:" << endl;
-            cout << easyCam.getPosition() << endl;
-
-            cout << "easyCam distance:" << endl;
-            cout << easyCam.getDistance() << endl;
-
-            cout << "easyCam target position:" << endl;
-            cout << easyCam.getTarget().getPosition() << endl;
-            setupSubState = WAITING;
-            break;
-        case WAITING:
-            
-            
-            messageBarSubText = "Press spacebar to commence scanning (or press c to clear settings and start over)";                    
-            break;
-    }
-
-    /*
-        Initializing with first frame (either from image sequence or video)
-    */
     
-    switch(inputType){
-        case VIDEO:
-            vid.firstFrame();
-            vid.update();
-            if(vid.isFrameNew()){
-                colorFrame.setFromPixels(vid.getPixels(),vid.getWidth(),vid.getHeight());
-                colorFrame.flagImageChanged();
-                colorFrame.updateTexture();
-                colorFrame.remap(mapx,mapy);
-
+    switch(projCalSubstate){
+        case PROJ_CAL_PROCESSING:
+            messageBarSubText = "Processing projector calibration frames";
+            if(projCalFrame < projNumBoards){
+                bufferOfImage.loadImage(projCalDir.getPath(projCalFrame));
+                colorFrame.setFromPixels(bufferOfImage.getPixels(),width,height);
                 grayscaleFrame = colorFrame;
+
+                //(Adapted for use from Learning OpenCV Computer Vision with the OpenCV Library)
+                IplImage* image = colorFrame.getCvImage();
+                IplImage* gray_image = grayscaleFrame.getCvImage();
+
+                 
+                //Find chessboard proj_corners:
+                int found = cvFindChessboardCorners(
+                    image, 
+                    projBoardNumInternalCornersCV, 
+                    proj_corners, 
+                    &proj_corner_count,
+                    CV_CALIB_CB_ADAPTIVE_THRESH | CV_CALIB_CB_FILTER_QUADS
+                );
+
+                
+               
+                //Get Subpixel accuracy on those proj_corners
+
+                cvFindCornerSubPix(
+                    gray_image, 
+                    proj_corners, 
+                    proj_corner_count,
+                    cvSize(11,11),
+                    cvSize(-1,-1), 
+                    cvTermCriteria(
+                        CV_TERMCRIT_EPS+CV_TERMCRIT_ITER, 
+                        30, 
+                        0.1 
+                    )
+                );
+                //Draw it
+                cvDrawChessboardCorners(
+                    image, 
+                    projBoardNumInternalCornersCV, 
+                    proj_corners,
+                    proj_corner_count, 
+                    found
+                );
+                
+               
+                // If we got a good board, add it to our data
+                if( proj_corner_count == projBoardPatternSize ) {
+                    int step = projSuccesses*projBoardPatternSize;
+                    for( int i=step, j=0; j<projBoardPatternSize; ++i,++j ) {
+                        CV_MAT_ELEM(*proj_image_points, float,i,0) = proj_corners[j].x;
+                        CV_MAT_ELEM(*proj_image_points, float,i,1) = proj_corners[j].y;
+                        CV_MAT_ELEM(*proj_object_points,float,i,0) = j/projBoardXCount;
+                        CV_MAT_ELEM(*proj_object_points,float,i,1) = j%projBoardXCount;
+                        CV_MAT_ELEM(*proj_object_points,float,i,2) = 0.0f;
+                    }
+                    CV_MAT_ELEM(*proj_point_counts, int,projSuccesses,0) = projBoardPatternSize;
+                    projSuccesses++;
+                }
+
+                
+
+                colorFrame = image;
+                projCalFrame++;
+            }
+            else{
+                //ALLOCATE MATRICES ACCORDING TO HOW MANY CHESSBOARDS FOUND
+                CvMat* proj_object_points2 = cvCreateMat(projSuccesses*projBoardPatternSize,3,CV_32FC1);
+                CvMat* proj_image_points2 = cvCreateMat(projSuccesses*projBoardPatternSize,2,CV_32FC1);
+                CvMat* proj_point_counts2 = cvCreateMat(projSuccesses,1,CV_32SC1);
+                //TRANSFER THE POINTS INTO THE CORRECT SIZE MATRICES
+               
+                for(int i = 0; i<projSuccesses*projBoardPatternSize; ++i) {
+                    CV_MAT_ELEM( *proj_image_points2, float, i, 0) = CV_MAT_ELEM( *proj_image_points, float, i, 0);
+                    CV_MAT_ELEM( *proj_image_points2, float,i,1) = CV_MAT_ELEM( *proj_image_points, float, i, 1);
+                    CV_MAT_ELEM(*proj_object_points2, float, i, 0) = CV_MAT_ELEM( *proj_object_points, float, i, 0) ;
+                    CV_MAT_ELEM( *proj_object_points2, float, i, 1) = CV_MAT_ELEM( *proj_object_points, float, i, 1) ;
+                    CV_MAT_ELEM( *proj_object_points2, float, i, 2) = CV_MAT_ELEM( *proj_object_points, float, i, 2) ;
+                }
+                for(int i=0; i<projSuccesses; ++i){ //These are all the same number
+                    CV_MAT_ELEM( *proj_point_counts2, int, i, 0) = CV_MAT_ELEM( *proj_point_counts, int, i, 0);
+                }
+                cvReleaseMat(&proj_object_points);
+                cvReleaseMat(&proj_image_points);
+                cvReleaseMat(&proj_point_counts);
+                // At this point we have all of the chessboard proj_corners we need.
+                // Initialize the intrinsic matrix such that the two focal
+                // lengths have a ratio of 1.0
+                //
+                CV_MAT_ELEM( *proj_intrinsic_matrix, float, 0, 0 ) = 1.0f;
+                CV_MAT_ELEM( *proj_intrinsic_matrix, float, 1, 1 ) = 1.0f;
+                //CV_MAT_ELEM( *proj_intrinsic_matrix, float, 2, 2) = 1.0f;
+
+
+                
+                //CALIBRATE THE CAMERA!
+                cvCalibrateCamera2(
+                    proj_object_points2, 
+                    proj_image_points2,
+                    proj_point_counts2, 
+                    cvSize(width,height),
+                    proj_intrinsic_matrix, 
+                    proj_distortion_coeffs,
+                    NULL, NULL,0 //CV_CALIB_FIX_ASPECT_RATIO
+                );
+
+                printf("\n");
+                printf("Intrinsic Matrix: ");
+                printf("\n");
+                for(int r = 0; r < 3; r++){
+                    for(int c = 0; c < 3; c++){
+                        CvScalar scal = cvGet2D(proj_intrinsic_matrix,r,c); 
+                        printf( "%f\t", scal.val[0]); 
+                    }
+                    printf("\n");
+                }
+                printf("\n");
+                printf("\n");
+
+                proj_focal_length = ofVec2f(CV_MAT_ELEM( *proj_intrinsic_matrix, float, 0, 0 ),CV_MAT_ELEM( *proj_intrinsic_matrix, float, 1,1));
+                cout << "Focal length not absurd ... ";
+                assert(proj_focal_length.x > 0 && proj_focal_length.y > 0);
+                cout << " passed! [" << proj_focal_length << ']' << endl;
+
+                proj_principal_point = ofVec2f(CV_MAT_ELEM( *proj_intrinsic_matrix, float, 0,2 ),CV_MAT_ELEM( *proj_intrinsic_matrix, float, 1,2));
+
+                cout << "Principal point near image center not absurd   pp[" << proj_principal_point << "], center[" << ofPoint(width/2,height/2) << "] ... ";
+                assert(abs(proj_principal_point.x - width/2) < width/4 && abs(proj_principal_point.y - height/2) < height/4);
+                cout << " passed!"<< endl;
+                
+                // SAVE THE INTRINSICS AND DISTORTIONS
+                cvSave(projIntrinsicFilename.c_str(),proj_intrinsic_matrix);
+                cvSave(projDistortionFilename.c_str(),proj_distortion_coeffs);
+
+                projmapx = cvCreateImage( cvGetSize(colorFrame.getCvImage()), IPL_DEPTH_32F, 1 );
+                projmapy = cvCreateImage( cvGetSize(colorFrame.getCvImage()), IPL_DEPTH_32F, 1 );
+                cvInitUndistortMap(
+                    proj_intrinsic_matrix,
+                    proj_distortion_coeffs,
+                    projmapx,
+                    projmapy
+                );
+
+                
+                
+                projCalSubstate = PROJ_CAL_WAITING;
+
+                
+                cvReleaseMat(&proj_image_points);
             }
             break;
-        case IMAGE_SEQUENCE:
-            bufferOfImage.loadImage(dir.getPath(frameIndex));
-            colorFrame.setFromPixels(bufferOfImage.getPixels(),width,height);
-            colorFrame.flagImageChanged();
-            colorFrame.updateTexture();
-            colorFrame.remap(mapx,mapy);
-            grayscaleFrame = colorFrame;
+
+        case PROJ_CAL_LOADING:
+            messageBarSubText = "Loading calibration file";
+            
+            projIntrinsicFile.open(projIntrinsicFilename, ofFile::ReadWrite, false);
+            if(!projIntrinsicFile.exists()){
+                projCalSubstate = PROJ_CAL_PROCESSING;
+                update();
+            }
+
+            projDistortionFile.open(projDistortionFilename, ofFile::ReadWrite, false);
+            if(!projDistortionFile.exists()){
+                projCalSubstate = PROJ_CAL_PROCESSING;
+                update();
+            }
+            proj_intrinsic_matrix = (CvMat*)cvLoad(projIntrinsicFilename.c_str());
+            proj_distortion_coeffs = (CvMat*)cvLoad(projDistortionFilename.c_str());
+            
+            printf("\n");
+            printf("Intrinsic Matrix: ");
+            printf("\n");
+            for(int r = 0; r < 3; r++){
+                for(int c = 0; c < 3; c++){
+                    CvScalar scal = cvGet2D(proj_intrinsic_matrix,r,c); 
+                    printf( "%f\t", scal.val[0]); 
+                }
+                printf("\n");
+            }
+            printf("\n");
+            printf("\n");
+
+            proj_focal_length = ofVec2f(CV_MAT_ELEM( *proj_intrinsic_matrix, float, 0, 0 ),CV_MAT_ELEM( *proj_intrinsic_matrix, float, 1,1));
+            cout << "Focal length not absurd ... ";
+            assert(proj_focal_length.x > 0 && proj_focal_length.y > 0);
+            cout << " passed! [" << proj_focal_length << ']' << endl;
+
+            proj_principal_point = ofVec2f(CV_MAT_ELEM( *proj_intrinsic_matrix, float, 0,2 ),CV_MAT_ELEM( *proj_intrinsic_matrix, float, 1,2));
+            cout << "Principal point near image center not absurd   pp[" << proj_principal_point << "], center[" << ofPoint(width/2,height/2) << "] ... ";
+            assert(abs(proj_principal_point.x - width/2) < width/4 && abs(proj_principal_point.y - height/2) < height/4);
+            cout << " passed!"<< endl;
+
+            projmapx = cvCreateImage( cvGetSize(colorFrame.getCvImage()), IPL_DEPTH_32F, 1 );
+            projmapy = cvCreateImage( cvGetSize(colorFrame.getCvImage()), IPL_DEPTH_32F, 1 );
+            cvInitUndistortMap(
+                proj_intrinsic_matrix,
+                proj_distortion_coeffs,
+                projmapx,
+                projmapy
+            );
+
+            projCalSubstate = PROJ_CAL_WAITING;
+            break;
+
+        case PROJ_CAL_WAITING:
+            messageBarSubText = "Press spacebar to use point settings and continue (or press c to clear marker points and start over)";
+            break;
+        case  TL:
+            messageBarSubText = "Click to select the top left marker on the projector plane (or press c to clear settings and start over)";
+            break;
+        case  TR:
+            messageBarSubText = "Click to select the top right marker on the projector plane (or press c to clear settings and start over)";
+            break;
+        case  BR:
+            messageBarSubText = "Click to select the bottom right marker on the projector plane (or press c to clear settings and start over)";
+            break;
+        case  BL:
+            messageBarSubText = "Click to select the bottom left marker on the projector plane (or press c to clear settings and start over)";
             break;
     }
+    
 }
+
 
 
 ofPoint Scan3dApp::pt3DToPixel(const CvMat* intrinsicMat, const CvMat* extrinsicMat, ofPoint pt3D){
@@ -882,7 +902,7 @@ void Scan3dApp::captureUpdate(){
                 colorFrame.setFromPixels(vid.getPixels(),vid.getWidth(),vid.getHeight());
                 colorFrame.flagImageChanged();
                 colorFrame.updateTexture();
-                colorFrame.remap(mapx,mapy);}
+                colorFrame.remap(cammapx,cammapy);}
 
 
             framesDone = vid.getIsMovieDone();
@@ -894,7 +914,7 @@ void Scan3dApp::captureUpdate(){
                 colorFrame.setFromPixels(bufferOfImage.getPixels(),width,height);
                 colorFrame.flagImageChanged();
                 colorFrame.updateTexture();
-                colorFrame.remap(mapx,mapy);}
+                colorFrame.remap(cammapx,cammapy);}
 
             else{
                 framesDone = true; 
@@ -1054,85 +1074,6 @@ void Scan3dApp::processingUpdate(){
     diffFrame.threshold(0);
     diffFrame = computeGradientImage(diffFrame,RIGHT);
 
-    
-    topLine = computeLineFromZeroCrossings(diffFrame,topSection);
-    bottomLine = computeLineFromZeroCrossings(diffFrame,bottomSection);  
-
-    if(topLine.isInit() && bottomLine.isInit()){
-        planePts.setMode(OF_PRIMITIVE_POINTS);
-
-        testLine = ofxLine2d(ofVec2f(1,0),topLine.intersection(bottomLine));
-
-        ofxLine2d yMinLine = ofxLine2d(ofVec2f(1,0),ofPoint(0,0));
-        ofxLine2d yMaxLine = ofxLine2d(ofVec2f(1,0),ofPoint(0,height));
-        ofxRay3d ray;
-        ofPoint pt;
-        ofColor color;
-
-        
-
-        ofPoint topLineTopPoint = yMinLine.intersection(topLine);
-        ray = camPixelToRay(cam_intrinsic_matrix,cam_extrinsic_matrix,topLineTopPoint);
-        pt = ray.intersect(vertPlane);
-        pts[0] = pt;
-        planePts.addVertex((ofVec3f)pt);
-        color.setHsb(ofMap(frameIndex,0,numFrames,0.0,255.0),255,255);
-        planePts.addColor(color);
-
-        ofPoint lineCrossPoint = bottomLine.intersection(topLine);
-        ray = camPixelToRay(cam_intrinsic_matrix,cam_extrinsic_matrix,lineCrossPoint);
-        pt = ray.intersect(vertPlane);
-        if(pt.y <= FLT_EPSILON || pt.z <= FLT_EPSILON){
-            pt = ray.intersect(horizPlane);
-        }
-        pts[1] = pt;
-        planePts.addVertex((ofVec3f)pt);
-        planePts.addColor(color);
-
-        ofPoint bottomLineBottomPoint = yMaxLine.intersection(bottomLine);
-        ray = camPixelToRay(cam_intrinsic_matrix,cam_extrinsic_matrix,bottomLineBottomPoint);
-        pt = ray.intersect(horizPlane);
-        pts[2] = pt;
-        planePts.addVertex((ofVec3f)pt);
-        planePts.addColor(color);
-
-        
-        ofxPlane plane = ofxPlane(3,pts);
-
-        
-        planes[frameIndex] = plane;
-    }
-
-    //cout << "topLine " << topLine.dir.x << " " << topLine.dir.y << endl;
-    //cout << "bottomLine " << bottomLine.dir.x << " " << bottomLine.dir.y << endl;
-
-    
-
-        
-        
-
-        // cout << '[' << planeFromLines.normal.x << ',' << planeFromLines.normal.y << ',' << planeFromLines.normal.z << ']' << endl;
-
-
-    // cout << '[' << planeFromLines.normal.x << ',' << planeFromLines.normal.y << ',' << planeFromLines.normal.z << ']' << endl;
-
-
-     //Uncomment to save out diff frames
-    // bufferOfxCvColorImage = diffFrame;
-    // bufferOfImage.setFromPixels(bufferOfxCvColorImage.getPixelsRef());
-    // filename = "output/diffFrames/diffFrame";
-    // filename += ofToString(frameIndex);
-    // filename += ".tiff";
-    // bufferOfImage.saveImage(filename);
-
-    //Uncomment to save out zero crossing frames
-    // bufferOfxCvColorImage = enterFrame;
-    // bufferOfImage.setFromPixels(bufferOfxCvColorImage.getPixelsRef());
-    // filename = "output/enterFrames/enterFrame";
-    // filename += ofToString(frameIndex);
-    // filename += ".tiff";
-    // bufferOfImage.saveImage(filename);
-
 
     frameIndex++;
     if((unsigned)frameIndex == numFrames){
@@ -1211,7 +1152,6 @@ void Scan3dApp::points3dUpdate(){
                                     continue;
                                 }
                                 
-                                //ofPoint pt = (((int)computedFrameIndex) % 2) == 0 ? ray.intersect(vertPlane) : ray.intersect(horizPlane);
                                 ofPoint pt = ray.intersect(plane);
                                 // cout << "Ray origin should be camera pos: " << endl;
                                 // cout << "   camPos: ";
@@ -1358,8 +1298,15 @@ void Scan3dApp::draw(){
     }
 
     switch(programState){
-        case SETUP:
-            setupDraw();
+        case PROJECTOR_CALIBRATION:
+            if(projCalSubstate != PROJ_CAL_PROCESSING && projCalSubstate != PROJ_CAL_LOADING){
+                ofSetColor(0,255,0);
+                ofSetLineWidth(2);
+                for(int i = 0; i < 4; i++){
+                    ofLine(projPlaneImagePts[i].x-15,projPlaneImagePts[i].y,projPlaneImagePts[i].x+15,projPlaneImagePts[i].y);
+                    ofLine(projPlaneImagePts[i].x,projPlaneImagePts[i].y-15,projPlaneImagePts[i].x,projPlaneImagePts[i].y+15);
+                }
+            }
             break;
         case CAPTURE:
             captureDraw();
@@ -1389,43 +1336,10 @@ void Scan3dApp::camCalDraw(){
 
 }
 
-void Scan3dApp::setupDraw(){
-    drawSectionRectangles();
-    drawMarkerPoints();
-}
-
 void Scan3dApp::captureDraw(){
-    drawSectionRectangles();
-    drawMarkerPoints();
 }
 
 void Scan3dApp::processingDraw(){
-    drawSectionRectangles();
-    drawMarkerPoints();
-
-    fullSection.x = 0;
-    fullSection.y = 0;
-    fullSection.width = width;
-    fullSection.height = height;
-
-    if(topLine.isLineInRegion(topSection) && bottomLine.isLineInRegion(bottomSection) && isPointInRegion(topLine.intersection(bottomLine),fullSection)){
-        ofSetColor(topSectionColor);
-        ofNoFill();
-        ofSetLineWidth(4);
-        topLine.drawLineInRegion(topSection);
-        
-        ofSetLineWidth(1);
-        topLine.drawLineInRegion(fullSection);
-
-        ofSetColor(bottomSectionColor);
-        ofNoFill();
-        ofSetLineWidth(4);
-        bottomLine.drawLineInRegion(bottomSection);
-
-        ofNoFill();
-        ofSetLineWidth(1);
-        bottomLine.drawLineInRegion(fullSection); 
-    }
 }
 
 
@@ -1448,46 +1362,6 @@ bool Scan3dApp::isPointInRegion(ofPoint pt, ofRectangle roi){
             pt.y <= (roi.y + roi.height);
 }
 
-
-//--------------------------------------------------------------
-/**
-    Draws the section rectangles as a color overlay
-*/
-void Scan3dApp::drawSectionRectangles(){
-    ofSetLineWidth(2);
-    ofNoFill();
-    ofEnableAlphaBlending();
-    ofSetColor(topSectionColor);
-    ofRect(topSection);
-
-    ofSetColor(bottomSectionColor);
-    ofRect(bottomSection);
-
-    ofDisableAlphaBlending();
-}
-
-//--------------------------------------------------------------
-/**
-    Draws the marker points
-*/
-void Scan3dApp::drawMarkerPoints(){
-    
-    ofSetColor(topSectionColor);
-    ofSetLineWidth(1);
-    for(int i = 0; i < 4; i++){
-        ofLine(verticalPlaneImagePts[i].x-15,verticalPlaneImagePts[i].y,verticalPlaneImagePts[i].x+15,verticalPlaneImagePts[i].y);
-        ofLine(verticalPlaneImagePts[i].x,verticalPlaneImagePts[i].y-15,verticalPlaneImagePts[i].x,verticalPlaneImagePts[i].y+15);
-    }
-
-    ofSetColor(bottomSectionColor);
-    ofSetLineWidth(1);
-    for(int i = 0; i < 4; i++){
-        ofLine(horizontalPlaneImagePts[i].x-15,horizontalPlaneImagePts[i].y,horizontalPlaneImagePts[i].x+15,horizontalPlaneImagePts[i].y);
-        ofLine(horizontalPlaneImagePts[i].x,horizontalPlaneImagePts[i].y-15,horizontalPlaneImagePts[i].x,horizontalPlaneImagePts[i].y+15);
-    }
-
-    
-}
 
 //--------------------------------------------------------------
 /**
@@ -1682,8 +1556,7 @@ Move that ray to whatever coordinate system you like.
 void Scan3dApp::keyPressed(int key){
     switch(key){
         case 32: //SPACEBAR
-            if(programState ==  SETUP){
-                saveSettings();
+            if(programState ==  PROJECTOR_CALIBRATION){
                 programState = CAPTURE;
             }
 
@@ -1720,8 +1593,8 @@ void Scan3dApp::keyPressed(int key){
             bDrawPointCloud = !bDrawPointCloud;
             break;
         case 'c':
-            if(programState == SETUP){
-                clearSettings();    
+            if(programState == PROJECTOR_CALIBRATION){
+                clearProjectorSettings();    
             }
             break;
     }    
@@ -1739,101 +1612,32 @@ void Scan3dApp::mouseMoved(int x, int y ){
 
 //--------------------------------------------------------------
 void Scan3dApp::mouseDragged(int x, int y, int button){
-    if(programState == SETUP){
-        switch(setupSubState){
-            case TOP_SECTION:
-                topSection.setWidth(x-topSection.x);
-                topSection.setHeight(y-topSection.y);
-                break;
-            case  BOTTOM_SECTION:
-                bottomSection.setWidth(x-bottomSection.x);
-                bottomSection.setHeight(y-bottomSection.y);
-
-                if(bottomSection.width > topSection.width){
-                    bottomSection.width = topSection.width;
-                }
-                break;
-        }
-    }
 }
 
 //--------------------------------------------------------------
 void Scan3dApp::mousePressed(int x, int y, int button){
-     if(programState == SETUP){
-        switch(setupSubState){
-            case TOP_SECTION:
-                topSection.setPosition(x,y);
-                break;
-            case  BOTTOM_SECTION:
-                if(x < topSection.x){
-                    bottomSection.setPosition(topSection.x,y);
-                }
-                else if(x > (topSection.x+topSection.width)){
-                    bottomSection.setPosition((topSection.x+topSection.width),y);
-                }
-                else{
-                    int tx = x - topSection.x;
-                    topSection.x = x;
-                    topSection.width -= tx;
-                    bottomSection.setPosition(x,y);     
-                }
-                break;
-        }
-    }
 }
 
 //--------------------------------------------------------------
 void Scan3dApp::mouseReleased(int x, int y, int button){
-    /*
-    if(programState == CAMERA_CALIBRATION){
-        switch(camCalSubstate){
-            case  TL: 
-                camCalFrame++;
+    if(programState == PROJECTOR_CALIBRATION){
+        switch(projCalSubstate){
+            case  BR:                
+                projPlaneImagePts[0] = getNearestCorner(grayscaleFrame,10,x,y);
+                projCalSubstate = TR;
                 break;
-        }
-    }
-    else */
-    if(programState == SETUP){
-        switch(setupSubState){
-            case TOP_SECTION:
-                setupSubState = BOTTOM_SECTION;
+            case  TR:
+                projPlaneImagePts[1] = getNearestCorner(grayscaleFrame,10,x,y);
+                projCalSubstate = TL;
                 break;
-            case  BOTTOM_SECTION:
-                topSection.width = bottomSection.width;
-                setupSubState = T_BR;
+            case  TL:
+                projPlaneImagePts[2] = getNearestCorner(grayscaleFrame,10,x,y);
+                projCalSubstate = BL;
                 break;
-            case  T_BR:                
-                verticalPlaneImagePts[0] = getNearestCorner(grayscaleFrame,10,x,y);
-                setupSubState = T_TR;
+            case  BL:
+                projPlaneImagePts[3] = getNearestCorner(grayscaleFrame,10,x,y);
+                projCalSubstate = PROJ_CAL_WAITING;
                 break;
-            case  T_TR:
-                verticalPlaneImagePts[1] = getNearestCorner(grayscaleFrame,10,x,y);
-                setupSubState = T_TL;
-                break;
-            case  T_TL:
-                verticalPlaneImagePts[2] = getNearestCorner(grayscaleFrame,10,x,y);
-                setupSubState = T_BL;
-                break;
-            case  T_BL:
-                verticalPlaneImagePts[3] = getNearestCorner(grayscaleFrame,10,x,y);
-                setupSubState = B_BR;
-                break;
-            case  B_BR:
-                horizontalPlaneImagePts[0] = getNearestCorner(grayscaleFrame,10,x,y);
-                setupSubState = B_TR;
-                break;
-            case  B_TR:
-                horizontalPlaneImagePts[1] = getNearestCorner(grayscaleFrame,10,x,y);
-                setupSubState = B_TL;
-                break;
-            case  B_TL:
-                horizontalPlaneImagePts[2] = getNearestCorner(grayscaleFrame,10,x,y);
-                setupSubState = B_BL;
-                break;
-            case B_BL:
-                horizontalPlaneImagePts[3] = getNearestCorner(grayscaleFrame,10,x,y);
-                setupSubState = WAITING;
-                break;       
         }
     }
 }

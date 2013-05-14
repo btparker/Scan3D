@@ -10,13 +10,14 @@
 #include "ofxPlane.h"
 #include <sstream>
 
-enum {CAMERA_CALIBRATION, SETUP, CAPTURE, PROCESSING,RECONSTRUCTION,POINTS3D};
+enum {CAMERA_CALIBRATION, PROJECTOR_CALIBRATION, SETUP, CAPTURE, PROCESSING,RECONSTRUCTION,POINTS3D};
 
 
 enum Setup{TOP_SECTION, BOTTOM_SECTION, T_TL, T_TR, T_BL, T_BR, B_TL, B_TR, B_BL, B_BR,ESTIMATE_CAMERA, WAITING};
 
 
 enum CameraCalibration{CAM_CAL_PROCESSING, CAM_CAL_LOADING, CAM_CAL_WAITING};
+enum ProjectorCalibration{PROJ_CAL_PROCESSING, PROJ_CAL_LOADING, PROJ_CAL_WAITING,BR,TR,TL,BL};
 enum Points3d{POINTS3D_PROCESSING, POINTS3D_WAITING};
 
 
@@ -32,6 +33,7 @@ class Scan3dApp : public ofBaseApp{
 		void setup();
 		void update();
 		void camCalUpdate();
+		void projCalUpdate();
 		void setupUpdate();
 		void captureUpdate();
 		void processingUpdate();
@@ -46,7 +48,8 @@ class Scan3dApp : public ofBaseApp{
 
 		void loadSettings();
 		void saveSettings();
-		void clearSettings();
+		void clearSetupSettings();
+		void clearProjectorSettings();
 		void keyPressed  (int key);
 		void keyReleased(int key);
 		void mouseMoved(int x, int y );
@@ -84,9 +87,9 @@ class Scan3dApp : public ofBaseApp{
 		ofxCvGrayscaleImage computeGrayCodeImage(int w, int h, int power, bool inverse, int type);
 
 		int sobelHorizontal[3][3];
-    	int sobelVertical[3][3];
+		int sobelVertical[3][3];
 
-    	int laplacianOfGaussian[3][3];
+		int laplacianOfGaussian[3][3];
 
 		ofVideoPlayer vid;
 
@@ -99,48 +102,52 @@ class Scan3dApp : public ofBaseApp{
 
 		ofPoint verticalPlaneObjectPts[4];
 		ofPoint horizontalPlaneObjectPts[4];
-    
-        //Images
-        ofxCvColorImage colorFrame;
-        ofxCvGrayscaleImage grayscaleFrame;
 
-        int frameIndex;
-        int numFrames;
+		ofPoint projPlaneObjectPts[4];
+		ofPoint projPlaneImagePts[4];
 
-        int displayState;
-        int programState;
-        int setupSubState;
-        int camCalSubstate;
-        int points3dSubstate;
-        int inputType;
+		//Images
+		ofxCvColorImage colorFrame;
+		ofxCvGrayscaleImage grayscaleFrame;
 
-        int width,height;
+		int frameIndex;
+		int numFrames;
 
-        ofxCvGrayscaleImage minImg;
-        ofxCvGrayscaleImage maxImg;
-        ofxCvColorImage maxColorImg;
-        ofxCvGrayscaleImage shadowThreshImg;
-	    ofxCvColorImage temporalImg;
-	    ofxCvGrayscaleImage diffFrame;
-	    ofxCvGrayscaleImage previousDiffFrame;
-	    ofxCvFloatImage enterFrame;
-	    ofxCvFloatImage exitFrame;
-	    ofxCvGrayscaleImage bincodeImg;
+		int displayState;
+		int programState;
+		int setupSubState;
+		int camCalSubstate;
+		int projCalSubstate;
+		int points3dSubstate;
+		int inputType;
 
-        ofImage bufferOfImage;
-        ofxCvColorImage bufferOfxCvColorImage;
-        ofxCvGrayscaleImage bufferOfxCvGrayscaleImage;
+		int width,height;
 
-        vector<ofxCvGrayscaleImage> frames;
-        vector<ofxPlane> planes;
+		ofxCvGrayscaleImage minImg;
+		ofxCvGrayscaleImage maxImg;
+		ofxCvColorImage maxColorImg;
+		ofxCvGrayscaleImage shadowThreshImg;
+		ofxCvColorImage temporalImg;
+		ofxCvGrayscaleImage diffFrame;
+		ofxCvGrayscaleImage previousDiffFrame;
+		ofxCvFloatImage enterFrame;
+		ofxCvFloatImage exitFrame;
+		ofxCvGrayscaleImage bincodeImg;
 
-        unsigned int frameBufferSize;
-        int zeroCrossingThreshold;
+		ofImage bufferOfImage;
+		ofxCvColorImage bufferOfxCvColorImage;
+		ofxCvGrayscaleImage bufferOfxCvGrayscaleImage;
 
-        ofRectangle topSection;
+		vector<ofxCvGrayscaleImage> frames;
+		vector<ofxPlane> planes;
+
+		unsigned int frameBufferSize;
+		int zeroCrossingThreshold;
+
+		ofRectangle topSection;
 		ofRectangle bottomSection;
 		ofRectangle fullSection;
-		
+
 		ofColor topSectionColor;
 		ofColor bottomSectionColor;
 
@@ -187,8 +194,8 @@ class Scan3dApp : public ofBaseApp{
 
 		CvPoint2D32f* cam_corners;
 		int cam_corner_count;
-		IplImage* mapx;
-		IplImage* mapy;
+		IplImage* cammapx;
+		IplImage* cammapy;
 
 		string camIntrinsicFilename;
 		string camDistortionFilename;
@@ -196,6 +203,39 @@ class Scan3dApp : public ofBaseApp{
 		ofPoint camPos;
 		CvMat* camRotMat;
 		CvMat* camInvIntrinsic;
+
+
+		ofDirectory projCalDir;
+
+		unsigned int projCalFrame;
+		int projBoardXCount, projBoardYCount;
+		unsigned int projNumBoards;
+		int projBoardPatternSize;
+		float projBoardSquareSize; //in mm
+		int projSuccesses;
+		CvSize projBoardNumInternalCornersCV;
+
+		CvMat* proj_image_points;
+		CvMat* proj_object_points;
+		CvMat* proj_point_counts;
+		CvMat* proj_intrinsic_matrix;
+		CvMat* proj_extrinsic_matrix;
+		CvMat* proj_distortion_coeffs;
+
+		CvPoint2D32f* proj_corners;
+		int proj_corner_count;
+		IplImage* projmapx;
+		IplImage* projmapy;
+
+		string projIntrinsicFilename;
+		string projDistortionFilename;
+
+		ofPoint projPos;
+		CvMat* projRotMat;
+		CvMat* projInvIntrinsic;
+
+
+
 
 		ofxPlane vertPlane;
 		ofxPlane horizPlane;
@@ -211,5 +251,7 @@ class Scan3dApp : public ofBaseApp{
 		ofVec2f cam_focal_length;
 		ofVec2f cam_principal_point;
 
+		ofVec2f proj_focal_length;
+		ofVec2f proj_principal_point;
         
 };
