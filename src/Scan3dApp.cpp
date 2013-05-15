@@ -57,6 +57,8 @@ void Scan3dApp::setup(){
             break;
     }
 
+
+
     printf("[width,height] = [%d,%d]\n",width,height);
 
     //bufferOfImage.allocate(width,height,OF_IMAGE_COLOR);
@@ -70,11 +72,13 @@ void Scan3dApp::setup(){
     minImg.set(255);
     maxImg.allocate(width,height);
     maxImg.set(0);
+    noiseImg.allocate(width,height);
+    noiseImg.set(0);
     temporalImg.allocate(width,height);
-    enterFrame.allocate(width,height);
-    enterFrame.set(0);
-    exitFrame.allocate(width,height);
-    exitFrame.set(0);
+    rowMapping.allocate(width,height);
+    rowMapping.set(0);
+    colMapping.allocate(width,height);
+    colMapping.set(0);
     diffFrame.allocate(width,height);
     
 
@@ -84,8 +88,10 @@ void Scan3dApp::setup(){
     ofSetWindowShape(width,height+messageBarHeight);
 
 
-    frameBufferSize = 100;
-    frames.resize(frameBufferSize,bufferOfxCvGrayscaleImage);
+    // = 100;
+    numFrames = dir.numFiles();
+    frames.resize(numFrames,bufferOfxCvGrayscaleImage);
+    threshFrames.resize(numFrames,bufferOfxCvGrayscaleImage);
     
 
     topSectionColor.r = 255;
@@ -108,6 +114,8 @@ void Scan3dApp::setup(){
 
     
     frameIndex = 0;
+    colIndex = 0;
+    rowIndex = 0;
 
     // Camera Calibration Variables (Adapted for use from Learning OpenCV Computer Vision with the OpenCV Library)
     camCalFrame = 0;
@@ -151,9 +159,10 @@ void Scan3dApp::setup(){
 
     points3dSubstate = POINTS3D_PROCESSING;
 
-    bincodeImg.allocate(640,480);
+    codeImg.allocate(projWidth,projHeight);
 
-    bincodeImg = computeGrayCodeImage(640,480,3,false,HORIZONTAL);
+    bufferOfImage.loadImage(projCalDir.getPath(projCalDir.numFiles()-1));
+    colorFrame.setFromPixels(bufferOfImage.getPixels(),width,height);
 }
 
 void Scan3dApp::assertPoint(ofPoint pt){
@@ -187,13 +196,18 @@ void Scan3dApp::loadSettings(){
 
                         cout << "   Using image sequence folder: " << dir.path() << endl;
                     }
+                    projWidth = settings.getValue("projWidth",1024);
+                    projHeight = settings.getValue("projHeight",1024);
+                    string projTypeS = settings.getValue("projType","BIN");
+                    projType = (projTypeS == "BIN") ? BIN : GRAY;
 
-    			
                 settings.popTag(); //pop input
                 settings.pushTag("calibration");
                     settings.pushTag("cam");
                         programState = CAMERA_CALIBRATION;
                         camCalDir = ofDirectory(settings.getValue("frames",""));
+                        camCalDir.listDir();
+                        camCalDir.sort();
                         camIntrinsicFilename = ofToDataPath("cam_intrinsic.xml");
                         camDistortionFilename = ofToDataPath("cam_distortion.xml");
                         camBoardXCount = settings.getValue("camBoardXCount",8);
@@ -205,8 +219,7 @@ void Scan3dApp::loadSettings(){
                             camCalSubstate = CAM_CAL_LOADING;
                         }
                         else{
-                            camCalDir.listDir();
-                            camCalDir.sort();
+                            
 
                             cout << "   Using camera calibration sequence folder: " << camCalDir.path() << endl;
                             camCalSubstate = CAM_CAL_PROCESSING;  
@@ -214,6 +227,8 @@ void Scan3dApp::loadSettings(){
                     settings.popTag();
                     settings.pushTag("proj");
                         projCalDir = ofDirectory(settings.getValue("frames",""));
+                        projCalDir.listDir();
+                        projCalDir.sort();
                         projIntrinsicFilename = ofToDataPath("proj_intrinsic.xml");
                         projDistortionFilename = ofToDataPath("proj_distortion.xml");
                         projBoardXCount = settings.getValue("projBoardXCount",7);
@@ -227,8 +242,7 @@ void Scan3dApp::loadSettings(){
                             projCalSubstate = PROJ_CAL_LOADING;
                         }
                         else{
-                            projCalDir.listDir();
-                            projCalDir.sort();
+                            
 
                             cout << "   Using projector calibration sequence folder: " << projCalDir.path() << endl;
                             projCalSubstate = PROJ_CAL_PROCESSING;  
@@ -286,7 +300,9 @@ void Scan3dApp::saveSettings(){
                     settings.setValue("src",dir.path());
                     cout << "   Set image sequence folder: " << dir.path() << endl;
                 }
-            
+                settings.setValue("projWidth",projWidth);
+                settings.setValue("projHeight",projHeight);
+                settings.setValue("projType",(projType == BIN) ? "BIN" : "GRAY");
             settings.popTag(); //pop input
             settings.addTag("calibration");
             settings.pushTag("calibration");
@@ -365,10 +381,8 @@ void Scan3dApp::update(){
                 break;
             }
             case PROCESSING:
-            {     
                 processingUpdate();
                 break;
-            }
             case POINTS3D:
             {    
                 points3dUpdate();
@@ -377,6 +391,10 @@ void Scan3dApp::update(){
 
         }
     }
+
+
+
+
 }
 
 void Scan3dApp::camCalUpdate(){
@@ -597,7 +615,6 @@ void Scan3dApp::projCalUpdate(){
     ofFile projIntrinsicFile;
     ofFile projDistortionFile;
     messageBarText = "PROJECTOR CALIBRATION";
-
     
     switch(projCalSubstate){
         case PROJ_CAL_PROCESSING:
@@ -909,7 +926,7 @@ void Scan3dApp::captureUpdate(){
            
             break;
         case IMAGE_SEQUENCE:
-            if(frameIndex < dir.numFiles()){
+            if(frameIndex < numFrames){
                 bufferOfImage.loadImage(dir.getPath(frameIndex));
                 colorFrame.setFromPixels(bufferOfImage.getPixels(),width,height);
                 colorFrame.flagImageChanged();
@@ -925,16 +942,68 @@ void Scan3dApp::captureUpdate(){
 
     if(framesDone){
         colorFrame = maxColorImg;
-        messageBarText = "PROCESSING";
+        messageBarText = "POINTS3D";
         messageBarSubText = "";
         programState = PROCESSING;
         planes.resize(numFrames,ofxPlane());
-
-        cout << "PROCESSING STATE" << endl;
         frameIndex = 0;
     }
     else{
-        numFrames = frameIndex+1;
+        grayscaleFrame = colorFrame;
+        int power = (frameIndex <= 2*log2(projWidth)+1) ? frameIndex/2 : ((frameIndex/2)-log2(projWidth));
+        bool inverse = (frameIndex%2 == 1);
+        int type = (frameIndex <= 2*log2(projWidth)+1) ? HORIZONTAL : VERTICAL;
+
+        if(projType == BIN){
+            codeImg = computeBinCodeImage(projWidth,projHeight,power,inverse,type);
+        }
+        else if(projType == GRAY){
+            codeImg = computeGrayCodeImage(projWidth,projHeight,power,inverse,type);
+        }
+        
+
+
+        if(frameIndex == 0){
+            maxColorImg = colorFrame;
+            maxImg = grayscaleFrame;
+        }
+        else if(frameIndex == 1){
+            minImg = grayscaleFrame;
+            unsigned char* shadowThreshImgPixels = shadowThreshImg.getPixels();
+            unsigned char* maxImgPixels = maxImg.getPixels();
+            unsigned char* minImgPixels = minImg.getPixels();
+
+            for(int r = 0; r < height; r++){
+                for(int c = 0; c < width; c++){
+                    shadowThreshImgPixels[c+r*width] = (maxImgPixels[c+r*width]+minImgPixels[c+r*width])/2.0;
+                }
+            }
+
+            shadowThreshImg.setFromPixels(shadowThreshImgPixels,width,height);
+
+            noiseImg = shadowThreshImg;
+            noiseImg -= minImg;
+            noiseImg.blurGaussian();
+            noiseImg -= 20;
+            noiseImg.threshold(0,true);
+
+            // Makes more math sense to lead with all black image
+            diffFrame.set(0);
+            threshFrames[0] = diffFrame;
+
+            diffFrame.set(255);
+            threshFrames[1] = diffFrame;
+        }
+        else{
+            diffFrame = grayscaleFrame;
+            diffFrame -= shadowThreshImg;
+            diffFrame -= noiseImg;
+            diffFrame.threshold(0);
+            threshFrames[frameIndex] = diffFrame;
+        }
+
+        frames[frameIndex] = grayscaleFrame;    
+        frameIndex++;  
     }
 
     //Uncomment to save out color frames
@@ -943,171 +1012,73 @@ void Scan3dApp::captureUpdate(){
     // filename += ofToString(frameIndex);
     // filename += ".tiff";
     // bufferOfImage.saveImage(filename);
+
+
         
-    grayscaleFrame = colorFrame;
-
-    //resizing vector if needed
-    if((unsigned)frameIndex >= frames.capacity()){
-        frames.resize(2*frames.size(),bufferOfxCvGrayscaleImage);
-    }
-
-    frames[frameIndex] = grayscaleFrame;
-
-    //Uncomment to save out grayscale frames
-    // bufferOfxCvColorImage = grayscaleFrame;
-    // bufferOfImage.setFromPixels(bufferOfxCvColorImage.getPixelsRef());
-    // filename = "output/grayscaleFrames/gsframe";
-    // filename += ofToString(frameIndex);
-    // filename += ".tiff";
-    // bufferOfImage.saveImage(filename);
-
-    //Update min/max images
-    unsigned char* minImgPixels = minImg.getPixels();
-    unsigned char* maxImgPixels = maxImg.getPixels();
-    unsigned char* maxColorImgPixels = maxColorImg.getPixels();
-    unsigned char* grayscaleFramePixels = grayscaleFrame.getPixels();
-    unsigned char* colorFramePixels = colorFrame.getPixels();
-    unsigned char* shadowThreshImgPixels = shadowThreshImg.getPixels();
-
-    int i = 0;
-    for(int y = 0; y < height; y++){
-        for(int x = 0; x < width; x++){
-            i = y*width+x;
-            minImgPixels[i] = min(minImgPixels[i],grayscaleFramePixels[i]);
-            maxImgPixels[i] = max(maxImgPixels[i],grayscaleFramePixels[i]);
-            shadowThreshImgPixels[i] = ((minImgPixels[i]+maxImgPixels[i])/2.0);
-            maxColorImgPixels[3*i] = max(maxColorImgPixels[3*i],colorFramePixels[3*i]);
-            maxColorImgPixels[3*i+1] = max(maxColorImgPixels[3*i+1],colorFramePixels[3*i+1]);
-            maxColorImgPixels[3*i+2] = max(maxColorImgPixels[3*i+2],colorFramePixels[3*i+2]);
-        }  
-    }
-
-    //A tad inefficient, but this handles a bug where if you draw these it doesn't set new values
-    minImg.setFromPixels(minImgPixels,width,height);
-    maxImg.setFromPixels(maxImgPixels,width,height);
-    shadowThreshImg.setFromPixels(shadowThreshImgPixels,width,height);
-    maxColorImg.setFromPixels(maxColorImgPixels,width,height);
-
-
-    
-    frameIndex++;
     
 }
 
 void Scan3dApp::processingUpdate(){
-    ofPoint pts[3];
-    grayscaleFrame = frames[frameIndex];
-    diffFrame.set(0);
-    bufferOfxCvGrayscaleImage.set(0);
-    bufferOfxCvGrayscaleImage = frames[0];;
-    bufferOfxCvGrayscaleImage -= shadowThreshImg;
-    bufferOfxCvGrayscaleImage.blurGaussian();
-    bufferOfxCvGrayscaleImage.blurGaussian();
-    bufferOfxCvGrayscaleImage.blurGaussian();
-    bufferOfxCvGrayscaleImage -= 5;
-    bufferOfxCvGrayscaleImage.threshold(30,true);
 
-    diffFrame = grayscaleFrame;
-    diffFrame -= shadowThreshImg;
-    diffFrame -= bufferOfxCvGrayscaleImage;
-    //diffFrame.blurGaussian();
-    
+}
+
+/*  
+*   Computing the enter and exit frames, used to create the temporal image
+*/
+/*
+unsigned char* diffFramePixels = diffFrame.getPixels();
+unsigned char* temporalImgPixels = temporalImg.getPixels();
+unsigned char* rowMappingPixels = rowMapping.getPixels();
+unsigned char* colMappingPixels = colMapping.getPixels();
 
 
+for(int r = 0; r < height; r++){
+    for(int c = 0; c < width; c++){
+        if(diffFramePixels[c+r*width] == 0){ // pixel in shadow
+            if(rowMappingPixels[c+r*width] == 0){ // Never been in shadow before
+                float framePixelMapping = ofMap(frameIndex,0,numFrames,0.0,255.0);
 
-    /*  
-    *   Computing the enter and exit frames, used to create the temporal image
-    */
-    unsigned char* diffFramePixels = diffFrame.getPixels();
-    unsigned char* temporalImgPixels = temporalImg.getPixels();
-    unsigned char* enterFramePixels = enterFrame.getPixels();
-    unsigned char* exitFramePixels = exitFrame.getPixels();
-    
-    
-    for(int r = 0; r < height; r++){
-        for(int c = 0; c < width; c++){
-            if(diffFramePixels[c+r*width] == 0){ // pixel in shadow
-                if(enterFramePixels[c+r*width] == 0){ // Never been in shadow before
-                    float framePixelMapping = ofMap(frameIndex,0,numFrames,0.0,255.0);
+                rowMappingPixels[c+r*width] = framePixelMapping; // Setting the enter frame to the current frame
 
-                    enterFramePixels[c+r*width] = framePixelMapping; // Setting the enter frame to the current frame
-
-                    ofColor temporalColor;
+                ofColor temporalColor;
 
 
-                    if(framePixelMapping <= zeroCrossingThreshold){
-                        temporalColor = ofColor(0,0,0);
-                    }
-                    else{
-                        temporalColor = ofColor::fromHsb(framePixelMapping,255,255);
-                    }
-                    
-                    
-                    temporalImgPixels[3*(c+r*width)] =      temporalColor.r;
-                    temporalImgPixels[3*(c+r*width)+1] =    temporalColor.g;
-                    temporalImgPixels[3*(c+r*width)+2] =    temporalColor.b;
+                if(framePixelMapping <= zeroCrossingThreshold){
+                    temporalColor = ofColor(0,0,0);
+                }
+                else{
+                    temporalColor = ofColor::fromHsb(framePixelMapping,255,255);
                 }
                 
+                
+                temporalImgPixels[3*(c+r*width)] =      temporalColor.r;
+                temporalImgPixels[3*(c+r*width)+1] =    temporalColor.g;
+                temporalImgPixels[3*(c+r*width)+2] =    temporalColor.b;
             }
-            else{ // Pixel is not in shadow
-                if(enterFramePixels[c+r*width] == 0){ // Never been in shadow before
+            
+        }
+        else{ // Pixel is not in shadow
+            if(rowMappingPixels[c+r*width] == 0){ // Never been in shadow before
+                // do squat
+            }
+            else{ // Pixel has been in shadow but is no longer
+                if(colMappingPixels[c+r*width]== 0){ // First time exiting shadow
+                    colMappingPixels[c+r*width]= ofMap(frameIndex,0,numFrames,0.0,255.0);
+                }
+                else{
                     // do squat
                 }
-                else{ // Pixel has been in shadow but is no longer
-                    if(exitFramePixels[c+r*width]== 0){ // First time exiting shadow
-                        exitFramePixels[c+r*width]= ofMap(frameIndex,0,numFrames,0.0,255.0);
-                    }
-                    else{
-                        // do squat
-                    }
-                }
-                
             }
+            
         }
     }
-    
-    enterFrame.setFromPixels(enterFramePixels,width,height);
-    exitFrame.setFromPixels(exitFramePixels,width,height);
-    temporalImg.setFromPixels(temporalImgPixels,width,height);
-
-
-    diffFrame.threshold(0);
-    diffFrame = computeGradientImage(diffFrame,RIGHT);
-
-
-    frameIndex++;
-    if((unsigned)frameIndex == numFrames){
-        //Uncomment to save out temporal image
-        bufferOfImage.setFromPixels(temporalImg.getPixelsRef());
-        bufferOfImage.saveImage("output/temporalImg.tiff");
-
-        programState = POINTS3D;
-
-        cout << "POINTS3D STATE" << endl;
-        messageBarText = "POINTS3D";
-        messageBarSubText = "Computing 3d Points...";
-        //Uncomment to save out min/max/shadowthresh frames
-        bufferOfxCvColorImage = minImg;
-        bufferOfImage.setFromPixels(bufferOfxCvColorImage.getPixelsRef());
-        bufferOfImage.saveImage("output/minImg.tiff");
-        bufferOfxCvColorImage = maxImg;
-        bufferOfImage.setFromPixels(bufferOfxCvColorImage.getPixelsRef());
-        bufferOfImage.saveImage("output/maxImg.tiff");
-        bufferOfxCvColorImage = shadowThreshImg;
-        bufferOfImage.setFromPixels(bufferOfxCvColorImage.getPixelsRef());
-        bufferOfImage.saveImage("output/shadowThreshImg.tiff");
-
-        // IplImage* img = temporalImg.getCvImage();
-        // IplImage* out = cvCreateImage( cvGetSize(img), IPL_DEPTH_8U, 3 );
-        
-        // cvSmooth( img, out, CV_GAUSSIAN, 5,5 );
-
-        // temporalImg = out;
-
-    }
-
-    diffFrame = bufferOfxCvGrayscaleImage;
 }
+
+rowMapping.setFromPixels(rowMappingPixels,width,height);
+colMapping.setFromPixels(colMappingPixels,width,height);
+temporalImg.setFromPixels(temporalImgPixels,width,height);
+
+*/
 
 void Scan3dApp::points3dUpdate(){
     
@@ -1118,17 +1089,17 @@ void Scan3dApp::points3dUpdate(){
 
     unsigned char* temporalImgPixels = temporalImg.getPixels(); 
     unsigned char* colorImgPixels = colorFrame.getPixels(); 
-    // unsigned char* enterFramePixels = enterFrame.getPixels(); 
+    // unsigned char* rowMappingPixels = rowMapping.getPixels(); 
 
-    // float enterFramePixel = 0.0;
+    // float rowMappingPixel = 0.0;
     switch(points3dSubstate){
             case POINTS3D_PROCESSING:
                 for(int r = 0; r < height; r++){
                     for(int c = 0; c < width; c++){ 
 
-                        // enterFramePixel = enterFramePixels[c+r*width];
+                        // rowMappingPixel = rowMappingPixels[c+r*width];
 
-                        // printf("FramePixel %f\n",(enterFramePixel));
+                        // printf("FramePixel %f\n",(rowMappingPixel));
                         
                         ofColor temporalPixel; 
                         //cout << '[r,c] : [' << r << ',' << c << ']' << endl;         
@@ -1286,13 +1257,13 @@ void Scan3dApp::draw(){
             maxImg.draw(0, 0);
             break;
         case SHADOWTHRESHIMAGE:
-            temporalImg.draw(0, 0);
+            shadowThreshImg.draw(0, 0);
             break;
         case DIFF:
             diffFrame.draw(0, 0);
             break;
         case BINCODE:
-            bincodeImg.draw(0, 0);
+            codeImg.draw(0, 0);
             break;
 
     }
@@ -1311,17 +1282,6 @@ void Scan3dApp::draw(){
         case CAPTURE:
             captureDraw();
             break; 
-        case PROCESSING:
-            if(bDrawPointCloud){
-                easyCam.begin();
-                drawPointCloud();
-                easyCam.end();
-            }
-            else{
-                processingDraw();
-            }
-            
-            break;
         case POINTS3D:
             if(bDrawPointCloud){
                 easyCam.begin();
@@ -1337,9 +1297,6 @@ void Scan3dApp::camCalDraw(){
 }
 
 void Scan3dApp::captureDraw(){
-}
-
-void Scan3dApp::processingDraw(){
 }
 
 
@@ -1558,6 +1515,7 @@ void Scan3dApp::keyPressed(int key){
         case 32: //SPACEBAR
             if(programState ==  PROJECTOR_CALIBRATION){
                 programState = CAPTURE;
+                saveSettings();
             }
 
             break;
@@ -1857,22 +1815,6 @@ void Scan3dApp::drawPointCloud() {
                 break;
         }
     }
-    if(programState == PROCESSING){
-        
-
-        glPointSize(5);
-        ofPushMatrix();
-        // the projected points are 'upside down' and 'backwards'
-        //ofScale(1, -1, -1);
-        //ofTranslate(camPos.x,camPos.y,camPos.z); // center the points a bit
-
-        glEnable(GL_DEPTH_TEST);
-        planePts.drawVertices();
-        glDisable(GL_DEPTH_TEST);
-        ofPopMatrix();
-
-    }
-    
 }
 
 ofxCvGrayscaleImage Scan3dApp::computeBinCodeImage(int w, int h, int power, bool inverse, int type){
@@ -1886,8 +1828,9 @@ ofxCvGrayscaleImage Scan3dApp::computeBinCodeImage(int w, int h, int power, bool
     }
     else{
         stepSize = (type == HORIZONTAL) ? (int)(w/pow(2,power)) : (int)(h/pow(2,power));
-        numSteps = (w/stepSize);
+        numSteps = (int)(w/stepSize);
         for(int step = 1; step < numSteps; step+= 2){
+
             (type == HORIZONTAL) ? output.setROI(step*stepSize,0,stepSize,h) : output.setROI(0,step*stepSize,w,stepSize);
 
             output.set(255);

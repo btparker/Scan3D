@@ -17,7 +17,7 @@ enum Setup{TOP_SECTION, BOTTOM_SECTION, T_TL, T_TR, T_BL, T_BR, B_TL, B_TR, B_BL
 
 
 enum CameraCalibration{CAM_CAL_PROCESSING, CAM_CAL_LOADING, CAM_CAL_WAITING};
-enum ProjectorCalibration{PROJ_CAL_PROCESSING, PROJ_CAL_LOADING, PROJ_CAL_WAITING,BR,TR,TL,BL};
+enum ProjectorCalibration{PROJ_CAL_PROCESSING, PROJ_CAL_LOADING, PROJ_CAL_WAITING,BR,TR,TL,BL, BIN, GRAY};
 enum Points3d{POINTS3D_PROCESSING, POINTS3D_WAITING};
 
 
@@ -111,6 +111,8 @@ class Scan3dApp : public ofBaseApp{
 		ofxCvGrayscaleImage grayscaleFrame;
 
 		int frameIndex;
+		int colIndex;
+		int rowIndex;
 		int numFrames;
 
 		int displayState;
@@ -122,6 +124,8 @@ class Scan3dApp : public ofBaseApp{
 		int inputType;
 
 		int width,height;
+		int projWidth,projHeight;
+		int projType;
 
 		ofxCvGrayscaleImage minImg;
 		ofxCvGrayscaleImage maxImg;
@@ -129,16 +133,18 @@ class Scan3dApp : public ofBaseApp{
 		ofxCvGrayscaleImage shadowThreshImg;
 		ofxCvColorImage temporalImg;
 		ofxCvGrayscaleImage diffFrame;
-		ofxCvGrayscaleImage previousDiffFrame;
-		ofxCvFloatImage enterFrame;
-		ofxCvFloatImage exitFrame;
-		ofxCvGrayscaleImage bincodeImg;
+		ofxCvGrayscaleImage noiseImg;
+		ofxCvFloatImage rowMapping;
+		ofxCvFloatImage colMapping;
+		ofxCvGrayscaleImage codeImg;
 
 		ofImage bufferOfImage;
 		ofxCvColorImage bufferOfxCvColorImage;
 		ofxCvGrayscaleImage bufferOfxCvGrayscaleImage;
 
 		vector<ofxCvGrayscaleImage> frames;
+		vector<ofxCvGrayscaleImage> threshFrames;
+		vector<ofxCvGrayscaleImage> binCodeFrames;
 		vector<ofxPlane> planes;
 
 		unsigned int frameBufferSize;
