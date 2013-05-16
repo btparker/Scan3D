@@ -64,10 +64,10 @@ class Scan3dApp : public ofBaseApp{
 		ofxLine2d computeLineFromZeroCrossings(ofxCvGrayscaleImage img, ofRectangle roi);
 		bool isPointInRegion(ofPoint pt, ofRectangle roi);
 		ofPoint getNearestCorner(ofxCvGrayscaleImage img, int windowSize, int x, int y);
-		void computeCameraExtrinsicMatrix(ofPoint *objectPoints, ofPoint *imagePoints, CvMat* cameraMatrix, CvMat* distCoeffs);
+		void computeCameraExtrinsicMatrix(int num, ofPoint *objectPoints, ofPoint *imagePoints, CvMat* cameraMatrix, CvMat* distCoeffs);
 		void convertOfPointsToCvMat(ofPoint *pts, int dimensions, int size, CvMat* output);
 		ofxRay3d camPixelToRay(const CvMat* intrinsicMat, const CvMat* extrinsicMat, ofPoint imagePt);
-		ofPoint pt3DToPixel(const CvMat* intrinsicMat, const CvMat* extrinsicMat, ofPoint pt3D);
+		ofPoint pt3DToPixel(const CvMat* intrinsicMat, const CvMat* extrinsicMat, const CvMat* distCoeffs, ofPoint pt3D);
 		//ofPoint rayPlaneIntersection(ofPoint planePt, ofVec3f planeNormal, ofPoint rayOrigin, ofVec3f rayDirection);
 		ofxLine3d projectLineOntoPlane(ofxLine2d line, ofxPlane plane, const CvMat* intrinsicMat, const CvMat* extrinsicMat);
 

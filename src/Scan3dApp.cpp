@@ -530,11 +530,12 @@ void Scan3dApp::camCalUpdate(){
                 printf("Camera Intrinsic Matrix: \n");
                 printf("\n");
                 for(int r = 0; r < 3; r++){
+                    cout << "[";
                     for(int c = 0; c < 3; c++){
                         CvScalar scal = cvGet2D(cam_intrinsic_matrix,r,c); 
-                        printf( "%f\t", scal.val[0]); 
+                        printf( "%f,\t", scal.val[0]); 
                     }
-                    printf("\n");
+                    printf("]\n");
                 }
                 printf("\n");
                 
@@ -601,11 +602,12 @@ void Scan3dApp::camCalUpdate(){
             printf("Camera Intrinsic Matrix: \n");
             printf("\n");
             for(int r = 0; r < 3; r++){
+                cout << "[";
                 for(int c = 0; c < 3; c++){
                     CvScalar scal = cvGet2D(cam_intrinsic_matrix,r,c); 
-                    printf( "%f\t", scal.val[0]); 
+                    printf( "%f,\t", scal.val[0]); 
                 }
-                printf("\n");
+                printf("]\n");
             }
             printf("\n");
             
@@ -762,11 +764,12 @@ void Scan3dApp::projCalUpdate(){
                 printf("Projector Intrinsic Matrix: \n");
                 printf("\n");
                 for(int r = 0; r < 3; r++){
+                    cout << "[";
                     for(int c = 0; c < 3; c++){
                         CvScalar scal = cvGet2D(proj_intrinsic_matrix,r,c); 
-                        printf( "%f\t", scal.val[0]); 
+                        printf( "%f,\t", scal.val[0]); 
                     }
-                    printf("\n");
+                    printf("]\n");
                 }
                 printf("\n");
                 
@@ -833,11 +836,12 @@ void Scan3dApp::projCalUpdate(){
             printf("Projector Intrinsic Matrix: \n");
             printf("\n");
             for(int r = 0; r < 3; r++){
+                cout << "[";
                 for(int c = 0; c < 3; c++){
                     CvScalar scal = cvGet2D(proj_intrinsic_matrix,r,c); 
-                    printf( "%f\t", scal.val[0]); 
+                    printf( "%f,\t", scal.val[0]); 
                 }
-                printf("\n");
+                printf("]\n");
             }
             printf("\n");
             
@@ -847,11 +851,11 @@ void Scan3dApp::projCalUpdate(){
 
             proj_principal_point = ofVec2f(CV_MAT_ELEM( *proj_intrinsic_matrix, float, 0,2 ),CV_MAT_ELEM( *proj_intrinsic_matrix, float, 1,2));
 
-            cout << "Projector Principal Point: [" << proj_principal_point << "]\n\n" << endl;
+            cout << "Projector Principal Point: [" << proj_principal_point << "]\n" << endl;
 
             proj_skew_coeff = CV_MAT_ELEM( *proj_intrinsic_matrix, float, 1, 0 );
 
-            cout << "Projector Skew Coefficient (alpha_c): " << proj_skew_coeff  << "\n\n"<< endl;
+            cout << "Projector Skew Coefficient (alpha_c): " << proj_skew_coeff  << "\n"<< endl;
             CV_MAT_ELEM( *proj_distortion_coeffs, float, 4,0) = 0.0;
             printf("Projector Distortion Coefficients (kc):");
             printf("\n");
@@ -894,9 +898,9 @@ void Scan3dApp::projCalUpdate(){
 
 
 
-ofPoint Scan3dApp::pt3DToPixel(const CvMat* intrinsicMat, const CvMat* extrinsicMat, ofPoint pt3D){
+ofPoint Scan3dApp::pt3DToPixel(const CvMat* intrinsicMat, const CvMat* extrinsicMat, const CvMat* distCoeffs, ofPoint pt3D){
     CvMat* A = cvCreateMat( 3, 4, CV_32FC1 );
-    cvMatMul(cam_intrinsic_matrix,cam_extrinsic_matrix,A); //combining into one matrix
+    cvMatMul(intrinsicMat,extrinsicMat,A); //combining into one matrix
     CvMat* x = cvCreateMat( 4, 1, CV_32FC1 ); // homogenized point
     CV_MAT_ELEM(*x, float, 0,0) = pt3D.x;
     CV_MAT_ELEM(*x, float, 1,0) = pt3D.y;
@@ -1305,7 +1309,7 @@ void Scan3dApp::points3dUpdate(){
                                     // not a valid point
                                 }
                                 else{
-                                    ofPoint pixelPt = pt3DToPixel(cam_intrinsic_matrix,cam_extrinsic_matrix,pt);
+                                    ofPoint pixelPt = pt3DToPixel(cam_intrinsic_matrix,cam_extrinsic_matrix,cam_distortion_coeffs, pt);
                                     points[numPoints] = pt;
                                     
                                     ofColor pixelColor = ofColor(   (int)colorImgPixels[3*((int)pixelPt.x+(int)pixelPt.y*width)],(int)colorImgPixels[3*((int)pixelPt.x+(int)pixelPt.y*width)+1],
@@ -1587,18 +1591,19 @@ y_world = (y_screen - c_y) * z_world / f_y
 
 */
 
-void Scan3dApp::computeCameraExtrinsicMatrix(ofPoint *objectPoints, ofPoint *imagePoints, CvMat* cameraMatrix, CvMat* distCoeffs){
-    CvMat* cvObjectPoints = cvCreateMat( 8, 3, CV_32FC1 );
-    CvMat* cvImagePoints = cvCreateMat( 8, 2, CV_32FC1 );
+void Scan3dApp::computeCameraExtrinsicMatrix(int num, ofPoint *objectPoints, ofPoint *imagePoints, CvMat* cameraMatrix, CvMat* distCoeffs){
+  
+    CvMat* cvObjectPoints = cvCreateMat( num, 3, CV_32FC1 );
+    CvMat* cvImagePoints = cvCreateMat( num, 2, CV_32FC1 );
     CvMat* tvec = cvCreateMat(3,1, CV_32FC1); 
     CvMat* rvec = cvCreateMat(3,1, CV_32FC1); 
-    convertOfPointsToCvMat(objectPoints,3,8, cvObjectPoints);
-    convertOfPointsToCvMat(imagePoints,2,8, cvImagePoints);
+    convertOfPointsToCvMat(objectPoints,3,num, cvObjectPoints);
+    convertOfPointsToCvMat(imagePoints,2,num, cvImagePoints);
     cvFindExtrinsicCameraParams2(cvObjectPoints,cvImagePoints,cameraMatrix, distCoeffs,rvec,tvec);
     cvReleaseMat(&cvObjectPoints);
     cvReleaseMat(&cvImagePoints);
 
-    printf("tvec: [%f,%f,%f]\n\n",
+    printf("tvec: [%f,%f,%f]\n",
         CV_MAT_ELEM(*tvec,float,0,0),
         CV_MAT_ELEM(*tvec,float,1,0),
         CV_MAT_ELEM(*tvec,float,2,0));
@@ -1608,7 +1613,7 @@ void Scan3dApp::computeCameraExtrinsicMatrix(ofPoint *objectPoints, ofPoint *ima
 
     cvRodrigues2(rvec,rotmat);
 
-    printf("rotmat: \n[%f,%f,%f]\n[%f,%f,%f]\n[%f,%f,%f]\n\n\n",
+    printf("rotmat: \n[%f,%f,%f]\n[%f,%f,%f]\n[%f,%f,%f]\n\n",
         CV_MAT_ELEM(*rotmat,float,0,0),
         CV_MAT_ELEM(*rotmat,float,0,1),
         CV_MAT_ELEM(*rotmat,float,0,2),
@@ -1632,7 +1637,7 @@ void Scan3dApp::computeCameraExtrinsicMatrix(ofPoint *objectPoints, ofPoint *ima
     }
 
 
-    printf("cam_extrinsic_matrix: \n[%f,%f,%f,%f]\n[%f,%f,%f,%f]\n[%f,%f,%f,%f]\n\n\n",
+    printf("cam_extrinsic_matrix: \n[%f,%f,%f,%f]\n[%f,%f,%f,%f]\n[%f,%f,%f,%f]\n\n",
         CV_MAT_ELEM(*cam_extrinsic_matrix,float,0,0),
         CV_MAT_ELEM(*cam_extrinsic_matrix,float,0,1),
         CV_MAT_ELEM(*cam_extrinsic_matrix,float,0,2),
@@ -1647,64 +1652,29 @@ void Scan3dApp::computeCameraExtrinsicMatrix(ofPoint *objectPoints, ofPoint *ima
         CV_MAT_ELEM(*cam_extrinsic_matrix,float,2,1),
         CV_MAT_ELEM(*cam_extrinsic_matrix,float,2,2),
         CV_MAT_ELEM(*cam_extrinsic_matrix,float,2,3)
+
     );
 
+    CvMat* rotmatTranspose = cvCreateMat(3,3,CV_32FC1);
+    cvTranspose(rotmat,rotmatTranspose);
 
-    CvMat* transRotmat = cvCreateMat( 3,3, CV_32FC1 );
-    cvTranspose(rotmat,transRotmat);
+    CvMat* negRotmatTranspose = cvCreateMat(3,3,CV_32FC1);
+    cvScale(rotmatTranspose,negRotmatTranspose,-1);
+    cout << "Play your fiddle hard" << endl;
+    CvMat* cameraPosition = cvCreateMat(3,1,CV_32FC1);
+    cvMatMul(negRotmatTranspose,tvec,cameraPosition);
+    cout << "Dem boys got deh blues" << endl;
+    camPos = ofPoint(CV_MAT_ELEM(*cameraPosition,float,0,0),CV_MAT_ELEM(*cameraPosition,float,1,0),CV_MAT_ELEM(*cameraPosition,float,2,0));
 
-    printf("rotmat^t: \n[%f,%f,%f]\n[%f,%f,%f]\n[%f,%f,%f]\n\n\n",
-        CV_MAT_ELEM(*transRotmat,float,0,0),
-        CV_MAT_ELEM(*transRotmat,float,0,1),
-        CV_MAT_ELEM(*transRotmat,float,0,2),
-        CV_MAT_ELEM(*transRotmat,float,1,0),
-        CV_MAT_ELEM(*transRotmat,float,1,1),
-        CV_MAT_ELEM(*transRotmat,float,1,2),
-        CV_MAT_ELEM(*transRotmat,float,2,0),
-        CV_MAT_ELEM(*transRotmat,float,2,1),
-        CV_MAT_ELEM(*transRotmat,float,2,2)
-    );
-
-
-    
-
-    CvMat* negTransRotmat = cvCreateMat( 3,3, CV_32FC1 );
-    cvScale(transRotmat,negTransRotmat,-1);
-
-    printf("-rotmat^t: \n[%f,%f,%f]\n[%f,%f,%f]\n[%f,%f,%f]\n\n\n",
-        CV_MAT_ELEM(*negTransRotmat,float,0,0),
-        CV_MAT_ELEM(*negTransRotmat,float,0,1),
-        CV_MAT_ELEM(*negTransRotmat,float,0,2),
-        CV_MAT_ELEM(*negTransRotmat,float,1,0),
-        CV_MAT_ELEM(*negTransRotmat,float,1,1),
-        CV_MAT_ELEM(*negTransRotmat,float,1,2),
-        CV_MAT_ELEM(*negTransRotmat,float,2,0),
-        CV_MAT_ELEM(*negTransRotmat,float,2,1),
-        CV_MAT_ELEM(*negTransRotmat,float,2,2)
-    );
-
-
-    CvMat* camTransVec = cvCreateMat(3,1, CV_32FC1);  
-    cvMatMul(negTransRotmat,tvec,camTransVec);
-
-    camPos = ofPoint(CV_MAT_ELEM(*camTransVec,float,0,0),CV_MAT_ELEM(*camTransVec,float,1,0),CV_MAT_ELEM(*camTransVec,float,2,0));
 
     printf("camPos: [");
     cout << camPos << "]\n\n" << endl;
 
-    CvMat* camRotVec = cvCreateMat(3,1, CV_32FC1); 
-    cvRodrigues2(transRotmat,camRotVec);
-
-    camRotMat = cvCreateMat(3,3, CV_32FC1); 
-    cvRodrigues2(camRotVec,camRotMat);
-
-    camInvIntrinsic = cvCreateMat( 3,3, CV_32FC1 );
-    cvInv(cameraMatrix,camInvIntrinsic);
-
-
     cvReleaseMat(&tvec);
     cvReleaseMat(&rvec);
     cvReleaseMat(&rotmat);   
+    cvReleaseMat(&rotmatTranspose);   
+    cvReleaseMat(&negRotmatTranspose);   
 }
 
 ofxRay3d Scan3dApp::camPixelToRay(const CvMat* intrinsicMat, const CvMat* extrinsicMat, ofPoint imagePt){
@@ -1715,6 +1685,8 @@ ofxRay3d Scan3dApp::camPixelToRay(const CvMat* intrinsicMat, const CvMat* extrin
     CV_MAT_ELEM(*homoImgPt,float,2,0) = 1.0;
 
     CvMat* resPt = cvCreateMat(3,1, CV_32FC1); 
+
+    cvInv(intrinsicMat,camInvIntrinsic);
 
     cvMatMul(camInvIntrinsic,homoImgPt,resPt);
 
@@ -1761,12 +1733,12 @@ Move that ray to whatever coordinate system you like.
 
 */
 void Scan3dApp::setCameraAndProjector(){
-    computeCameraExtrinsicMatrix(projPlaneObjectPts, projPlaneImagePts, cam_intrinsic_matrix, cam_distortion_coeffs);
+    computeCameraExtrinsicMatrix(4,projPlaneObjectPts, projPlaneImagePts, cam_intrinsic_matrix, cam_distortion_coeffs);
 
     ofPoint testPt;
 
     for(int i = 0; i < 4; i++){
-        testPt = pt3DToPixel(cam_intrinsic_matrix, cam_extrinsic_matrix, projPlaneObjectPts[i]);
+        testPt = pt3DToPixel(cam_intrinsic_matrix, cam_extrinsic_matrix, cam_distortion_coeffs, projPlaneObjectPts[i]);
         cout << "Reprojection [expected][returned] : [" << projPlaneImagePts[i] << "] [" << testPt << "]" << endl;
     }
     printf("camPos:\n");
