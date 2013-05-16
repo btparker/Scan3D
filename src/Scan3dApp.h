@@ -21,7 +21,7 @@ enum ProjectorCalibration{PROJ_CAL_PROCESSING, PROJ_CAL_LOADING, PROJ_CAL_WAITIN
 enum Points3d{POINTS3D_PROCESSING, POINTS3D_WAITING};
 
 
-enum { COLOR, GRAYSCALE, MINIMAGE, MAXIMAGE, SHADOWTHRESHIMAGE, DIFF, THRESH, EDGE, CORNER, BINCODE};
+enum { COLOR, GRAYSCALE, MINIMAGE, MAXIMAGE, SHADOWTHRESHIMAGE, DIFF, THRESH, EDGE, CORNER, BINCODE, CTEMPORAL, RTEMPORAL};
 enum { UP, DOWN, LEFT, RIGHT, VERTICAL, HORIZONTAL, BOTH, LOG};
 enum {VIDEO,IMAGE_SEQUENCE,NONE};
 
@@ -127,15 +127,18 @@ class Scan3dApp : public ofBaseApp{
 		int projWidth,projHeight;
 		int projType;
 
+		float screenScale;
+
+
+
 		ofxCvGrayscaleImage minImg;
 		ofxCvGrayscaleImage maxImg;
 		ofxCvColorImage maxColorImg;
 		ofxCvGrayscaleImage shadowThreshImg;
 		ofxCvColorImage temporalImg;
 		ofxCvGrayscaleImage diffFrame;
+		ofxCvGrayscaleImage invDiffFrame;
 		ofxCvGrayscaleImage noiseImg;
-		ofxCvFloatImage rowMapping;
-		ofxCvFloatImage colMapping;
 		ofxCvGrayscaleImage codeImg;
 
 		ofImage bufferOfImage;
@@ -143,12 +146,16 @@ class Scan3dApp : public ofBaseApp{
 		ofxCvGrayscaleImage bufferOfxCvGrayscaleImage;
 
 		vector<ofxCvGrayscaleImage> frames;
-		vector<ofxCvGrayscaleImage> threshFrames;
-		vector<ofxCvGrayscaleImage> binCodeFrames;
+		vector<ofxCvGrayscaleImage> colFrames;
+		vector<ofxCvGrayscaleImage> invColFrames;
+		vector<ofxCvGrayscaleImage> rowFrames;
+		vector<ofxCvGrayscaleImage> invRowFrames;
+		vector<ofxCvGrayscaleImage> codeFrames;
 		vector<ofxPlane> planes;
 
 		unsigned int frameBufferSize;
-		int zeroCrossingThreshold;
+		int maxThreshold;
+		int minThreshold;
 
 		ofRectangle topSection;
 		ofRectangle bottomSection;
@@ -202,6 +209,15 @@ class Scan3dApp : public ofBaseApp{
 		int cam_corner_count;
 		IplImage* cammapx;
 		IplImage* cammapy;
+		
+		IplImage* rowMapping16Img;
+		IplImage* colMapping16Img;
+
+		int numColMapFrames;
+		int numRowMapFrames;
+		
+		ofxCvColorImage rowMappingColorImg;
+		ofxCvColorImage colMappingColorImg;
 
 		string camIntrinsicFilename;
 		string camDistortionFilename;

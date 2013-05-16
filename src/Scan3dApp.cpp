@@ -75,11 +75,18 @@ void Scan3dApp::setup(){
     noiseImg.allocate(width,height);
     noiseImg.set(0);
     temporalImg.allocate(width,height);
-    rowMapping.allocate(width,height);
-    rowMapping.set(0);
-    colMapping.allocate(width,height);
-    colMapping.set(0);
+    rowMappingColorImg.allocate(width,height);
+    rowMappingColorImg.set(0);
+    colMappingColorImg.allocate(width,height);
+    colMappingColorImg.set(0);
     diffFrame.allocate(width,height);
+    invDiffFrame.allocate(width,height);
+
+    rowMapping16Img = cvCreateImage(cvSize(width,height),IPL_DEPTH_16U,1);
+    colMapping16Img = cvCreateImage(cvSize(width,height),IPL_DEPTH_16U,1);
+
+
+    codeImg.allocate(projWidth,projHeight);
     
 
     
@@ -87,12 +94,20 @@ void Scan3dApp::setup(){
 
     ofSetWindowShape(width,height+messageBarHeight);
 
-
-    // = 100;
     numFrames = dir.numFiles();
-    frames.resize(numFrames,bufferOfxCvGrayscaleImage);
-    threshFrames.resize(numFrames,bufferOfxCvGrayscaleImage);
     
+    
+    frames.resize(numFrames,bufferOfxCvGrayscaleImage);
+
+    numColMapFrames = log2(projWidth);
+    colFrames.resize(numColMapFrames,bufferOfxCvGrayscaleImage);
+    invColFrames.resize(numColMapFrames,bufferOfxCvGrayscaleImage);
+
+    numRowMapFrames = log2(projHeight);
+    rowFrames.resize(numRowMapFrames,bufferOfxCvGrayscaleImage);
+    invRowFrames.resize(numRowMapFrames,bufferOfxCvGrayscaleImage);
+
+    codeFrames.resize(numFrames,codeImg);
 
     topSectionColor.r = 255;
     topSectionColor.g = 155;
@@ -159,10 +174,9 @@ void Scan3dApp::setup(){
 
     points3dSubstate = POINTS3D_PROCESSING;
 
-    codeImg.allocate(projWidth,projHeight);
-
     bufferOfImage.loadImage(projCalDir.getPath(projCalDir.numFiles()-1));
     colorFrame.setFromPixels(bufferOfImage.getPixels(),width,height);
+
 }
 
 void Scan3dApp::assertPoint(ofPoint pt){
@@ -264,7 +278,8 @@ void Scan3dApp::loadSettings(){
                     settings.popTag();
                 settings.popTag();
                 settings.pushTag("misc");
-                    zeroCrossingThreshold = settings.getValue("zeroCrossingThreshold", 0);
+                    minThreshold = settings.getValue("minThreshold", 0);
+                    maxThreshold = settings.getValue("maxThreshold", 0);
                 settings.popTag();// pop misc
             settings.popTag(); // pop user
 		settings.popTag(); // pop settings
@@ -345,7 +360,8 @@ void Scan3dApp::saveSettings(){
             settings.popTag(); //pop calibration
             settings.addTag("misc");
             settings.pushTag("misc");
-                settings.setValue("zeroCrossingThreshold", zeroCrossingThreshold);
+                settings.setValue("minThreshold", minThreshold);
+                settings.setValue("maxThreshold", maxThreshold);
             settings.popTag();// pop misc
         settings.popTag(); //pop user
         settings.addTag("scene");
@@ -890,6 +906,8 @@ void Scan3dApp::convertOfPointsToCvMat(ofPoint *pts, int dimensions, int size, C
 }
 
 void Scan3dApp::captureUpdate(){
+
+    cout << "Frame Index " << frameIndex << endl;
     messageBarText = "SCANNING";
     switch(displayState){
         case COLOR:
@@ -919,7 +937,8 @@ void Scan3dApp::captureUpdate(){
                 colorFrame.setFromPixels(vid.getPixels(),vid.getWidth(),vid.getHeight());
                 colorFrame.flagImageChanged();
                 colorFrame.updateTexture();
-                colorFrame.remap(cammapx,cammapy);}
+                colorFrame.remap(cammapx,cammapy);
+            }
 
 
             framesDone = vid.getIsMovieDone();
@@ -931,7 +950,8 @@ void Scan3dApp::captureUpdate(){
                 colorFrame.setFromPixels(bufferOfImage.getPixels(),width,height);
                 colorFrame.flagImageChanged();
                 colorFrame.updateTexture();
-                colorFrame.remap(cammapx,cammapy);}
+                colorFrame.remap(cammapx,cammapy);
+            }
 
             else{
                 framesDone = true; 
@@ -942,11 +962,13 @@ void Scan3dApp::captureUpdate(){
 
     if(framesDone){
         colorFrame = maxColorImg;
-        messageBarText = "POINTS3D";
+        messageBarText = "PROCESSING";
         messageBarSubText = "";
         programState = PROCESSING;
         planes.resize(numFrames,ofxPlane());
-        frameIndex = 0;
+        frameIndex = 0; // skipping the all light and all dark frames
+        rowIndex = 0;
+        colIndex = 0;
     }
     else{
         grayscaleFrame = colorFrame;
@@ -961,7 +983,7 @@ void Scan3dApp::captureUpdate(){
             codeImg = computeGrayCodeImage(projWidth,projHeight,power,inverse,type);
         }
         
-
+        codeFrames[frameIndex] = codeImg;
 
         if(frameIndex == 0){
             maxColorImg = colorFrame;
@@ -984,22 +1006,30 @@ void Scan3dApp::captureUpdate(){
             noiseImg = shadowThreshImg;
             noiseImg -= minImg;
             noiseImg.blurGaussian();
-            noiseImg -= 20;
-            noiseImg.threshold(0,true);
-
-            // Makes more math sense to lead with all black image
-            diffFrame.set(0);
-            threshFrames[0] = diffFrame;
-
-            diffFrame.set(255);
-            threshFrames[1] = diffFrame;
+            noiseImg -= minThreshold;
+            noiseImg.threshold(0,false);
+            
         }
         else{
-            diffFrame = grayscaleFrame;
-            diffFrame -= shadowThreshImg;
-            diffFrame -= noiseImg;
-            diffFrame.threshold(0);
-            threshFrames[frameIndex] = diffFrame;
+            grayscaleFrame *= noiseImg;
+            if(colIndex < numColMapFrames){
+                if(frameIndex%2 == 0){
+                    colFrames[colIndex] = grayscaleFrame;
+                }
+                else if(frameIndex%2 == 1){
+                    invColFrames[colIndex] = grayscaleFrame;
+                    colIndex++;
+                }
+            }
+            else if(rowIndex < numRowMapFrames){
+                if(frameIndex%2 == 0){
+                    rowFrames[rowIndex] = grayscaleFrame;
+                }
+                else if(frameIndex%2 == 1){
+                    invRowFrames[rowIndex] = grayscaleFrame;
+                    rowIndex++;
+                }
+            }
         }
 
         frames[frameIndex] = grayscaleFrame;    
@@ -1020,65 +1050,158 @@ void Scan3dApp::captureUpdate(){
 
 void Scan3dApp::processingUpdate(){
 
-}
-
-/*  
-*   Computing the enter and exit frames, used to create the temporal image
-*/
-/*
-unsigned char* diffFramePixels = diffFrame.getPixels();
-unsigned char* temporalImgPixels = temporalImg.getPixels();
-unsigned char* rowMappingPixels = rowMapping.getPixels();
-unsigned char* colMappingPixels = colMapping.getPixels();
-
-
-for(int r = 0; r < height; r++){
-    for(int c = 0; c < width; c++){
-        if(diffFramePixels[c+r*width] == 0){ // pixel in shadow
-            if(rowMappingPixels[c+r*width] == 0){ // Never been in shadow before
-                float framePixelMapping = ofMap(frameIndex,0,numFrames,0.0,255.0);
-
-                rowMappingPixels[c+r*width] = framePixelMapping; // Setting the enter frame to the current frame
-
-                ofColor temporalColor;
-
-
-                if(framePixelMapping <= zeroCrossingThreshold){
-                    temporalColor = ofColor(0,0,0);
-                }
-                else{
-                    temporalColor = ofColor::fromHsb(framePixelMapping,255,255);
-                }
-                
-                
-                temporalImgPixels[3*(c+r*width)] =      temporalColor.r;
-                temporalImgPixels[3*(c+r*width)+1] =    temporalColor.g;
-                temporalImgPixels[3*(c+r*width)+2] =    temporalColor.b;
-            }
-            
-        }
-        else{ // Pixel is not in shadow
-            if(rowMappingPixels[c+r*width] == 0){ // Never been in shadow before
-                // do squat
-            }
-            else{ // Pixel has been in shadow but is no longer
-                if(colMappingPixels[c+r*width]== 0){ // First time exiting shadow
-                    colMappingPixels[c+r*width]= ofMap(frameIndex,0,numFrames,0.0,255.0);
-                }
-                else{
-                    // do squat
-                }
-            }
-            
-        }
+    messageBarText = "PROCESSING";
+    switch(displayState){
+        case COLOR:
+            messageBarText += "  (COLOR)";
+            break;
+        case GRAYSCALE:
+            messageBarText += "  (GRAYSCALE)";
+            break;
+        case MINIMAGE:
+            messageBarText += "  (MIN)";
+            break;
+        case MAXIMAGE:
+            messageBarText += "  (MAX)";
+            break;
+        case CTEMPORAL:
+            messageBarText += "  (CTEMPORAL)";
+            break;
+        case RTEMPORAL:
+            messageBarText += "  (RTEMPORAL)";
+            break;
     }
+
+    bool hasColFrame = colIndex < numColMapFrames;
+    bool hasRowFrame = rowIndex < numRowMapFrames;
+    
+
+    //Done with frames
+    if(!hasColFrame && !hasRowFrame){
+        colIndex = 0;
+        rowIndex = 0;
+        programState = POINTS3D;
+    }
+    else{
+        unsigned char* colFramePixels;
+        unsigned char*  invColFramePixels;
+
+        if(hasColFrame){
+            colFramePixels = colFrames[colIndex].getPixels();
+            invColFramePixels = invColFrames[colIndex].getPixels();
+        }
+
+        unsigned char* rowFramePixels;
+        unsigned char*  invRowFramePixels;
+
+        if(hasRowFrame){
+            rowFramePixels = rowFrames[rowIndex].getPixels();
+            invRowFramePixels = invRowFrames[rowIndex].getPixels();
+        }
+
+        const unsigned char* shadowThreshImgPixels = shadowThreshImg.getPixels();
+
+        unsigned char* rowMappingColorPixels = rowMappingColorImg.getPixels();
+        unsigned char* colMappingColorPixels = colMappingColorImg.getPixels();
+        unsigned short* rowMappingPixels = (unsigned short*)rowMapping16Img->imageData;
+        unsigned short* colMappingPixels = (unsigned short*)colMapping16Img->imageData;
+
+        ofColor colMappingColor;
+        ofColor rowMappingColor;
+
+        int maxColValue = pow(2,numColMapFrames);
+        int maxRowValue = pow(2,numRowMapFrames);
+
+        printf("Processing [colIndex, rowIndex, projWidth, projHeight, maxColValue, maxRowValue] = [%d, %d, %d, %d, %d, %d]\n",colIndex,rowIndex, projWidth, projHeight, maxColValue, maxRowValue);
+
+        int shadowThreshPixel; 
+
+        int colFramePixel,invColFramePixel; 
+        int rowFramePixel,invRowFramePixel; 
+
+        unsigned short rowMappingPixel;
+        unsigned short colMappingPixel;
+
+        bool colIlluminated;
+        bool rowIlluminated;
+
+
+        for(int r = 0; r < height; r++){
+            for(int c = 0; c < width; c++){
+                shadowThreshPixel = shadowThreshImgPixels[c+r*width];
+                colIlluminated = false;
+                rowIlluminated = false;
+
+                if(hasColFrame){
+                    colFramePixel = colFramePixels[c+r*width];
+                    invColFramePixel = invColFramePixels[c+r*width];
+
+                    colIlluminated = colFramePixel >= (shadowThreshPixel+maxThreshold) && invColFramePixel <= (shadowThreshPixel-minThreshold);
+                }
+                if(hasRowFrame){
+                    rowFramePixel = rowFramePixels[c+r*width];
+                    invRowFramePixel = invRowFramePixels[c+r*width];
+
+                    rowIlluminated = rowFramePixel >= (shadowThreshPixel+maxThreshold) && invRowFramePixel <= (shadowThreshPixel-minThreshold);
+                }
+
+
+                colMappingPixel = colMappingPixels[c+r*width];
+                rowMappingPixel = rowMappingPixels[c+r*width];
+
+                if(colIlluminated){
+                    colMappingPixel |= 1 << (numColMapFrames - colIndex - 1);                
+                }
+
+                if(rowIlluminated){
+                    rowMappingPixel |= 1 << (numRowMapFrames - rowIndex - 1);            
+                }
+
+                // if(hasColFrame){
+                //     colMappingPixel = colMappingPixel << 1;
+                // }
+                // if(hasRowFrame){
+                //     rowMappingPixel = rowMappingPixel << 1;
+                // }
+                
+                
+
+
+                colMappingPixels[c+r*width] = colMappingPixel;
+                rowMappingPixels[c+r*width] = rowMappingPixel;
+
+                if(colMappingPixel == 0){
+                    colMappingColor.setHsb(0,0,0);
+                }
+                else{
+                    colMappingColor.setHsb(ofMap(colMappingPixel,0,maxColValue,0,255),255,255);   
+                }
+                colMappingColorPixels[3*(c+r*width)+0] = colMappingColor.r; 
+                colMappingColorPixels[3*(c+r*width)+1] = colMappingColor.g; 
+                colMappingColorPixels[3*(c+r*width)+2] = colMappingColor.b;
+
+                if(rowMappingPixel == 0){
+                    rowMappingColor.setHsb(0,0,0);
+                }
+                else{
+                    rowMappingColor.setHsb(ofMap(rowMappingPixel,0,maxRowValue,0,255),255,255);   
+                }
+                rowMappingColorPixels[3*(c+r*width)+0] = rowMappingColor.r; 
+                rowMappingColorPixels[3*(c+r*width)+1] = rowMappingColor.g; 
+                rowMappingColorPixels[3*(c+r*width)+2] = rowMappingColor.b; 
+            }
+        }
+
+        colMappingColorImg.setFromPixels(colMappingColorPixels,width,height);
+        rowMappingColorImg.setFromPixels(rowMappingColorPixels,width,height);
+        colIndex++;
+        rowIndex++;
+    }
+
+    
 }
 
-rowMapping.setFromPixels(rowMappingPixels,width,height);
-colMapping.setFromPixels(colMappingPixels,width,height);
-temporalImg.setFromPixels(temporalImgPixels,width,height);
 
-*/
 
 void Scan3dApp::points3dUpdate(){
     
@@ -1089,7 +1212,7 @@ void Scan3dApp::points3dUpdate(){
 
     unsigned char* temporalImgPixels = temporalImg.getPixels(); 
     unsigned char* colorImgPixels = colorFrame.getPixels(); 
-    // unsigned char* rowMappingPixels = rowMapping.getPixels(); 
+    // unsigned char* rowMappingPixels = rowMapping16Img.getPixels(); 
 
     // float rowMappingPixel = 0.0;
     switch(points3dSubstate){
@@ -1150,8 +1273,7 @@ void Scan3dApp::points3dUpdate(){
                                     ofPoint pixelPt = pt3DToPixel(cam_intrinsic_matrix,cam_extrinsic_matrix,pt);
                                     points[numPoints] = pt;
                                     
-                                    ofColor pixelColor = ofColor(   (int)colorImgPixels[3*((int)pixelPt.x+(int)pixelPt.y*width)],
-                                                                    (int)colorImgPixels[3*((int)pixelPt.x+(int)pixelPt.y*width)+1],
+                                    ofColor pixelColor = ofColor(   (int)colorImgPixels[3*((int)pixelPt.x+(int)pixelPt.y*width)],(int)colorImgPixels[3*((int)pixelPt.x+(int)pixelPt.y*width)+1],
                                                                     (int)colorImgPixels[3*((int)pixelPt.x+(int)pixelPt.y*width)+2]
                                                                 );
 
@@ -1236,7 +1358,6 @@ void Scan3dApp::writePointsToFile(int numPoints){
 
 //--------------------------------------------------------------
 void Scan3dApp::draw(){
-    
     ofBackground(60);
     ofSetColor(255);
 
@@ -1256,16 +1377,12 @@ void Scan3dApp::draw(){
         case MAXIMAGE:
             maxImg.draw(0, 0);
             break;
-        case SHADOWTHRESHIMAGE:
-            shadowThreshImg.draw(0, 0);
+        case CTEMPORAL:
+            colMappingColorImg.draw(0, 0);
             break;
-        case DIFF:
-            diffFrame.draw(0, 0);
+        case RTEMPORAL:
+            rowMappingColorImg.draw(0, 0);
             break;
-        case BINCODE:
-            codeImg.draw(0, 0);
-            break;
-
     }
 
     switch(programState){
@@ -1533,13 +1650,10 @@ void Scan3dApp::keyPressed(int key){
             displayState = MAXIMAGE;
             break;
         case 53:
-            displayState = SHADOWTHRESHIMAGE;
+            displayState = CTEMPORAL;
             break;
         case 54:
-            displayState = DIFF;
-            break;
-        case 55:
-            displayState = BINCODE;
+            displayState = RTEMPORAL;
             break;
         case 'q':
             std::exit(1);

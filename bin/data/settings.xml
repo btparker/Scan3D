@@ -5,7 +5,7 @@
             <src>/home/btparker/Dropbox/Projects/Active/3D Scanning/oF/apps/myApps/Scan3D/bin/data/man_bin</src>
             <projWidth>1024</projWidth>
             <projHeight>1024</projHeight>
-            <projType>7</projType>
+            <projType>BIN</projType>
         </input>
         <calibration>
             <cam>
@@ -26,8 +26,8 @@
                 <plane>
                     <marker0>
                         <imagePt>
-                            <x>813.000000000</x>
-                            <y>627.000000000</y>
+                            <x>809.782043457</x>
+                            <y>628.566589355</y>
                         </imagePt>
                         <objectPt>
                             <x>0.000000000</x>
@@ -37,8 +37,8 @@
                     </marker0>
                     <marker1>
                         <imagePt>
-                            <x>794.000000000</x>
-                            <y>107.000000000</y>
+                            <x>792.809143066</x>
+                            <y>106.665298462</y>
                         </imagePt>
                         <objectPt>
                             <x>0.000000000</x>
@@ -48,8 +48,8 @@
                     </marker1>
                     <marker2>
                         <imagePt>
-                            <x>149.000000000</x>
-                            <y>102.000000000</y>
+                            <x>147.420410156</x>
+                            <y>100.409759521</y>
                         </imagePt>
                         <objectPt>
                             <x>0.000000000</x>
@@ -59,8 +59,8 @@
                     </marker2>
                     <marker3>
                         <imagePt>
-                            <x>169.000000000</x>
-                            <y>677.000000000</y>
+                            <x>168.186935425</x>
+                            <y>675.818420410</y>
                         </imagePt>
                         <objectPt>
                             <x>0.000000000</x>
@@ -72,7 +72,8 @@
             </proj>
         </calibration>
         <misc>
-            <zeroCrossingThreshold>0</zeroCrossingThreshold>
+            <minThreshold>20</minThreshold>
+            <maxThreshold>20</maxThreshold>
         </misc>
     </user>
     <scene></scene>
