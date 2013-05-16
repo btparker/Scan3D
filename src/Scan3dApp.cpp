@@ -1517,7 +1517,7 @@ ofPoint Scan3dApp::getNearestCorner(ofxCvGrayscaleImage img, int windowSize, int
     return cornerPt;
 }
 
-void Scan3dApp::computeExtrinsicMatrix(ofPoint *objectPoints, ofPoint *imagePoints, CvMat* cameraMatrix, CvMat* distCoeffs){
+void Scan3dApp::computeCameraExtrinsicMatrix(ofPoint *objectPoints, ofPoint *imagePoints, CvMat* cameraMatrix, CvMat* distCoeffs){
     CvMat* cvObjectPoints = cvCreateMat( 8, 3, CV_32FC1 );
     CvMat* cvImagePoints = cvCreateMat( 8, 2, CV_32FC1 );
     CvMat* tvec = cvCreateMat(3,1, CV_32FC1); 
@@ -1631,6 +1631,9 @@ void Scan3dApp::keyPressed(int key){
     switch(key){
         case 32: //SPACEBAR
             if(programState ==  PROJECTOR_CALIBRATION){
+                computeCameraExtrinsicMatrix(projPlaneObjectPts, projPlaneImagePts, cam_intrinsic_matrix, cam_distortion_coeffs);
+                printf("camPos:\n");
+                cout << camPos << endl;
                 programState = CAPTURE;
                 saveSettings();
             }
@@ -1638,7 +1641,6 @@ void Scan3dApp::keyPressed(int key){
             break;
         case 49:
             displayState = COLOR;
-
             break;
         case 50:
             displayState = GRAYSCALE;
@@ -1901,9 +1903,9 @@ void Scan3dApp::drawPointCloud() {
             case POINTS3D_WAITING:
                 mesh.setMode(OF_PRIMITIVE_POINTS);
                 
-                for(int i =0; i < points.size(); i += step){  
-                    mesh.addColor(colors[i]);
-                    mesh.addVertex((ofVec3f)points[i]);
+                for(int i =0; i < 4; i += step){  
+                    mesh.addColor(ofColor(0,255,0));
+                    mesh.addVertex((ofVec3f)projPlaneObjectPts[i]);
                 }
                 glPointSize(3);
                 ofPushMatrix();
