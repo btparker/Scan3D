@@ -11,7 +11,7 @@
             <cam>
                 <frames>/home/btparker/Dropbox/Projects/Active/3D Scanning/oF/apps/myApps/Scan3D/bin/data/calib_2/cam</frames>
                 <camBoardXCount>8</camBoardXCount>
-                <camBoardYCount>7</camBoardYCount>
+                <camBoardYCount>6</camBoardYCount>
                 <camBoardSquareSize>38.000000000</camBoardSquareSize>
                 <camIntrinsicFile>/home/btparker/Dropbox/Projects/Active/3D Scanning/oF/apps/myApps/Scan3D/bin/data/cam_intrinsic.xml</camIntrinsicFile>
                 <camDistortionFile>/home/btparker/Dropbox/Projects/Active/3D Scanning/oF/apps/myApps/Scan3D/bin/data/cam_distortion.xml</camDistortionFile>
@@ -48,8 +48,8 @@
                     </marker1>
                     <marker2>
                         <imagePt>
-                            <x>147.420410156</x>
-                            <y>100.409759521</y>
+                            <x>147.420440674</x>
+                            <y>100.409706116</y>
                         </imagePt>
                         <objectPt>
                             <x>0.000000000</x>
@@ -59,8 +59,8 @@
                     </marker2>
                     <marker3>
                         <imagePt>
-                            <x>168.186935425</x>
-                            <y>675.818420410</y>
+                            <x>168.186889648</x>
+                            <y>675.818359375</y>
                         </imagePt>
                         <objectPt>
                             <x>0.000000000</x>

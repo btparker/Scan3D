@@ -172,10 +172,12 @@ void Scan3dApp::setup(){
 
     paused = false;
 
-    points3dSubstate = POINTS3D_PROCESSING;
+    points3dSubstate = POINTS3D_WAITING;
 
     bufferOfImage.loadImage(projCalDir.getPath(projCalDir.numFiles()-1));
     colorFrame.setFromPixels(bufferOfImage.getPixels(),width,height);
+
+    vertPlane = ofxPlane(ofPoint(0,0,0),ofVec3f(0,0,-1));
 
 }
 
@@ -526,7 +528,7 @@ void Scan3dApp::camCalUpdate(){
                 );
 
                 printf("\n");
-                printf("Intrinsic Matrix: ");
+                printf("Camera Intrinsic Matrix: ");
                 printf("\n");
                 for(int r = 0; r < 3; r++){
                     for(int c = 0; c < 3; c++){
@@ -589,7 +591,7 @@ void Scan3dApp::camCalUpdate(){
             cam_distortion_coeffs = (CvMat*)cvLoad(camDistortionFilename.c_str());
             
             printf("\n");
-            printf("Intrinsic Matrix: ");
+            printf("Camera Intrinsic Matrix: ");
             printf("\n");
             for(int r = 0; r < 3; r++){
                 for(int c = 0; c < 3; c++){
@@ -741,7 +743,7 @@ void Scan3dApp::projCalUpdate(){
                 );
 
                 printf("\n");
-                printf("Intrinsic Matrix: ");
+                printf("Projector Intrinsic Matrix: ");
                 printf("\n");
                 for(int r = 0; r < 3; r++){
                     for(int c = 0; c < 3; c++){
@@ -787,7 +789,7 @@ void Scan3dApp::projCalUpdate(){
             break;
 
         case PROJ_CAL_LOADING:
-            messageBarSubText = "Loading calibration file";
+            messageBarSubText = "Loading projector calibration file";
             
             projIntrinsicFile.open(projIntrinsicFilename, ofFile::ReadWrite, false);
             if(!projIntrinsicFile.exists()){
@@ -804,7 +806,7 @@ void Scan3dApp::projCalUpdate(){
             proj_distortion_coeffs = (CvMat*)cvLoad(projDistortionFilename.c_str());
             
             printf("\n");
-            printf("Intrinsic Matrix: ");
+            printf("Projector Intrinsic Matrix: ");
             printf("\n");
             for(int r = 0; r < 3; r++){
                 for(int c = 0; c < 3; c++){
@@ -1517,6 +1519,41 @@ ofPoint Scan3dApp::getNearestCorner(ofxCvGrayscaleImage img, int windowSize, int
     return cornerPt;
 }
 
+/*
+
+First to understand how you calculate it, it would help you if you read some things about the pinhole camera model and simple perspective projection. For a quick glimpse, check this. I'll try to update with more.
+
+So, let's start by the opposite which describes how a camera works: project a 3d point in the world coordinate system to a 2d point in our image. According to the camera model:
+
+P_screen = I * P_world
+
+or (using homogeneous coordinates)
+
+| x_screen | = I * | x_world |
+| y_screen |       | y_world |
+|    1     |       | z_world |
+                   |    1    |
+where
+
+I = | f_x    0    c_x    0 | 
+    |  0    f_y   c_y    0 |
+    |  0     0     1     0 |
+is the 3x4 intrinsics matrix, f being the focal point and c the center of projection.
+
+If you solve the system above, you get:
+
+x_screen = (x_world/z_world)*f_x + c_x
+y_screen = (y_world/z_world)*f_y + c_y
+But, you want to do the reverse, so your answer is:
+
+x_world = (x_screen - c_x) * z_world / f_x
+y_world = (y_screen - c_y) * z_world / f_y
+
+
+
+
+*/
+
 void Scan3dApp::computeCameraExtrinsicMatrix(ofPoint *objectPoints, ofPoint *imagePoints, CvMat* cameraMatrix, CvMat* distCoeffs){
     CvMat* cvObjectPoints = cvCreateMat( 8, 3, CV_32FC1 );
     CvMat* cvImagePoints = cvCreateMat( 8, 2, CV_32FC1 );
@@ -1528,12 +1565,29 @@ void Scan3dApp::computeCameraExtrinsicMatrix(ofPoint *objectPoints, ofPoint *ima
     cvReleaseMat(&cvObjectPoints);
     cvReleaseMat(&cvImagePoints);
 
+    printf("tvec: [%f,%f,%f]\n\n",
+        CV_MAT_ELEM(*tvec,float,0,0),
+        CV_MAT_ELEM(*tvec,float,1,0),
+        CV_MAT_ELEM(*tvec,float,2,0));
+
     CvMat* rotmat = cvCreateMat( 3,3, CV_32FC1 );
 
 
     cvRodrigues2(rvec,rotmat);
 
-    cam_extrinsic_matrix = cvCreateMat( 3, 4, CV_32FC1 );
+    printf("rotmat: \n[%f,%f,%f]\n[%f,%f,%f]\n[%f,%f,%f]\n\n\n",
+        CV_MAT_ELEM(*rotmat,float,0,0),
+        CV_MAT_ELEM(*rotmat,float,0,1),
+        CV_MAT_ELEM(*rotmat,float,0,2),
+        CV_MAT_ELEM(*rotmat,float,1,0),
+        CV_MAT_ELEM(*rotmat,float,1,1),
+        CV_MAT_ELEM(*rotmat,float,1,2),
+        CV_MAT_ELEM(*rotmat,float,2,0),
+        CV_MAT_ELEM(*rotmat,float,2,1),
+        CV_MAT_ELEM(*rotmat,float,2,2)
+    );
+
+    cam_extrinsic_matrix = cvCreateMat( 4, 4, CV_32FC1 );
     for(int i = 0; i < 3; i++){
         for(int j = 0; j < 3; j++){
             CV_MAT_ELEM(*cam_extrinsic_matrix,float,i,j) = CV_MAT_ELEM(*rotmat,float,i,j);
@@ -1542,25 +1596,108 @@ void Scan3dApp::computeCameraExtrinsicMatrix(ofPoint *objectPoints, ofPoint *ima
 
     for(int i = 0; i < 3; i++){
         CV_MAT_ELEM(*cam_extrinsic_matrix,float,i,3) = CV_MAT_ELEM(*tvec,float,i,0); 
+        CV_MAT_ELEM(*cam_extrinsic_matrix,float,3,i) = 0; 
     }
+
+    CV_MAT_ELEM(*cam_extrinsic_matrix,float,3,3) = 1.0; 
+
+    printf("cam_extrinsic_matrix: \n[%f,%f,%f,%f]\n[%f,%f,%f,%f]\n[%f,%f,%f,%f]\n[%f,%f,%f,%f]\n\n\n",
+        CV_MAT_ELEM(*cam_extrinsic_matrix,float,0,0),
+        CV_MAT_ELEM(*cam_extrinsic_matrix,float,0,1),
+        CV_MAT_ELEM(*cam_extrinsic_matrix,float,0,2),
+        CV_MAT_ELEM(*cam_extrinsic_matrix,float,0,3),
+
+        CV_MAT_ELEM(*cam_extrinsic_matrix,float,1,0),
+        CV_MAT_ELEM(*cam_extrinsic_matrix,float,1,1),
+        CV_MAT_ELEM(*cam_extrinsic_matrix,float,1,2),
+        CV_MAT_ELEM(*cam_extrinsic_matrix,float,1,3),
+
+        CV_MAT_ELEM(*cam_extrinsic_matrix,float,2,0),
+        CV_MAT_ELEM(*cam_extrinsic_matrix,float,2,1),
+        CV_MAT_ELEM(*cam_extrinsic_matrix,float,2,2),
+        CV_MAT_ELEM(*cam_extrinsic_matrix,float,2,3),
+
+        CV_MAT_ELEM(*cam_extrinsic_matrix,float,3,0),
+        CV_MAT_ELEM(*cam_extrinsic_matrix,float,3,1),
+        CV_MAT_ELEM(*cam_extrinsic_matrix,float,3,2),
+        CV_MAT_ELEM(*cam_extrinsic_matrix,float,3,3)
+    );
+
+    CvMat* testMat = cvCreateMat( 4,4, CV_32FC1 );
+
+    cvInv(cam_extrinsic_matrix,testMat);
+
+    printf("testMat: \n[%f,%f,%f,%f]\n[%f,%f,%f,%f]\n[%f,%f,%f,%f]\n[%f,%f,%f,%f]\n\n\n",
+        CV_MAT_ELEM(*testMat,float,0,0),
+        CV_MAT_ELEM(*testMat,float,0,1),
+        CV_MAT_ELEM(*testMat,float,0,2),
+        CV_MAT_ELEM(*testMat,float,0,3),
+
+        CV_MAT_ELEM(*testMat,float,1,0),
+        CV_MAT_ELEM(*testMat,float,1,1),
+        CV_MAT_ELEM(*testMat,float,1,2),
+        CV_MAT_ELEM(*testMat,float,1,3),
+
+        CV_MAT_ELEM(*testMat,float,2,0),
+        CV_MAT_ELEM(*testMat,float,2,1),
+        CV_MAT_ELEM(*testMat,float,2,2),
+        CV_MAT_ELEM(*testMat,float,2,3),
+
+        CV_MAT_ELEM(*testMat,float,3,0),
+        CV_MAT_ELEM(*testMat,float,3,1),
+        CV_MAT_ELEM(*testMat,float,3,2),
+        CV_MAT_ELEM(*testMat,float,3,3)
+    );
+
+
 
     CvMat* transRotmat = cvCreateMat( 3,3, CV_32FC1 );
     cvTranspose(rotmat,transRotmat);
 
+    printf("rotmat^t: \n[%f,%f,%f]\n[%f,%f,%f]\n[%f,%f,%f]\n\n\n",
+        CV_MAT_ELEM(*transRotmat,float,0,0),
+        CV_MAT_ELEM(*transRotmat,float,0,1),
+        CV_MAT_ELEM(*transRotmat,float,0,2),
+        CV_MAT_ELEM(*transRotmat,float,1,0),
+        CV_MAT_ELEM(*transRotmat,float,1,1),
+        CV_MAT_ELEM(*transRotmat,float,1,2),
+        CV_MAT_ELEM(*transRotmat,float,2,0),
+        CV_MAT_ELEM(*transRotmat,float,2,1),
+        CV_MAT_ELEM(*transRotmat,float,2,2)
+    );
 
-    CvMat* camRotVec = cvCreateMat(3,1, CV_32FC1); 
-    cvRodrigues2(transRotmat,camRotVec);
+
+    
 
     CvMat* negTransRotmat = cvCreateMat( 3,3, CV_32FC1 );
     cvScale(transRotmat,negTransRotmat,-1);
 
+    printf("-rotmat^t: \n[%f,%f,%f]\n[%f,%f,%f]\n[%f,%f,%f]\n\n\n",
+        CV_MAT_ELEM(*negTransRotmat,float,0,0),
+        CV_MAT_ELEM(*negTransRotmat,float,0,1),
+        CV_MAT_ELEM(*negTransRotmat,float,0,2),
+        CV_MAT_ELEM(*negTransRotmat,float,1,0),
+        CV_MAT_ELEM(*negTransRotmat,float,1,1),
+        CV_MAT_ELEM(*negTransRotmat,float,1,2),
+        CV_MAT_ELEM(*negTransRotmat,float,2,0),
+        CV_MAT_ELEM(*negTransRotmat,float,2,1),
+        CV_MAT_ELEM(*negTransRotmat,float,2,2)
+    );
+
+
     CvMat* camTransVec = cvCreateMat(3,1, CV_32FC1);  
     cvMatMul(negTransRotmat,tvec,camTransVec);
 
+    camPos = ofPoint(CV_MAT_ELEM(*camTransVec,float,0,0),CV_MAT_ELEM(*camTransVec,float,1,0),CV_MAT_ELEM(*camTransVec,float,2,0));
+
+    printf("camPos: [");
+    cout << camPos << "]\n\n" << endl;
+
+    CvMat* camRotVec = cvCreateMat(3,1, CV_32FC1); 
+    cvRodrigues2(transRotmat,camRotVec);
+
     camRotMat = cvCreateMat(3,3, CV_32FC1); 
     cvRodrigues2(camRotVec,camRotMat);
-
-    camPos = ofPoint(CV_MAT_ELEM(*camTransVec,float,0,0),CV_MAT_ELEM(*camTransVec,float,1,0),CV_MAT_ELEM(*camTransVec,float,2,0));
 
     camInvIntrinsic = cvCreateMat( 3,3, CV_32FC1 );
     cvInv(cameraMatrix,camInvIntrinsic);
@@ -1624,16 +1761,45 @@ Convert to ray (as shown above)
 Move that ray to whatever coordinate system you like.
 
 */
+void Scan3dApp::setCameraAndProjector(){
+    computeCameraExtrinsicMatrix(projPlaneObjectPts, projPlaneImagePts, cam_intrinsic_matrix, cam_distortion_coeffs);
+    printf("camPos:\n");
+    cout << camPos << endl;
+    ofxRay3d centerRay = camPixelToRay(cam_intrinsic_matrix,cam_extrinsic_matrix, ofPoint(width/2,height/2));
 
+    ofVec3f centerPt = (ofVec3f)centerRay.intersect(vertPlane);
+
+    ofNode lookat;
+
+    lookat.setPosition(centerPt);
+
+    ofVec3f easyCamPos = (ofVec3f)camPos;
+    
+
+    easyCam.setPosition(easyCamPos);
+    easyCam.setTarget(lookat);
+    //easyCam.setScale(1,1,-1);
+
+    cout << "camPos:" << endl;
+    cout << camPos << endl;
+
+    cout << "easyCam pos:" << endl;
+    cout << easyCam.getPosition() << endl;
+
+    cout << "easyCam distance:" << endl;
+    cout << easyCam.getDistance() << endl;
+
+    cout << "easyCam target position:" << endl;
+    cout << easyCam.getTarget().getPosition() << endl;
+
+}
 
 //--------------------------------------------------------------
 void Scan3dApp::keyPressed(int key){
     switch(key){
         case 32: //SPACEBAR
             if(programState ==  PROJECTOR_CALIBRATION){
-                computeCameraExtrinsicMatrix(projPlaneObjectPts, projPlaneImagePts, cam_intrinsic_matrix, cam_distortion_coeffs);
-                printf("camPos:\n");
-                cout << camPos << endl;
+                setCameraAndProjector();
                 programState = CAPTURE;
                 saveSettings();
             }
@@ -1902,11 +2068,25 @@ void Scan3dApp::drawPointCloud() {
         switch(points3dSubstate){
             case POINTS3D_WAITING:
                 mesh.setMode(OF_PRIMITIVE_POINTS);
-                
+                cout << "Camera Position: ["<< camPos << "]" << endl;
+                ofxRay3d centerRay = camPixelToRay(cam_intrinsic_matrix,cam_extrinsic_matrix, ofPoint(width/2,height/2));
+                ofVec3f centerPt = (ofVec3f)centerRay.intersect(vertPlane);
+                cout << "Camera look: ["<< centerPt << "]" << endl;
                 for(int i =0; i < 4; i += step){  
+                    ofVec3f vec0, vec1;
                     mesh.addColor(ofColor(0,255,0));
-                    mesh.addVertex((ofVec3f)projPlaneObjectPts[i]);
+                    vec0 = (ofVec3f)projPlaneObjectPts[i];
+                    mesh.addVertex(vec0);
+
+                    mesh.addColor(ofColor(255,0,0));
+
+                    ofxRay3d ray = camPixelToRay(cam_intrinsic_matrix,cam_extrinsic_matrix, projPlaneImagePts[i]);
+                    cout << "ray: ["<< ray.dir << "]" << endl;
+                    vec1 = (ofVec3f)ray.intersect(vertPlane);
+                    mesh.addVertex(vec1);
+                    cout << "["<< vec0 << "]   [" << vec1 << "]" << endl;
                 }
+                
                 glPointSize(3);
                 ofPushMatrix();
                 // the projected points are 'upside down' and 'backwards'
