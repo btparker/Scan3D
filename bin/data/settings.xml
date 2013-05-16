@@ -13,19 +13,21 @@
                 <camBoardXCount>8</camBoardXCount>
                 <camBoardYCount>6</camBoardYCount>
                 <camBoardSquareSize>38.000000000</camBoardSquareSize>
-              
+                <camIntrinsicFile>/home/btparker/Dropbox/Projects/Active/3D Scanning/oF/apps/myApps/Scan3D/bin/data/cam_intrinsic.xml</camIntrinsicFile>
+                <camDistortionFile>/home/btparker/Dropbox/Projects/Active/3D Scanning/oF/apps/myApps/Scan3D/bin/data/cam_distortion.xml</camDistortionFile>
             </cam>
             <proj>
                 <frames>/home/btparker/Dropbox/Projects/Active/3D Scanning/oF/apps/myApps/Scan3D/bin/data/calib_2/proj</frames>
                 <projBoardXCount>7</projBoardXCount>
                 <projBoardYCount>7</projBoardYCount>
                 <projBoardSquareSize>38.000000000</projBoardSquareSize>
-
+                <projIntrinsicFile>/home/btparker/Dropbox/Projects/Active/3D Scanning/oF/apps/myApps/Scan3D/bin/data/proj_intrinsic.xml</projIntrinsicFile>
+                <projDistortionFile>/home/btparker/Dropbox/Projects/Active/3D Scanning/oF/apps/myApps/Scan3D/bin/data/proj_distortion.xml</projDistortionFile>
                 <plane>
                     <marker0>
                         <imagePt>
                             <x>809.782043457</x>
-                            <y>-628.566589355</y>
+                            <y>628.566589355</y>
                         </imagePt>
                         <objectPt>
                             <x>406.000000000</x>
@@ -36,7 +38,7 @@
                     <marker1>
                         <imagePt>
                             <x>792.809143066</x>
-                            <y>-106.665298462</y>
+                            <y>106.665252686</y>
                         </imagePt>
                         <objectPt>
                             <x>406.000000000</x>
@@ -47,7 +49,7 @@
                     <marker2>
                         <imagePt>
                             <x>147.420440674</x>
-                            <y>-100.409706116</y>
+                            <y>100.409729004</y>
                         </imagePt>
                         <objectPt>
                             <x>0.000000000</x>
@@ -57,8 +59,8 @@
                     </marker2>
                     <marker3>
                         <imagePt>
-                            <x>168.186889648</x>
-                            <y>-675.818359375</y>
+                            <x>168.186904907</x>
+                            <y>675.818359375</y>
                         </imagePt>
                         <objectPt>
                             <x>0.000000000</x>
