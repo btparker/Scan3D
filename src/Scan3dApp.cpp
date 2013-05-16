@@ -759,7 +759,7 @@ void Scan3dApp::projCalUpdate(){
                 );
 
                 printf("\n");
-                printf("Projector Intrinsic Matrix: ");
+                printf("Projector Intrinsic Matrix: \n");
                 printf("\n");
                 for(int r = 0; r < 3; r++){
                     for(int c = 0; c < 3; c++){
@@ -769,18 +769,26 @@ void Scan3dApp::projCalUpdate(){
                     printf("\n");
                 }
                 printf("\n");
-                printf("\n");
-
+                
                 proj_focal_length = ofVec2f(CV_MAT_ELEM( *proj_intrinsic_matrix, float, 0, 0 ),CV_MAT_ELEM( *proj_intrinsic_matrix, float, 1,1));
-                cout << "Focal length not absurd ... ";
-                assert(proj_focal_length.x > 0 && proj_focal_length.y > 0);
-                cout << " passed! [" << proj_focal_length << ']' << endl;
+
+                cout << "Projector Focal Length: [" << proj_focal_length << "]\n" << endl;
 
                 proj_principal_point = ofVec2f(CV_MAT_ELEM( *proj_intrinsic_matrix, float, 0,2 ),CV_MAT_ELEM( *proj_intrinsic_matrix, float, 1,2));
 
-                cout << "Principal point near image center not absurd   pp[" << proj_principal_point << "], center[" << ofPoint(width/2,height/2) << "] ... ";
-                assert(abs(proj_principal_point.x - width/2) < width/4 && abs(proj_principal_point.y - height/2) < height/4);
-                cout << " passed!"<< endl;
+                cout << "Projector Principal Point: [" << proj_principal_point << "]\n\n" << endl;
+
+                proj_skew_coeff = CV_MAT_ELEM( *proj_intrinsic_matrix, float, 1, 0 );
+
+                cout << "Projector Skew Coefficient (alpha_c): " << proj_skew_coeff  << "\n\n"<< endl;
+                CV_MAT_ELEM( *proj_distortion_coeffs, float, 4,0) = 0.0;
+                printf("Projector Distortion Coefficients (kc):");
+                printf("\n");
+                for(int r = 0; r < 5; r++){
+                        CvScalar scal = cvGet2D(proj_distortion_coeffs,r,0); 
+                        printf( "[%f]\n", scal.val[0]); 
+                }
+                printf("\n");
                 
                 // SAVE THE INTRINSICS AND DISTORTIONS
                 cvSave(projIntrinsicFilename.c_str(),proj_intrinsic_matrix);
@@ -822,7 +830,7 @@ void Scan3dApp::projCalUpdate(){
             proj_distortion_coeffs = (CvMat*)cvLoad(projDistortionFilename.c_str());
             
             printf("\n");
-            printf("Projector Intrinsic Matrix: ");
+            printf("Projector Intrinsic Matrix: \n");
             printf("\n");
             for(int r = 0; r < 3; r++){
                 for(int c = 0; c < 3; c++){
@@ -832,17 +840,26 @@ void Scan3dApp::projCalUpdate(){
                 printf("\n");
             }
             printf("\n");
-            printf("\n");
-
+            
             proj_focal_length = ofVec2f(CV_MAT_ELEM( *proj_intrinsic_matrix, float, 0, 0 ),CV_MAT_ELEM( *proj_intrinsic_matrix, float, 1,1));
-            cout << "Focal length not absurd ... ";
-            assert(proj_focal_length.x > 0 && proj_focal_length.y > 0);
-            cout << " passed! [" << proj_focal_length << ']' << endl;
+
+            cout << "Projector Focal Length: [" << proj_focal_length << "]\n" << endl;
 
             proj_principal_point = ofVec2f(CV_MAT_ELEM( *proj_intrinsic_matrix, float, 0,2 ),CV_MAT_ELEM( *proj_intrinsic_matrix, float, 1,2));
-            cout << "Principal point near image center not absurd   pp[" << proj_principal_point << "], center[" << ofPoint(width/2,height/2) << "] ... ";
-            assert(abs(proj_principal_point.x - width/2) < width/4 && abs(proj_principal_point.y - height/2) < height/4);
-            cout << " passed!"<< endl;
+
+            cout << "Projector Principal Point: [" << proj_principal_point << "]\n\n" << endl;
+
+            proj_skew_coeff = CV_MAT_ELEM( *proj_intrinsic_matrix, float, 1, 0 );
+
+            cout << "Projector Skew Coefficient (alpha_c): " << proj_skew_coeff  << "\n\n"<< endl;
+            CV_MAT_ELEM( *proj_distortion_coeffs, float, 4,0) = 0.0;
+            printf("Projector Distortion Coefficients (kc):");
+            printf("\n");
+            for(int r = 0; r < 5; r++){
+                    CvScalar scal = cvGet2D(proj_distortion_coeffs,r,0); 
+                    printf( "[%f]\n", scal.val[0]); 
+            }
+            printf("\n");
 
             projmapx = cvCreateImage( cvGetSize(colorFrame.getCvImage()), IPL_DEPTH_32F, 1 );
             projmapy = cvCreateImage( cvGetSize(colorFrame.getCvImage()), IPL_DEPTH_32F, 1 );

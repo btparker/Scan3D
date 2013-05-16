@@ -278,5 +278,6 @@ class Scan3dApp : public ofBaseApp{
 
 		ofVec2f proj_focal_length;
 		ofVec2f proj_principal_point;
+		float proj_skew_coeff;
         
 };
