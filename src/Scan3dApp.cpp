@@ -58,7 +58,6 @@ void Scan3dApp::setup(){
     }
 
 
-
     printf("[width,height] = [%d,%d]\n",width,height);
 
     //bufferOfImage.allocate(width,height,OF_IMAGE_COLOR);
@@ -528,7 +527,7 @@ void Scan3dApp::camCalUpdate(){
                 );
 
                 printf("\n");
-                printf("Camera Intrinsic Matrix: ");
+                printf("Camera Intrinsic Matrix: \n");
                 printf("\n");
                 for(int r = 0; r < 3; r++){
                     for(int c = 0; c < 3; c++){
@@ -538,18 +537,26 @@ void Scan3dApp::camCalUpdate(){
                     printf("\n");
                 }
                 printf("\n");
-                printf("\n");
-
+                
                 cam_focal_length = ofVec2f(CV_MAT_ELEM( *cam_intrinsic_matrix, float, 0, 0 ),CV_MAT_ELEM( *cam_intrinsic_matrix, float, 1,1));
-                cout << "Focal length not absurd ... ";
-                assert(cam_focal_length.x > 0 && cam_focal_length.y > 0);
-                cout << " passed! [" << cam_focal_length << ']' << endl;
+
+                cout << "Camera Focal Length: [" << cam_focal_length << "]\n" << endl;
 
                 cam_principal_point = ofVec2f(CV_MAT_ELEM( *cam_intrinsic_matrix, float, 0,2 ),CV_MAT_ELEM( *cam_intrinsic_matrix, float, 1,2));
 
-                cout << "Principal point near image center not absurd   pp[" << cam_principal_point << "], center[" << ofPoint(width/2,height/2) << "] ... ";
-                assert(abs(cam_principal_point.x - width/2) < width/4 && abs(cam_principal_point.y - height/2) < height/4);
-                cout << " passed!"<< endl;
+                cout << "Camera Principal Point: [" << cam_principal_point << "]\n" << endl;
+
+                cam_skew_coeff = CV_MAT_ELEM( *cam_intrinsic_matrix, float, 1, 0 );
+
+                cout << "Camera Skew Coefficient (alpha_c): " << cam_skew_coeff  << "\n"<< endl;
+                CV_MAT_ELEM( *cam_distortion_coeffs, float, 4,0) = 0.0;
+                printf("Camera Distortion Coefficients (kc):");
+                printf("\n");
+                for(int r = 0; r < 5; r++){
+                        CvScalar scal = cvGet2D(cam_distortion_coeffs,r,0); 
+                        printf( "[%f]\n", scal.val[0]); 
+                }
+                printf("\n");
                 
                 // SAVE THE INTRINSICS AND DISTORTIONS
                 cvSave(camIntrinsicFilename.c_str(),cam_intrinsic_matrix);
@@ -591,7 +598,7 @@ void Scan3dApp::camCalUpdate(){
             cam_distortion_coeffs = (CvMat*)cvLoad(camDistortionFilename.c_str());
             
             printf("\n");
-            printf("Camera Intrinsic Matrix: ");
+            printf("Camera Intrinsic Matrix: \n");
             printf("\n");
             for(int r = 0; r < 3; r++){
                 for(int c = 0; c < 3; c++){
@@ -601,17 +608,26 @@ void Scan3dApp::camCalUpdate(){
                 printf("\n");
             }
             printf("\n");
-            printf("\n");
-
+            
             cam_focal_length = ofVec2f(CV_MAT_ELEM( *cam_intrinsic_matrix, float, 0, 0 ),CV_MAT_ELEM( *cam_intrinsic_matrix, float, 1,1));
-            cout << "Focal length not absurd ... ";
-            assert(cam_focal_length.x > 0 && cam_focal_length.y > 0);
-            cout << " passed! [" << cam_focal_length << ']' << endl;
+
+            cout << "Camera Focal Length: [" << cam_focal_length << "]\n" << endl;
 
             cam_principal_point = ofVec2f(CV_MAT_ELEM( *cam_intrinsic_matrix, float, 0,2 ),CV_MAT_ELEM( *cam_intrinsic_matrix, float, 1,2));
-            cout << "Principal point near image center not absurd   pp[" << cam_principal_point << "], center[" << ofPoint(width/2,height/2) << "] ... ";
-            assert(abs(cam_principal_point.x - width/2) < width/4 && abs(cam_principal_point.y - height/2) < height/4);
-            cout << " passed!"<< endl;
+
+            cout << "Camera Principal Point: [" << cam_principal_point << "]\n\n" << endl;
+
+            cam_skew_coeff = CV_MAT_ELEM( *cam_intrinsic_matrix, float, 1, 0 );
+
+            cout << "Camera Skew Coefficient (alpha_c): " << cam_skew_coeff  << "\n\n"<< endl;
+            CV_MAT_ELEM( *cam_distortion_coeffs, float, 4,0) = 0.0;
+            printf("Camera Distortion Coefficients (kc):");
+            printf("\n");
+            for(int r = 0; r < 5; r++){
+                    CvScalar scal = cvGet2D(cam_distortion_coeffs,r,0); 
+                    printf( "[%f]\n", scal.val[0]); 
+            }
+            printf("\n");
 
             cammapx = cvCreateImage( cvGetSize(colorFrame.getCvImage()), IPL_DEPTH_32F, 1 );
             cammapy = cvCreateImage( cvGetSize(colorFrame.getCvImage()), IPL_DEPTH_32F, 1 );
@@ -1587,7 +1603,7 @@ void Scan3dApp::computeCameraExtrinsicMatrix(ofPoint *objectPoints, ofPoint *ima
         CV_MAT_ELEM(*rotmat,float,2,2)
     );
 
-    cam_extrinsic_matrix = cvCreateMat( 4, 4, CV_32FC1 );
+    cam_extrinsic_matrix = cvCreateMat( 3, 4, CV_32FC1 );
     for(int i = 0; i < 3; i++){
         for(int j = 0; j < 3; j++){
             CV_MAT_ELEM(*cam_extrinsic_matrix,float,i,j) = CV_MAT_ELEM(*rotmat,float,i,j);
@@ -1596,12 +1612,10 @@ void Scan3dApp::computeCameraExtrinsicMatrix(ofPoint *objectPoints, ofPoint *ima
 
     for(int i = 0; i < 3; i++){
         CV_MAT_ELEM(*cam_extrinsic_matrix,float,i,3) = CV_MAT_ELEM(*tvec,float,i,0); 
-        CV_MAT_ELEM(*cam_extrinsic_matrix,float,3,i) = 0; 
     }
 
-    CV_MAT_ELEM(*cam_extrinsic_matrix,float,3,3) = 1.0; 
 
-    printf("cam_extrinsic_matrix: \n[%f,%f,%f,%f]\n[%f,%f,%f,%f]\n[%f,%f,%f,%f]\n[%f,%f,%f,%f]\n\n\n",
+    printf("cam_extrinsic_matrix: \n[%f,%f,%f,%f]\n[%f,%f,%f,%f]\n[%f,%f,%f,%f]\n\n\n",
         CV_MAT_ELEM(*cam_extrinsic_matrix,float,0,0),
         CV_MAT_ELEM(*cam_extrinsic_matrix,float,0,1),
         CV_MAT_ELEM(*cam_extrinsic_matrix,float,0,2),
@@ -1615,40 +1629,8 @@ void Scan3dApp::computeCameraExtrinsicMatrix(ofPoint *objectPoints, ofPoint *ima
         CV_MAT_ELEM(*cam_extrinsic_matrix,float,2,0),
         CV_MAT_ELEM(*cam_extrinsic_matrix,float,2,1),
         CV_MAT_ELEM(*cam_extrinsic_matrix,float,2,2),
-        CV_MAT_ELEM(*cam_extrinsic_matrix,float,2,3),
-
-        CV_MAT_ELEM(*cam_extrinsic_matrix,float,3,0),
-        CV_MAT_ELEM(*cam_extrinsic_matrix,float,3,1),
-        CV_MAT_ELEM(*cam_extrinsic_matrix,float,3,2),
-        CV_MAT_ELEM(*cam_extrinsic_matrix,float,3,3)
+        CV_MAT_ELEM(*cam_extrinsic_matrix,float,2,3)
     );
-
-    CvMat* testMat = cvCreateMat( 4,4, CV_32FC1 );
-
-    cvInv(cam_extrinsic_matrix,testMat);
-
-    printf("testMat: \n[%f,%f,%f,%f]\n[%f,%f,%f,%f]\n[%f,%f,%f,%f]\n[%f,%f,%f,%f]\n\n\n",
-        CV_MAT_ELEM(*testMat,float,0,0),
-        CV_MAT_ELEM(*testMat,float,0,1),
-        CV_MAT_ELEM(*testMat,float,0,2),
-        CV_MAT_ELEM(*testMat,float,0,3),
-
-        CV_MAT_ELEM(*testMat,float,1,0),
-        CV_MAT_ELEM(*testMat,float,1,1),
-        CV_MAT_ELEM(*testMat,float,1,2),
-        CV_MAT_ELEM(*testMat,float,1,3),
-
-        CV_MAT_ELEM(*testMat,float,2,0),
-        CV_MAT_ELEM(*testMat,float,2,1),
-        CV_MAT_ELEM(*testMat,float,2,2),
-        CV_MAT_ELEM(*testMat,float,2,3),
-
-        CV_MAT_ELEM(*testMat,float,3,0),
-        CV_MAT_ELEM(*testMat,float,3,1),
-        CV_MAT_ELEM(*testMat,float,3,2),
-        CV_MAT_ELEM(*testMat,float,3,3)
-    );
-
 
 
     CvMat* transRotmat = cvCreateMat( 3,3, CV_32FC1 );
@@ -1763,6 +1745,13 @@ Move that ray to whatever coordinate system you like.
 */
 void Scan3dApp::setCameraAndProjector(){
     computeCameraExtrinsicMatrix(projPlaneObjectPts, projPlaneImagePts, cam_intrinsic_matrix, cam_distortion_coeffs);
+
+    ofPoint testPt;
+
+    for(int i = 0; i < 4; i++){
+        testPt = pt3DToPixel(cam_intrinsic_matrix, cam_extrinsic_matrix, projPlaneObjectPts[i]);
+        cout << "Reprojection [expected][returned] : [" << projPlaneImagePts[i] << "] [" << testPt << "]" << endl;
+    }
     printf("camPos:\n");
     cout << camPos << endl;
     ofxRay3d centerRay = camPixelToRay(cam_intrinsic_matrix,cam_extrinsic_matrix, ofPoint(width/2,height/2));
@@ -2068,10 +2057,10 @@ void Scan3dApp::drawPointCloud() {
         switch(points3dSubstate){
             case POINTS3D_WAITING:
                 mesh.setMode(OF_PRIMITIVE_POINTS);
-                cout << "Camera Position: ["<< camPos << "]" << endl;
+                // cout << "Camera Position: ["<< camPos << "]" << endl;
                 ofxRay3d centerRay = camPixelToRay(cam_intrinsic_matrix,cam_extrinsic_matrix, ofPoint(width/2,height/2));
                 ofVec3f centerPt = (ofVec3f)centerRay.intersect(vertPlane);
-                cout << "Camera look: ["<< centerPt << "]" << endl;
+                // cout << "Camera look: ["<< centerPt << "]" << endl;
                 for(int i =0; i < 4; i += step){  
                     ofVec3f vec0, vec1;
                     mesh.addColor(ofColor(0,255,0));
@@ -2081,10 +2070,10 @@ void Scan3dApp::drawPointCloud() {
                     mesh.addColor(ofColor(255,0,0));
 
                     ofxRay3d ray = camPixelToRay(cam_intrinsic_matrix,cam_extrinsic_matrix, projPlaneImagePts[i]);
-                    cout << "ray: ["<< ray.dir << "]" << endl;
+                    // cout << "ray: ["<< ray.dir << "]" << endl;
                     vec1 = (ofVec3f)ray.intersect(vertPlane);
                     mesh.addVertex(vec1);
-                    cout << "["<< vec0 << "]   [" << vec1 << "]" << endl;
+                    // cout << "["<< vec0 << "]   [" << vec1 << "]" << endl;
                 }
                 
                 glPointSize(3);

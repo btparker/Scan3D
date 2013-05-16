@@ -13,16 +13,12 @@
                 <camBoardXCount>8</camBoardXCount>
                 <camBoardYCount>6</camBoardYCount>
                 <camBoardSquareSize>38.000000000</camBoardSquareSize>
-                <camIntrinsicFile>/home/btparker/Dropbox/Projects/Active/3D Scanning/oF/apps/myApps/Scan3D/bin/data/cam_intrinsic.xml</camIntrinsicFile>
-                <camDistortionFile>/home/btparker/Dropbox/Projects/Active/3D Scanning/oF/apps/myApps/Scan3D/bin/data/cam_distortion.xml</camDistortionFile>
             </cam>
             <proj>
                 <frames>/home/btparker/Dropbox/Projects/Active/3D Scanning/oF/apps/myApps/Scan3D/bin/data/calib_2/proj</frames>
                 <projBoardXCount>7</projBoardXCount>
                 <projBoardYCount>7</projBoardYCount>
                 <projBoardSquareSize>38.000000000</projBoardSquareSize>
-                <projIntrinsicFile>/home/btparker/Dropbox/Projects/Active/3D Scanning/oF/apps/myApps/Scan3D/bin/data/proj_intrinsic.xml</projIntrinsicFile>
-                <projDistortionFile>/home/btparker/Dropbox/Projects/Active/3D Scanning/oF/apps/myApps/Scan3D/bin/data/proj_distortion.xml</projDistortionFile>
                 <plane>
                     <marker0>
                         <imagePt>
