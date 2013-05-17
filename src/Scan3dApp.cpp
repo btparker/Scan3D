@@ -1667,7 +1667,7 @@ void Scan3dApp::computeExtrinsicMatrix(vector<ofPoint> objectPoints, vector<ofPo
     cvReleaseMat(&rotmat);   
 }
 
-ofxRay3d Scan3dApp::pixelToRay(const CvMat* intrinsicMat, const CvMat* extrinsicMat, ofPoint imagePt){
+ofxRay3d Scan3dApp::pixelToRay(const CvMat* intrinsicMat, const CvMat* extrinsicMatrix, ofPoint imagePt){
     CvMat* homoImgPt = cvCreateMat(3,1, CV_32FC1); 
 
     CV_MAT_ELEM(*homoImgPt,float,0,0) = imagePt.x;
@@ -1686,15 +1686,24 @@ ofxRay3d Scan3dApp::pixelToRay(const CvMat* intrinsicMat, const CvMat* extrinsic
     CvMat* rotmat = cvCreateMat(3,3,CV_32FC1);
     for(int r = 0; r < 3; r++){
         for(int c = 0; c < 3; c++){
-            CV_MAT_ELEM(*rotmat,float,r,c) = CV_MAT_ELEM(*extrinsicMat,float,r,c);
+            CV_MAT_ELEM(*rotmat,float,r,c) = CV_MAT_ELEM(*extrinsicMatrix,float,r,c);
         } 
     }
 
-    cvMatMul(rotmat,resPt,rotResPt);
+    CvMat* rotmatTrans = cvCreateMat(3,3,CV_32FC1);
+    cvTranspose(rotmat,rotmatTrans);
+    CvMat* negRotmatTrans = cvCreateMat(3,3,CV_32FC1);
+    cvScale(rotmatTrans,negRotmatTrans,-1);
+    CvMat* invRotmat = cvCreateMat(3,3,CV_32FC1);
+    cvInv(rotmat,invRotmat);
+    cvMatMul(invRotmat,resPt,rotResPt);
 
-    ofVec3f dir = ofVec3f(CV_MAT_ELEM(*rotResPt,float,0,0),CV_MAT_ELEM(*rotResPt,float,1,0),CV_MAT_ELEM(*rotResPt,float,2,0));
+
+    ofVec3f dir = ofVec3f(CV_MAT_ELEM(*rotResPt,float,0,0),-1*CV_MAT_ELEM(*rotResPt,float,1,0),CV_MAT_ELEM(*rotResPt,float,2,0));
     
     dir.normalize();
+
+    ofPoint pt = getPositionFromExtrinsic(extrinsicMatrix);
 
     cvReleaseMat(&homoImgPt);
     cvReleaseMat(&resPt);
@@ -1702,7 +1711,7 @@ ofxRay3d Scan3dApp::pixelToRay(const CvMat* intrinsicMat, const CvMat* extrinsic
     cvReleaseMat(&rotmat);
     cvReleaseMat(&invIntrinsic);
 
-    return ofxRay3d(camPos,dir);
+    return ofxRay3d(pt,dir);
 }
 
 ofPoint Scan3dApp::getPositionFromExtrinsic(const CvMat* extrinsicMatrix){
@@ -1729,9 +1738,58 @@ ofPoint Scan3dApp::getPositionFromExtrinsic(const CvMat* extrinsicMatrix){
     cvMatMul(rotmatTranspose,tvec,position);
 
 
-    return ofPoint(CV_MAT_ELEM(*position,float,0,0),CV_MAT_ELEM(*position,float,1,0),CV_MAT_ELEM(*position,float,2,0));
+    return ofPoint(CV_MAT_ELEM(*position,float,0,0),-CV_MAT_ELEM(*position,float,1,0),CV_MAT_ELEM(*position,float,2,0));
 }
 
+void Scan3dApp::getOrientationFromExtrinsic(const CvMat* extrinsicMatrix, ofVec3f* right, ofVec3f* up, ofVec3f* look){
+    CvMat* rotmat = cvCreateMat(3,3,CV_32FC1);
+    for(int r = 0; r < 3; r++){
+        for(int c = 0; c < 3; c++){
+            CV_MAT_ELEM(*rotmat,float,r,c) = CV_MAT_ELEM(*extrinsicMatrix,float,r,c);
+        } 
+    }
+
+    CvMat* rotmatTranspose = cvCreateMat(3,3,CV_32FC1);
+    cvTranspose(rotmat,rotmatTranspose);
+
+    CvMat* xUnit = cvCreateMat(3,1,CV_32FC1);
+    CV_MAT_ELEM(*xUnit,float,0,0) = 0.0;
+    CV_MAT_ELEM(*xUnit,float,1,0) = 0.0;
+    CV_MAT_ELEM(*xUnit,float,2,0) = 1.0;
+
+
+    CvMat* yUnit = cvCreateMat(3,1,CV_32FC1);
+    CV_MAT_ELEM(*yUnit,float,0,0) = 0.0;
+    CV_MAT_ELEM(*yUnit,float,1,0) = 0.0;
+    CV_MAT_ELEM(*yUnit,float,2,0) = 1.0;
+
+
+    CvMat* zUnit = cvCreateMat(3,1,CV_32FC1);
+    CV_MAT_ELEM(*zUnit,float,0,0) = 0.0;
+    CV_MAT_ELEM(*zUnit,float,1,0) = 0.0;
+    CV_MAT_ELEM(*zUnit,float,2,0) = 1.0;
+
+    CvMat* cvZ = cvCreateMat(3,1,CV_32FC1);
+    CvMat* cvY = cvCreateMat(3,1,CV_32FC1);
+    CvMat* cvX = cvCreateMat(3,1,CV_32FC1);
+
+    cvMatMul(rotmatTranspose,zUnit,cvZ);
+    cvMatMul(rotmatTranspose,yUnit,cvY);
+    cvMatMul(rotmatTranspose,xUnit,cvX);
+
+    ofVec3f vz = ofVec3f(CV_MAT_ELEM(*cvZ,float,0,0),CV_MAT_ELEM(*cvZ,float,1,0),CV_MAT_ELEM(*cvZ,float,2,0));
+    vz.normalize();
+
+    ofVec3f vy = ofVec3f(CV_MAT_ELEM(*cvY,float,0,0),CV_MAT_ELEM(*cvY,float,1,0),CV_MAT_ELEM(*cvY,float,2,0));
+    vy.normalize();
+
+    ofVec3f vx = ofVec3f(CV_MAT_ELEM(*cvX,float,0,0),CV_MAT_ELEM(*cvX,float,1,0),CV_MAT_ELEM(*cvX,float,2,0));
+    vx.normalize();
+
+    right->set(vx);
+    up->set(vy);
+    look->set(vz);
+}
 
 // ofPoint Scan3dApp::rayPlaneIntersection(ofPoint planePt, ofVec3f planeNormal, ofPoint rayOrigin, ofVec3f rayDirection){
 
@@ -1770,6 +1828,7 @@ void Scan3dApp::setCameraAndProjector(){
     for(int i = 0; i < 4; i++){
         testPt = pt3DToPixel(cam_intrinsic_matrix, cam_extrinsic_matrix, cam_distortion_coeffs, projPlaneObjectPts[i]);
         cout << "Reprojection [expected][returned] : [" << projPlaneImagePts[i] << "] [" << testPt << "]" << endl;
+
     }
     
     ofxRay3d centerRay = pixelToRay(cam_intrinsic_matrix,cam_extrinsic_matrix, ofPoint(width/2,height/2));
@@ -2067,6 +2126,7 @@ ofxPlane Scan3dApp::getPlaneFromFrameIndex(float fi){
 void Scan3dApp::drawPointCloud() {
     ofBackground(0);
     ofMesh mesh;
+    ofMesh planePts;
     int step = 1;
     ofxPlane plane;
     ofVec3f vec;
@@ -2076,22 +2136,26 @@ void Scan3dApp::drawPointCloud() {
             case POINTS3D_WAITING:
                 mesh.setMode(OF_PRIMITIVE_POINTS);
                 // cout << "Camera Position: ["<< camPos << "]" << endl;
-                ofxRay3d centerRay = pixelToRay(cam_intrinsic_matrix,cam_extrinsic_matrix, ofPoint(width/2,height/2));
+                ofxRay3d centerRay = pixelToRay(cam_intrinsic_matrix,cam_extrinsic_matrix, cam_principal_point);
                 ofVec3f centerPt = (ofVec3f)centerRay.intersect(vertPlane);
                 // cout << "Camera look: ["<< centerPt << "]" << endl;
-                for(int i =0; i < 4; i += step){  
+                for(int i =0; i < 4; i += step){ 
+
                     ofVec3f vec0, vec1;
                     mesh.addColor(ofColor(0,255,0));
                     vec0 = (ofVec3f)projPlaneObjectPts[i];
                     mesh.addVertex(vec0);
 
-                    mesh.addColor(ofColor(255,0,0));
+                    planePts.addColor(ofColor(255,0,0));
+
 
                     ofxRay3d ray = pixelToRay(cam_intrinsic_matrix,cam_extrinsic_matrix, projPlaneImagePts[i]);
                     // cout << "ray: ["<< ray.dir << "]" << endl;
                     vec1 = (ofVec3f)ray.intersect(vertPlane);
-                    mesh.addVertex(vec1);
-                    // cout << "["<< vec0 << "]   [" << vec1 << "]" << endl;
+                    vec1.x = -vec1.x;
+                    planePts.addVertex(vec1);
+                    cout << "["<< vec0 << "]   [" << vec1 << "]" << endl;
+                    
                 }
                 
                 glPointSize(3);
@@ -2108,7 +2172,7 @@ void Scan3dApp::drawPointCloud() {
                 glPointSize(6);
                 ofPushMatrix();
                 // the projected points are 'upside down' and 'backwards'
-                //ofScale(1, -1, -1);
+                
                 //ofTranslate(camPos.x,camPos.y,camPos.z); // center the points a bit
 
                 glEnable(GL_DEPTH_TEST);

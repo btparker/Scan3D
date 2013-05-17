@@ -88,6 +88,8 @@ class Scan3dApp : public ofBaseApp{
 		ofxCvGrayscaleImage computeBinCodeImage(int w, int h, int power, bool inverse, int type);
 		ofxCvGrayscaleImage computeGrayCodeImage(int w, int h, int power, bool inverse, int type);
 
+		void getOrientationFromExtrinsic(const CvMat* extrinsicMatrix, ofVec3f* right, ofVec3f* up, ofVec3f* look);
+
 		void setCameraAndProjector();
 
 		int sobelHorizontal[3][3];
@@ -260,8 +262,6 @@ class Scan3dApp : public ofBaseApp{
 		ofEasyCam easyCam;
 
 		bool bDrawPointCloud;
-		ofMesh planePts;
-
 		ofVec2f cam_focal_length;
 		ofVec2f cam_principal_point;
 		float cam_skew_coeff;
