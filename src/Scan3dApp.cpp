@@ -1160,7 +1160,7 @@ void Scan3dApp::processingUpdate(){
         int maxColValue = pow(2,numColMapFrames);
         int maxRowValue = pow(2,numRowMapFrames);
 
-        printf("Processing [colIndex, rowIndex, projWidth, projHeight, maxColValue, maxRowValue] = [%d, %d, %d, %d, %d, %d]\n",colIndex,rowIndex, projWidth, projHeight, maxColValue, maxRowValue);
+        //printf("Processing [colIndex, rowIndex, projWidth, projHeight, maxColValue, maxRowValue] = [%d, %d, %d, %d, %d, %d]\n",colIndex,rowIndex, projWidth, projHeight, maxColValue, maxRowValue);
 
         int shadowThreshPixel; 
 
@@ -2126,6 +2126,8 @@ void Scan3dApp::drawPointCloud() {
     ofBackground(0);
     ofMesh mesh;
     ofMesh planePts;
+    ofMesh cameraMesh;
+    ofMesh projectorMesh;
     int step = 1;
     ofxPlane plane;
     ofVec3f vec;
@@ -2134,11 +2136,14 @@ void Scan3dApp::drawPointCloud() {
         switch(points3dSubstate){
             case POINTS3D_WAITING:
                 mesh.setMode(OF_PRIMITIVE_POINTS);
+                cameraMesh.setMode(OF_PRIMITIVE_LINES);
                 // cout << "Camera Position: ["<< camPos << "]" << endl;
                 ofxRay3d centerRay = pixelToRay(cam_intrinsic_matrix,cam_extrinsic_matrix, cam_principal_point);
                 ofVec3f centerPt = (ofVec3f)centerRay.intersect(vertPlane);
                 // cout << "Camera look: ["<< centerPt << "]" << endl;
                 for(int i =0; i < 4; i += step){ 
+                    
+
 
                     ofVec3f vec0, vec1;
                     mesh.addColor(ofColor(0,255,0));
@@ -2153,7 +2158,14 @@ void Scan3dApp::drawPointCloud() {
                     vec1 = (ofVec3f)ray.intersect(vertPlane);
                     vec1.x = -vec1.x;
                     planePts.addVertex(vec1);
-                    cout << "["<< vec0 << "]   [" << vec1 << "]" << endl;
+                    //cout << "["<< vec0 << "]   [" << vec1 << "]" << endl;
+
+                    cameraMesh.addColor(ofColor(255,0,0));
+                    cameraMesh.addVertex(camPos);
+
+                    cameraMesh.addColor(ofColor(255,0,0));
+                    cameraMesh.addVertex(vec1);
+
                     
                 }
                 
@@ -2178,6 +2190,20 @@ void Scan3dApp::drawPointCloud() {
                 planePts.drawVertices();
                 glDisable(GL_DEPTH_TEST);
                 ofPopMatrix();
+
+
+                glPointSize(6);
+                ofPushMatrix();
+                // the projected points are 'upside down' and 'backwards'
+                
+                //ofTranslate(camPos.x,camPos.y,camPos.z); // center the points a bit
+
+                glEnable(GL_DEPTH_TEST);
+                cameraMesh.drawVertices();
+                glDisable(GL_DEPTH_TEST);
+                ofPopMatrix();
+
+
                 break;
         }
     }
