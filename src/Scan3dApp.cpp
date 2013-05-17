@@ -181,7 +181,6 @@ void Scan3dApp::setup(){
     colorFrame.setFromPixels(bufferOfImage.getPixels(),width,height);
 
     vertPlane = ofxPlane(ofPoint(0,0,0),ofVec3f(0,0,-1));
-
 }
 
 void Scan3dApp::assertPoint(ofPoint pt){

@@ -44,3 +44,44 @@ ofPoint ofxRay3d::intersect(ofxPlane plane){
 	ofPoint p = p0+t*dir;
 	return p;
 }
+
+//http://gamedev.stackexchange.com/questions/9738/points-on-lines-where-the-two-lines-are-the-closest-together
+ofPoint ofxRay3d::intersect(ofxRay3d ray){
+	
+
+    ofVec3f d0 = dir;
+    ofVec3f d1 = ray.dir;
+
+    float a = d0.dot(d0);
+    float b = d0.dot(d1);
+    float e = d1.dot(d1);
+
+    float d = a*e - b*b;
+    if (d != 0) // If the two lines are not parallel.
+    {
+        ofVec3f r = ofVec3f(origin) - ofVec3f(ray.origin);
+        float c = d0.dot(r);
+        float f = d1.dot(r);
+
+        float s = (b*f - c*e) / d;
+        float t = (a*f - b*c) / d;
+
+        ofPoint pt0, pt1;
+
+        pt0 = pointOnRay(s);
+        pt1 = ray.pointOnRay(t);
+
+        return (pt0+pt1)/2;
+    }
+    else
+    {
+        printf("Lines were parallel.\n");
+        return ofPoint();
+    }
+	
+
+}
+
+ofPoint ofxRay3d::pointOnRay(float t){
+	return origin+(ofPoint)t*dir;
+}

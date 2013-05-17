@@ -16,6 +16,8 @@ class ofxRay3d{
 		void setOrigin(float x,float y, float z);
 		void setOrigin(ofPoint origin);
 		ofPoint intersect(ofxPlane plane);
+		ofPoint intersect(ofxRay3d ray);
+		ofPoint pointOnRay(float t);
 };
 
 #endif
