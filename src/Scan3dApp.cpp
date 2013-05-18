@@ -1444,7 +1444,12 @@ void Scan3dApp::points3dUpdate(){
 
     unsigned char* temporalImgPixels = temporalImg.getPixels(); 
     unsigned char* colorImgPixels = colorFrame.getPixels(); 
+    unsigned short* rowMappingPixels = (unsigned short*)rowMapping16Img->imageData;
+    unsigned short* colMappingPixels = (unsigned short*)colMapping16Img->imageData;
     // unsigned char* rowMappingPixels = rowMapping16Img.getPixels(); 
+
+    unsigned short rowMappingPixel;
+    unsigned short colMappingPixel;
 
     // float rowMappingPixel = 0.0;
     switch(points3dSubstate){
@@ -1452,25 +1457,14 @@ void Scan3dApp::points3dUpdate(){
                 for(int r = 0; r < height; r++){
                     for(int c = 0; c < width; c++){ 
 
-                        // rowMappingPixel = rowMappingPixels[c+r*width];
-
-                        // printf("FramePixel %f\n",(rowMappingPixel));
-                        
-                        ofColor temporalPixel; 
-                        //cout << '[r,c] : [' << r << ',' << c << ']' << endl;         
-                        temporalPixel[0] = temporalImgPixels[3*(c+r*width)];
-                        temporalPixel[1] = temporalImgPixels[3*(c+r*width)+1];
-                        temporalPixel[2] = temporalImgPixels[3*(c+r*width)+2];
-
-                        if(temporalPixel.getBrightness() == 0){
+                        colMappingPixel = colMappingPixels[c+r*width];
+                        //rowMappingPixel = rowMappingPixels[c+r*width];
+                        if(colMappingPixel == 0){
                             continue;
                         }
                         else{
-                            float computedFrameIndex = getFrameFromColor(temporalPixel);
-                            if(!isPlaneAtFrameIndex(computedFrameIndex)){
-                                continue;
-                            }
-                            ofxPlane plane = getPlaneFromFrameIndex(computedFrameIndex);
+
+                            ofxPlane plane = projcol2plane(colMappingPixel);
                             if(plane.isInit()){
                                 ofxRay3d ray = pixelToRay(cam_intrinsic_matrix,cam_extrinsic_matrix, ofPoint(c,r));
 
@@ -1914,57 +1908,7 @@ ofPoint Scan3dApp::getPositionFromExtrinsic(const CvMat* extrinsicMatrix){
     cvMatMul(invRotmat,tvec,position);
 
 
-    return ofPoint(CV_MAT_ELEM(*position,float,0,0),CV_MAT_ELEM(*position,float,1,0),CV_MAT_ELEM(*position,float,2,0));
-}
-
-void Scan3dApp::getOrientationFromExtrinsic(const CvMat* extrinsicMatrix, ofVec3f* right, ofVec3f* up, ofVec3f* look){
-    CvMat* rotmat = cvCreateMat(3,3,CV_32FC1);
-    for(int r = 0; r < 3; r++){
-        for(int c = 0; c < 3; c++){
-            CV_MAT_ELEM(*rotmat,float,r,c) = CV_MAT_ELEM(*extrinsicMatrix,float,r,c);
-        } 
-    }
-
-    CvMat* invRotmat = cvCreateMat(3,3,CV_32FC1);
-    cvInv(rotmat,invRotmat);
-
-    CvMat* xUnit = cvCreateMat(3,1,CV_32FC1);
-    CV_MAT_ELEM(*xUnit,float,0,0) = 0.0;
-    CV_MAT_ELEM(*xUnit,float,1,0) = 0.0;
-    CV_MAT_ELEM(*xUnit,float,2,0) = 1.0;
-
-
-    CvMat* yUnit = cvCreateMat(3,1,CV_32FC1);
-    CV_MAT_ELEM(*yUnit,float,0,0) = 0.0;
-    CV_MAT_ELEM(*yUnit,float,1,0) = 0.0;
-    CV_MAT_ELEM(*yUnit,float,2,0) = 1.0;
-
-
-    CvMat* zUnit = cvCreateMat(3,1,CV_32FC1);
-    CV_MAT_ELEM(*zUnit,float,0,0) = 0.0;
-    CV_MAT_ELEM(*zUnit,float,1,0) = 0.0;
-    CV_MAT_ELEM(*zUnit,float,2,0) = 1.0;
-
-    CvMat* cvZ = cvCreateMat(3,1,CV_32FC1);
-    CvMat* cvY = cvCreateMat(3,1,CV_32FC1);
-    CvMat* cvX = cvCreateMat(3,1,CV_32FC1);
-
-    cvMatMul(invRotmat,zUnit,cvZ);
-    cvMatMul(invRotmat,yUnit,cvY);
-    cvMatMul(invRotmat,xUnit,cvX);
-
-    ofVec3f vz = ofVec3f(CV_MAT_ELEM(*cvZ,float,0,0),CV_MAT_ELEM(*cvZ,float,1,0),CV_MAT_ELEM(*cvZ,float,2,0));
-    vz.normalize();
-
-    ofVec3f vy = ofVec3f(CV_MAT_ELEM(*cvY,float,0,0),CV_MAT_ELEM(*cvY,float,1,0),CV_MAT_ELEM(*cvY,float,2,0));
-    vy.normalize();
-
-    ofVec3f vx = ofVec3f(CV_MAT_ELEM(*cvX,float,0,0),CV_MAT_ELEM(*cvX,float,1,0),CV_MAT_ELEM(*cvX,float,2,0));
-    vx.normalize();
-
-    right->set(vx);
-    up->set(vy);
-    look->set(vz);
+    return ofPoint(-1*CV_MAT_ELEM(*position,float,0,0),-1*CV_MAT_ELEM(*position,float,1,0),-1*CV_MAT_ELEM(*position,float,2,0));
 }
 
 void Scan3dApp::setCamera(){
@@ -2312,6 +2256,11 @@ void Scan3dApp::drawPointCloud() {
         switch(points3dSubstate){
             case POINTS3D_WAITING:
                 mesh.setMode(OF_PRIMITIVE_POINTS);
+                for(int i =0; i < points.size(); i += step){  
+                    mesh.addColor(colors[i]);
+                    mesh.addVertex((ofVec3f)points[i]);
+                }
+
                 cameraMesh.setMode(OF_PRIMITIVE_LINES);
                 projectorMesh.setMode(OF_PRIMITIVE_LINES);
                 reprojectionMesh.setMode(OF_PRIMITIVE_LINES);
