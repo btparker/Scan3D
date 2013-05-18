@@ -282,7 +282,7 @@ void Scan3dApp::loadSettings(){
                         if(settings.tagExists("projIntrinsicFile") && settings.tagExists("projDistortionFile") && settings.tagExists("projExtrinsicFile")){
                             projIntrinsicFilename = settings.getValue("projIntrinsicFile","proj_intrinsic.xml");
                             projDistortionFilename = settings.getValue("projDistortionFile","proj_distortion.xml");
-                            projExtrinsicFilename = settings.getValue("projExtrinsicFile","proj_extrinsic.xml");
+                            
                             settings.pushTag("plane");
                                 
                                 for(int i = 0; i < projBoardXCount*projBoardYCount; i++){
@@ -956,15 +956,10 @@ void Scan3dApp::projCalUpdate(){
                 update();
             }
 
-            projExtrinsicFile.open(projExtrinsicFilename, ofFile::ReadWrite, false);
-            if(!projExtrinsicFile.exists()){
-                projCalSubstate = PROJ_CAL_PROCESSING;
-                update();
-            }
+           
 
             proj_intrinsic_matrix = (CvMat*)cvLoad(projIntrinsicFilename.c_str());
             proj_distortion_coeffs = (CvMat*)cvLoad(projDistortionFilename.c_str());
-            proj_extrinsic_matrix = (CvMat*)cvLoad(projExtrinsicFilename.c_str());
             
             printf("\n");
             printf("Projector Intrinsic Matrix: \n");
@@ -1012,11 +1007,20 @@ void Scan3dApp::projCalUpdate(){
             break;
 
         case PROJ_CAL_SET:
-            cout << "Projectr Extrinsic Matrix:"<< endl;
+            cout << "Projector Extrinsic Matrix:"<< endl;
+            cout << projPlaneObjectPts.size() << endl;
+            cout << projPlaneImagePts.size() << endl;
+            cout << CV_MAT_ELEM( *proj_intrinsic_matrix, float, 0,0 ) << endl; 
+            cout << CV_MAT_ELEM( *proj_distortion_coeffs, float, 0,0 ) << endl; 
+            cout << CV_MAT_ELEM( *proj_extrinsic_matrix, float, 0,0 ) << endl; 
             computeExtrinsicMatrix(projPlaneObjectPts, projPlaneImagePts, proj_intrinsic_matrix, proj_distortion_coeffs, proj_extrinsic_matrix);
 
+            // CvMat* flip = cvCreateMat(3,4,CV_32FC1);
+            // cvScale(proj_extrinsic_matrix,flip,-1);
+            // cvScale(flipproj_extrinsic_matrix,1);
+
             projPos = getPositionFromExtrinsic(proj_extrinsic_matrix);
-            projPos.z =-1*projPos.z;
+            
 
             cout << "Projector Position: [" << projPos << "]" << endl;
 
@@ -1869,16 +1873,12 @@ ofxRay3d Scan3dApp::pixelToRay(const CvMat* intrinsicMat, const CvMat* extrinsic
         } 
     }
 
-    CvMat* rotmatTrans = cvCreateMat(3,3,CV_32FC1);
-    cvTranspose(rotmat,rotmatTrans);
-    CvMat* negRotmatTrans = cvCreateMat(3,3,CV_32FC1);
-    cvScale(rotmatTrans,negRotmatTrans,-1);
     CvMat* invRotmat = cvCreateMat(3,3,CV_32FC1);
     cvInv(rotmat,invRotmat);
     cvMatMul(invRotmat,resPt,rotResPt);
 
 
-    ofVec3f dir = ofVec3f(CV_MAT_ELEM(*rotResPt,float,0,0),-1*CV_MAT_ELEM(*rotResPt,float,1,0),CV_MAT_ELEM(*rotResPt,float,2,0));
+    ofVec3f dir = ofVec3f(CV_MAT_ELEM(*rotResPt,float,0,0),CV_MAT_ELEM(*rotResPt,float,1,0),CV_MAT_ELEM(*rotResPt,float,2,0));
     
     dir.normalize();
 
@@ -1906,18 +1906,15 @@ ofPoint Scan3dApp::getPositionFromExtrinsic(const CvMat* extrinsicMatrix){
         CV_MAT_ELEM(*tvec,float,i,0) = CV_MAT_ELEM(*extrinsicMatrix,float,i,3);
     }
 
-    CvMat* rotmatTranspose = cvCreateMat(3,3,CV_32FC1);
-    cvTranspose(rotmat,rotmatTranspose);
-
-    CvMat* negRotmatTranspose = cvCreateMat(3,3,CV_32FC1);
-    cvScale(rotmatTranspose,negRotmatTranspose,-1);
+    CvMat* invRotmat = cvCreateMat(3,3,CV_32FC1);
+    cvTranspose(rotmat,invRotmat);
 
     CvMat* position = cvCreateMat(3,1,CV_32FC1);
 
-    cvMatMul(rotmatTranspose,tvec,position);
+    cvMatMul(invRotmat,tvec,position);
 
 
-    return ofPoint(CV_MAT_ELEM(*position,float,0,0),-CV_MAT_ELEM(*position,float,1,0),CV_MAT_ELEM(*position,float,2,0));
+    return ofPoint(CV_MAT_ELEM(*position,float,0,0),CV_MAT_ELEM(*position,float,1,0),CV_MAT_ELEM(*position,float,2,0));
 }
 
 void Scan3dApp::getOrientationFromExtrinsic(const CvMat* extrinsicMatrix, ofVec3f* right, ofVec3f* up, ofVec3f* look){
@@ -1928,8 +1925,8 @@ void Scan3dApp::getOrientationFromExtrinsic(const CvMat* extrinsicMatrix, ofVec3
         } 
     }
 
-    CvMat* rotmatTranspose = cvCreateMat(3,3,CV_32FC1);
-    cvTranspose(rotmat,rotmatTranspose);
+    CvMat* invRotmat = cvCreateMat(3,3,CV_32FC1);
+    cvInv(rotmat,invRotmat);
 
     CvMat* xUnit = cvCreateMat(3,1,CV_32FC1);
     CV_MAT_ELEM(*xUnit,float,0,0) = 0.0;
@@ -1952,9 +1949,9 @@ void Scan3dApp::getOrientationFromExtrinsic(const CvMat* extrinsicMatrix, ofVec3
     CvMat* cvY = cvCreateMat(3,1,CV_32FC1);
     CvMat* cvX = cvCreateMat(3,1,CV_32FC1);
 
-    cvMatMul(rotmatTranspose,zUnit,cvZ);
-    cvMatMul(rotmatTranspose,yUnit,cvY);
-    cvMatMul(rotmatTranspose,xUnit,cvX);
+    cvMatMul(invRotmat,zUnit,cvZ);
+    cvMatMul(invRotmat,yUnit,cvY);
+    cvMatMul(invRotmat,xUnit,cvX);
 
     ofVec3f vz = ofVec3f(CV_MAT_ELEM(*cvZ,float,0,0),CV_MAT_ELEM(*cvZ,float,1,0),CV_MAT_ELEM(*cvZ,float,2,0));
     vz.normalize();
@@ -1977,7 +1974,7 @@ void Scan3dApp::setCamera(){
     camPos = getPositionFromExtrinsic(cam_extrinsic_matrix);
     cout << "Camera Position: [" << camPos << "]" << endl;
     
-    ofxRay3d centerRay = pixelToRay(cam_intrinsic_matrix,cam_extrinsic_matrix, ofPoint(width/2,height/2));
+    ofxRay3d centerRay = pixelToRay(cam_intrinsic_matrix,cam_extrinsic_matrix, cam_principal_point);
 
     ofVec3f centerPt = (ofVec3f)centerRay.intersect(vertPlane);
 
@@ -2254,12 +2251,59 @@ ofxPlane Scan3dApp::getPlaneFromFrameIndex(float fi){
     }
 }
 
+void Scan3dApp::addRayGeometry(ofMesh* mesh, ofxRay3d ray, ofColor color){
+
+    float ptScale = 50.0;
+    float rayScale = 500.0;
+    
+    mesh->addColor(color);
+    mesh->addVertex(ray.origin-ofVec3f(ptScale,0,0));
+    mesh->addColor(color);
+    mesh->addVertex(ray.origin+ofVec3f(ptScale,0,0));
+
+    mesh->addColor(color);
+    mesh->addVertex(ray.origin-ofVec3f(0, ptScale, 0));
+    mesh->addColor(color);
+    mesh->addVertex(ray.origin+ofVec3f(0, ptScale, 0));
+
+    mesh->addColor(color);
+    mesh->addVertex(ray.origin-ofVec3f(0,0,ptScale));
+    mesh->addColor(color);
+    mesh->addVertex(ray.origin+ofVec3f(0,0,ptScale));
+                
+  
+    mesh->addColor(color);
+    mesh->addVertex(ray.origin);
+    mesh->addColor(color);
+    mesh->addVertex((ofVec3f)(ray.origin+rayScale*ray.dir));
+}
+
+void Scan3dApp::addReprojection(vector<ofPoint> objectPoints, vector<ofPoint> imagePoints, ofMesh* mesh, ofColor color, bool isProjector){
+    ofxRay3d ray;
+    ofPoint intersectPt;
+    for(int i = 0; i < objectPoints.size(); i++){
+        ray = isProjector ? projpixel2ray(imagePoints[i]) : campixel2ray(imagePoints[i]);
+        addRayGeometry(mesh, ray, color);
+
+        mesh->addColor(color);
+        mesh->addVertex(objectPoints[i]);
+        
+        mesh->addColor(color);
+        intersectPt = ray.intersect(vertPlane);
+        mesh->addVertex(intersectPt);
+    }
+}
+
 void Scan3dApp::drawPointCloud() {
-    ofBackground(0);
+
+    ofBackground(20);
     ofMesh mesh;
     ofMesh planePts;
     ofMesh cameraMesh;
     ofMesh projectorMesh;
+    ofMesh cameraPlaneMesh;
+    ofMesh projectorPlaneMesh;
+    ofMesh reprojectionMesh;
     int step = 1;
     ofxPlane plane;
     ofVec3f vec;
@@ -2270,48 +2314,43 @@ void Scan3dApp::drawPointCloud() {
                 mesh.setMode(OF_PRIMITIVE_POINTS);
                 cameraMesh.setMode(OF_PRIMITIVE_LINES);
                 projectorMesh.setMode(OF_PRIMITIVE_LINES);
-                // cout << "Camera Position: ["<< camPos << "]" << endl;
+                reprojectionMesh.setMode(OF_PRIMITIVE_LINES);
+                cameraPlaneMesh.setMode(OF_PRIMITIVE_POINTS);
+                projectorPlaneMesh.setMode(OF_PRIMITIVE_POINTS);
+                cout << "Camera Position: ["<< camPos << "]" << endl;
                 ofxRay3d centerRay = campixel2ray(cam_principal_point);
                 ofVec3f centerPt = (ofVec3f)centerRay.intersect(vertPlane);
-                // cout << "Camera look: ["<< centerPt << "]" << endl;
+                cout << "Camera Ray: ["<< centerRay.dir << "]" << endl;
+
+                addRayGeometry(&cameraMesh, centerRay, ofColor(255,0,0));
+                
+                
+
+                cout << "Projector Position: ["<< projPos << "]" << endl;
+                centerRay = projpixel2ray(proj_principal_point);
+                centerPt = (ofVec3f)centerRay.intersect(vertPlane);
+                cout << "Projector Ray: ["<< centerRay.dir << "]" << endl;
+
+                addRayGeometry(&projectorMesh, centerRay, ofColor(0,255,0));
+
                 for(int i =0; i < 4; i += step){ 
-                    
-
-
-                    ofVec3f vec0, vec1;
-                    mesh.addColor(ofColor(0,255,0));
+                    ofVec3f vec0;
+                    cameraPlaneMesh.addColor(ofColor(255,0,0));
                     vec0 = (ofVec3f)camPlaneObjectPts[i];
-                    mesh.addVertex(vec0);
 
-                    planePts.addColor(ofColor(255,0,0));
-
-
-                    ofxRay3d ray = pixelToRay(cam_intrinsic_matrix,cam_extrinsic_matrix, camPlaneImagePts[i]);
-                    // cout << "ray: ["<< ray.dir << "]" << endl;
-                    vec1 = (ofVec3f)ray.intersect(vertPlane);
-                    vec1.x = -vec1.x;
-                    planePts.addVertex(vec1);
-                    //cout << "["<< vec0 << "]   [" << vec1 << "]" << endl;
-
-                    cameraMesh.addColor(ofColor(255,0,0));
-                    cameraMesh.addVertex(camPos);
-
-                    cameraMesh.addColor(ofColor(255,0,0));
-                    cameraMesh.addVertex(vec1);
-
-                    
+                    cameraPlaneMesh.addVertex(vec0);
                 }
 
                 for(int j = 0; j < projBoardPatternSize; ++j){
                     ofVec3f vec0;
-                    projectorMesh.addColor(ofColor(0,255,0));
+                    projectorPlaneMesh.addColor(ofColor(0,255,0));
                     vec0 = (ofVec3f)projPlaneObjectPts[j];
 
-                    projectorMesh.addVertex(vec0);
-
-                    projectorMesh.addColor(ofColor(0,255,0));
-                    projectorMesh.addVertex(projPos);
+                    projectorPlaneMesh.addVertex(vec0);
                 }
+
+                addReprojection(projPlaneObjectPts, projPlaneImagePts, &reprojectionMesh,ofColor(0,255,128), true);
+                addReprojection(camPlaneObjectPts, camPlaneImagePts, &reprojectionMesh,ofColor(255,0,128), false);
                 
                 glPointSize(3);
                 ofPushMatrix();
@@ -2338,10 +2377,6 @@ void Scan3dApp::drawPointCloud() {
 
                 glPointSize(6);
                 ofPushMatrix();
-                // the projected points are 'upside down' and 'backwards'
-                
-                //ofTranslate(camPos.x,camPos.y,camPos.z); // center the points a bit
-
                 glEnable(GL_DEPTH_TEST);
                 cameraMesh.drawVertices();
                 glDisable(GL_DEPTH_TEST);
@@ -2351,12 +2386,29 @@ void Scan3dApp::drawPointCloud() {
 
                 glPointSize(6);
                 ofPushMatrix();
-                // the projected points are 'upside down' and 'backwards'
-                ofScale(-1, 1,1);
-                //ofTranslate(camPos.x,camPos.y,camPos.z); // center the points a bit
-
                 glEnable(GL_DEPTH_TEST);
                 projectorMesh.drawVertices();
+                glDisable(GL_DEPTH_TEST);
+                ofPopMatrix();
+
+                glPointSize(6);
+                ofPushMatrix();
+                glEnable(GL_DEPTH_TEST);
+                projectorPlaneMesh.drawVertices();
+                glDisable(GL_DEPTH_TEST);
+                ofPopMatrix();
+
+                glPointSize(6);
+                ofPushMatrix();
+                glEnable(GL_DEPTH_TEST);
+                cameraPlaneMesh.drawVertices();
+                glDisable(GL_DEPTH_TEST);
+                ofPopMatrix();
+
+                glPointSize(6);
+                ofPushMatrix();
+                glEnable(GL_DEPTH_TEST);
+                reprojectionMesh.drawVertices();
                 glDisable(GL_DEPTH_TEST);
                 ofPopMatrix();
 

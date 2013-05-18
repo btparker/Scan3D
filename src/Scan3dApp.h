@@ -71,6 +71,8 @@ class Scan3dApp : public ofBaseApp{
 		//ofPoint rayPlaneIntersection(ofPoint planePt, ofVec3f planeNormal, ofPoint rayOrigin, ofVec3f rayDirection);
 		ofxLine3d projectLineOntoPlane(ofxLine2d line, ofxPlane plane, const CvMat* intrinsicMat, const CvMat* extrinsicMat);
 
+		void addRayGeometry(ofMesh* mesh, ofxRay3d ray, ofColor color);
+
 		ofxCvGrayscaleImage computeGradientImage(ofxCvGrayscaleImage &input, int direction);
 		ofxPlane getPlaneFromFrameIndex(float fi);
 
@@ -96,6 +98,8 @@ class Scan3dApp : public ofBaseApp{
 		ofxRay3d projpixel2ray(ofPoint pixel);
 		ofxPlane projcol2plane(int col);
 		ofxPlane projrow2plane(int row);
+
+		void addReprojection(vector<ofPoint> objectPoints, vector<ofPoint> imagePoints, ofMesh* mesh, ofColor color, bool isProjector);
 
 		void setCamera();
 
@@ -143,6 +147,8 @@ class Scan3dApp : public ofBaseApp{
 		float screenScale;
 
 		int projSquareWidth;
+
+		CvMat* coordinate_matrix;
 
 
 
