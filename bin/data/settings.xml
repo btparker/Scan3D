@@ -23,11 +23,12 @@
                 <projBoardSquareSize>38.000000000</projBoardSquareSize>
                 <projIntrinsicFile>/home/btparker/Dropbox/Projects/Active/3D Scanning/oF/apps/myApps/Scan3D/bin/data/proj_intrinsic.xml</projIntrinsicFile>
                 <projDistortionFile>/home/btparker/Dropbox/Projects/Active/3D Scanning/oF/apps/myApps/Scan3D/bin/data/proj_distortion.xml</projDistortionFile>
+                <projExtrinsicFile>/home/btparker/Dropbox/Projects/Active/3D Scanning/oF/apps/myApps/Scan3D/bin/data/proj_extrinsic.xml</projExtrinsicFile>
                 <plane>
                     <marker0>
                         <imagePt>
-                            <x>809.782043457</x>
-                            <y>628.566589355</y>
+                            <x>865.000000000</x>
+                            <y>684.000000000</y>
                         </imagePt>
                         <objectPt>
                             <x>406.000000000</x>
@@ -37,8 +38,8 @@
                     </marker0>
                     <marker1>
                         <imagePt>
-                            <x>792.809143066</x>
-                            <y>106.665252686</y>
+                            <x>847.000000000</x>
+                            <y>107.000000000</y>
                         </imagePt>
                         <objectPt>
                             <x>406.000000000</x>
@@ -48,8 +49,8 @@
                     </marker1>
                     <marker2>
                         <imagePt>
-                            <x>147.420440674</x>
-                            <y>100.409729004</y>
+                            <x>137.000000000</x>
+                            <y>109.000000000</y>
                         </imagePt>
                         <objectPt>
                             <x>0.000000000</x>
@@ -59,8 +60,8 @@
                     </marker2>
                     <marker3>
                         <imagePt>
-                            <x>168.186904907</x>
-                            <y>675.818359375</y>
+                            <x>148.000000000</x>
+                            <y>708.000000000</y>
                         </imagePt>
                         <objectPt>
                             <x>0.000000000</x>

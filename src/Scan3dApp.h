@@ -17,7 +17,7 @@ enum Setup{TOP_SECTION, BOTTOM_SECTION, T_TL, T_TR, T_BL, T_BR, B_TL, B_TR, B_BL
 
 
 enum CameraCalibration{CAM_CAL_PROCESSING, CAM_CAL_LOADING, CAM_CAL_WAITING};
-enum ProjectorCalibration{PROJ_CAL_PROCESSING, PROJ_CAL_LOADING, PROJ_CAL_WAITING,BR,TR,TL,BL, BIN, GRAY};
+enum ProjectorCalibration{PROJ_CAL_PROCESSING, PROJ_CAL_LOADING, PROJ_CAL_SET,BR,TR,TL,BL, BIN, GRAY};
 enum Points3d{POINTS3D_PROCESSING, POINTS3D_WAITING};
 
 
@@ -49,7 +49,7 @@ class Scan3dApp : public ofBaseApp{
 		void loadSettings();
 		void saveSettings();
 		void clearSetupSettings();
-		void clearProjectorSettings();
+		void clearCameraSettings();
 		void keyPressed  (int key);
 		void keyReleased(int key);
 		void mouseMoved(int x, int y );
@@ -90,7 +90,7 @@ class Scan3dApp : public ofBaseApp{
 
 		void getOrientationFromExtrinsic(const CvMat* extrinsicMatrix, ofVec3f* right, ofVec3f* up, ofVec3f* look);
 
-		void setCameraAndProjector();
+		void setCamera();
 
 		int sobelHorizontal[3][3];
 		int sobelVertical[3][3];
@@ -103,10 +103,14 @@ class Scan3dApp : public ofBaseApp{
 		string inputVideoFile;
 
 		//Calibration points for the planes the object rests on
-		
+
+		vector<ofPoint> camPlaneObjectPts;
+		vector<ofPoint> camPlaneImagePts;
 
 		vector<ofPoint> projPlaneObjectPts;
 		vector<ofPoint> projPlaneImagePts;
+
+		int lastProjSuccess;
 
 		//Images
 		ofxCvColorImage colorFrame;
@@ -130,6 +134,8 @@ class Scan3dApp : public ofBaseApp{
 		int projType;
 
 		float screenScale;
+
+		int projSquareWidth;
 
 
 
@@ -248,6 +254,7 @@ class Scan3dApp : public ofBaseApp{
 		IplImage* projmapx;
 		IplImage* projmapy;
 
+		string projExtrinsicFilename;
 		string projIntrinsicFilename;
 		string projDistortionFilename;
 
