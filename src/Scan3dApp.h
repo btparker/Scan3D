@@ -92,6 +92,11 @@ class Scan3dApp : public ofBaseApp{
 
 		ofxCvColorImage generateCheckerBoardImage(int w, int h, int checksX, int checksY);
 
+		ofxRay3d campixel2ray(int x, int y);
+		ofxRay3d projpixel2ray(int x, int y);
+		ofxPlane projcol2plane(int col);
+		ofxPlane projrow2plane(int row);
+
 		void setCamera();
 
 		int sobelHorizontal[3][3];

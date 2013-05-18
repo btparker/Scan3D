@@ -4,6 +4,7 @@ using namespace cv;
 //--------------------------------------------------------------
 void Scan3dApp::setup(){
 
+    screenScale = 0.5;
     cam_extrinsic_matrix = cvCreateMat( 3, 4, CV_32FC1);
     proj_extrinsic_matrix = cvCreateMat( 3, 4, CV_32FC1);
 
@@ -98,7 +99,7 @@ void Scan3dApp::setup(){
     
     shadowThreshImg.allocate(width,height);
 
-    ofSetWindowShape(width,height+messageBarHeight);
+    ofSetWindowShape(screenScale*width,screenScale*height+messageBarHeight);
 
     numFrames = dir.numFiles();
     
@@ -1399,11 +1400,24 @@ void Scan3dApp::processingUpdate(){
     
 }
 
+ofxRay3d Scan3dApp::campixel2ray(int x, int y){
+    return ofxRay3d();
+}
+
+ofxRay3d Scan3dApp::projpixel2ray(int x, int y){
+    return ofxRay3d();
+}
+
+ofxPlane Scan3dApp::projcol2plane(int col){
+    return ofxPlane();
+}
+
+ofxPlane Scan3dApp::projrow2plane(int row){
+    return ofxPlane();
+}
 
 
 void Scan3dApp::points3dUpdate(){
-    
-    
     points.resize(width*height,ofPoint(5,5,5));
     colors.resize(width*height,ofColor(255,255,255));
     int numPoints = 0;
@@ -1559,27 +1573,27 @@ void Scan3dApp::draw(){
     ofBackground(60);
     ofSetColor(255);
 
-    messageBarFont.drawString(messageBarText,10,height+messageBarHeight/2-5);
-    messageBarSubTextFont.drawString(messageBarSubText,10,height+messageBarHeight-15);
+    messageBarFont.drawString(messageBarText,10,screenScale*height+messageBarHeight/2-5);
+    messageBarSubTextFont.drawString(messageBarSubText,10,screenScale*height+messageBarHeight-15);
 
     switch(displayState){
         case COLOR:
-            colorFrame.draw(0, 0);
+            colorFrame.draw(0, 0, screenScale*width,screenScale*height);
             break;
         case GRAYSCALE:
-            grayscaleFrame.draw(0, 0);
+            grayscaleFrame.draw(0, 0, screenScale*width,screenScale*height);
             break;
         case MINIMAGE:
-            minImg.draw(0, 0);
+            minImg.draw(0, 0, screenScale*width,screenScale*height);
             break;
         case MAXIMAGE:
-            maxImg.draw(0, 0);
+            maxImg.draw(0, 0, screenScale*width,screenScale*height);
             break;
         case CTEMPORAL:
-            colMappingColorImg.draw(0, 0);
+            colMappingColorImg.draw(0, 0, screenScale*width,screenScale*height);
             break;
         case RTEMPORAL:
-            rowMappingColorImg.draw(0, 0);
+            rowMappingColorImg.draw(0, 0, screenScale*width,screenScale*height);
             break;
     }
 
@@ -1589,8 +1603,8 @@ void Scan3dApp::draw(){
                 ofSetColor(0,255,0);
                 ofSetLineWidth(2);
                 for(int i = 0; i < 4; i++){
-                    ofLine(camPlaneImagePts[i].x-15,camPlaneImagePts[i].y,camPlaneImagePts[i].x+15,camPlaneImagePts[i].y);
-                    ofLine(camPlaneImagePts[i].x,camPlaneImagePts[i].y-15,camPlaneImagePts[i].x,camPlaneImagePts[i].y+15);
+                    ofLine(screenScale*camPlaneImagePts[i].x-15,screenScale*camPlaneImagePts[i].y,screenScale*camPlaneImagePts[i].x+15,screenScale*camPlaneImagePts[i].y);
+                    ofLine(screenScale*camPlaneImagePts[i].x,screenScale*camPlaneImagePts[i].y-15,screenScale*camPlaneImagePts[i].x,screenScale*camPlaneImagePts[i].y+15);
                 }
             }
             break;
@@ -2030,19 +2044,19 @@ void Scan3dApp::mouseReleased(int x, int y, int button){
     if(programState == CAMERA_CALIBRATION){
         switch(camCalSubstate){
             case  BR:                
-                camPlaneImagePts[0] = getNearestCorner(grayscaleFrame,10,x,y);
+                camPlaneImagePts[0] = getNearestCorner(grayscaleFrame,10,x,y)/screenScale;
                 camCalSubstate = TR;
                 break;
             case  TR:
-                camPlaneImagePts[1] = getNearestCorner(grayscaleFrame,10,x,y);
+                camPlaneImagePts[1] = getNearestCorner(grayscaleFrame,10,x,y)/screenScale;
                 camCalSubstate = TL;
                 break;
             case  TL:
-                camPlaneImagePts[2] = getNearestCorner(grayscaleFrame,10,x,y);
+                camPlaneImagePts[2] = getNearestCorner(grayscaleFrame,10,x,y)/screenScale;
                 camCalSubstate = BL;
                 break;
             case  BL:
-                camPlaneImagePts[3] = getNearestCorner(grayscaleFrame,10,x,y);
+                camPlaneImagePts[3] = getNearestCorner(grayscaleFrame,10,x,y)/screenScale;
                 camCalSubstate = CAM_CAL_WAITING;
                 break;
         }
