@@ -4,7 +4,7 @@ using namespace cv;
 //--------------------------------------------------------------
 void Scan3dApp::setup(){
 
-    screenScale = 0.5;
+    
     cam_extrinsic_matrix = cvCreateMat( 3, 4, CV_32FC1);
     proj_extrinsic_matrix = cvCreateMat( 3, 4, CV_32FC1);
 
@@ -39,8 +39,8 @@ void Scan3dApp::setup(){
     messageBarText = "";
     messageBarSubText = "";
     messageBarHeight = 70;
-    messageBarFont.loadFont("HelveticaNeueLTStd-Bd.otf", 20);
-    messageBarSubTextFont.loadFont("HelveticaNeueLTStd-Lt.otf", 15);
+    messageBarFont.loadFont("OpenSans-Semibold.ttf", 20);
+    messageBarSubTextFont.loadFont("OpenSans-Light.ttf", 15);
 
     //Setting and notifying states
     displayState = COLOR;
@@ -92,12 +92,17 @@ void Scan3dApp::setup(){
 
 
     codeImg.allocate(projWidth,projHeight);
+    codeImgBuffer.allocate(projWidth,projHeight, OF_IMAGE_GRAYSCALE);
 
     projSquareWidth = projWidth/(projBoardXCount+1);
     
 
     
     shadowThreshImg.allocate(width,height);
+
+    screenScale = 0.75;//height > 768 ? 1/(height/768) : 1.0;
+
+    cout << "screenScale " << screenScale << endl;
 
     ofSetWindowShape(screenScale*width,screenScale*height+messageBarHeight);
 
@@ -198,10 +203,10 @@ void Scan3dApp::assertPoint(ofPoint pt){
     Loads settings from 'settings.xml', located in the data folder of the project
 */
 void Scan3dApp::loadSettings(){
-	/* Load settings file */
-	if(settings.loadFile("settings.xml")){
-		cout << "** Loading Settings File **" << endl;
-		settings.pushTag("settings");
+    /* Load settings file */
+    if(settings.loadFile("settings.xml")){
+        cout << "** Loading Settings File **" << endl;
+        settings.pushTag("settings");
             settings.pushTag("user");
                 settings.pushTag("input");
                     string input = settings.getValue("type","NONE");
@@ -311,12 +316,12 @@ void Scan3dApp::loadSettings(){
                     maxThreshold = settings.getValue("maxThreshold", 0);
                 settings.popTag();// pop misc
             settings.popTag(); // pop user
-		settings.popTag(); // pop settings
-		cout << "** Done Loading Settings **" << endl;
-	}
-	else {
-		cout << "No settings file to load." << endl;
-	}
+        settings.popTag(); // pop settings
+        cout << "** Done Loading Settings **" << endl;
+    }
+    else {
+        cout << "No settings file to load." << endl;
+    }
 }
 
 //--------------------------------------------------------------
@@ -1050,8 +1055,6 @@ ofxCvColorImage Scan3dApp::generateCheckerBoardImage(int w, int h, int checksX, 
     return checkerboardImg;
 }
 
-
-
 ofPoint Scan3dApp::pt3DToPixel(CvMat* intrinsicMatrix, CvMat* extrinsicMatrix,  CvMat* distCoeffs, ofPoint pt3D){
     
   
@@ -1177,6 +1180,11 @@ void Scan3dApp::captureUpdate(){
 
         if(projType == BIN){
             codeImg = computeBinCodeImage(projWidth,projHeight,power,inverse,type);
+            codeImgBuffer.setFromPixels(codeImg.getPixelsRef());
+            filename = "output/codeFrames/binCode";
+            filename += ofToString(power);
+            filename += ".tiff";
+            codeImgBuffer.saveImage(filename);
         }
         else if(projType == GRAY){
             codeImg = computeGrayCodeImage(projWidth,projHeight,power,inverse,type);
@@ -1400,20 +1408,28 @@ void Scan3dApp::processingUpdate(){
     
 }
 
-ofxRay3d Scan3dApp::campixel2ray(int x, int y){
-    return ofxRay3d();
+ofxRay3d Scan3dApp::campixel2ray(ofPoint pixel){
+    return pixelToRay(cam_intrinsic_matrix,cam_extrinsic_matrix, pixel);
 }
 
-ofxRay3d Scan3dApp::projpixel2ray(int x, int y){
-    return ofxRay3d();
+ofxRay3d Scan3dApp::projpixel2ray(ofPoint pixel){
+    return pixelToRay(proj_intrinsic_matrix,proj_extrinsic_matrix, pixel);
 }
 
 ofxPlane Scan3dApp::projcol2plane(int col){
-    return ofxPlane();
+    ofxRay3d ray0 = projpixel2ray(ofPoint(col,0));
+    ofxRay3d ray1 = projpixel2ray(ofPoint(col,projHeight));
+    ofVec3f normal = (ray0.dir).cross(ray1.dir);
+    ofPoint pt = projPos;
+    return ofxPlane(pt,normal);
 }
 
 ofxPlane Scan3dApp::projrow2plane(int row){
-    return ofxPlane();
+    ofxRay3d ray0 = projpixel2ray(ofPoint(0,row));
+    ofxRay3d ray1 = projpixel2ray(ofPoint(projWidth,row));
+    ofVec3f normal = (ray0.dir).cross(ray1.dir);
+    ofPoint pt = projPos;
+    return ofxPlane(pt,normal);
 }
 
 
@@ -2255,7 +2271,7 @@ void Scan3dApp::drawPointCloud() {
                 cameraMesh.setMode(OF_PRIMITIVE_LINES);
                 projectorMesh.setMode(OF_PRIMITIVE_LINES);
                 // cout << "Camera Position: ["<< camPos << "]" << endl;
-                ofxRay3d centerRay = pixelToRay(cam_intrinsic_matrix,cam_extrinsic_matrix, cam_principal_point);
+                ofxRay3d centerRay = campixel2ray(cam_principal_point);
                 ofVec3f centerPt = (ofVec3f)centerRay.intersect(vertPlane);
                 // cout << "Camera look: ["<< centerPt << "]" << endl;
                 for(int i =0; i < 4; i += step){ 

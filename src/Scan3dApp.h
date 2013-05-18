@@ -92,8 +92,8 @@ class Scan3dApp : public ofBaseApp{
 
 		ofxCvColorImage generateCheckerBoardImage(int w, int h, int checksX, int checksY);
 
-		ofxRay3d campixel2ray(int x, int y);
-		ofxRay3d projpixel2ray(int x, int y);
+		ofxRay3d campixel2ray(ofPoint pixel);
+		ofxRay3d projpixel2ray(ofPoint pixel);
 		ofxPlane projcol2plane(int col);
 		ofxPlane projrow2plane(int row);
 
@@ -155,6 +155,7 @@ class Scan3dApp : public ofBaseApp{
 		ofxCvGrayscaleImage invDiffFrame;
 		ofxCvGrayscaleImage noiseImg;
 		ofxCvGrayscaleImage codeImg;
+		ofImage codeImgBuffer;
 
 		ofImage bufferOfImage;
 		ofxCvColorImage bufferOfxCvColorImage;
