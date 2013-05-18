@@ -90,6 +90,8 @@ class Scan3dApp : public ofBaseApp{
 
 		void getOrientationFromExtrinsic(const CvMat* extrinsicMatrix, ofVec3f* right, ofVec3f* up, ofVec3f* look);
 
+		ofxCvColorImage generateCheckerBoardImage(int w, int h, int checksX, int checksY);
+
 		void setCamera();
 
 		int sobelHorizontal[3][3];

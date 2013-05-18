@@ -158,8 +158,6 @@ void Scan3dApp::setup(){
     projSuccesses = 0;
     projBoardPatternSize = projBoardXCount*projBoardYCount;
     projBoardNumInternalCornersCV = cvSize( projBoardXCount, projBoardYCount);
-    projPlaneObjectPts.resize(projBoardPatternSize, ofPoint());
-    projPlaneImagePts.resize(projBoardPatternSize, ofPoint());
 
     proj_image_points = cvCreateMat(projNumBoards*projBoardPatternSize,2,CV_32FC1);
     proj_object_points = cvCreateMat(projNumBoards*projBoardPatternSize,3,CV_32FC1);
@@ -247,31 +245,6 @@ void Scan3dApp::loadSettings(){
                             cout << "   Using camera calibration sequence folder: " << camCalDir.path() << endl;
                             camCalSubstate = CAM_CAL_PROCESSING;  
                         }
-                    settings.popTag();
-                    settings.pushTag("proj");
-                        projCalDir = ofDirectory(settings.getValue("frames",""));
-                        projCalDir.listDir();
-                        projCalDir.sort();
-                        projIntrinsicFilename = ofToDataPath("proj_intrinsic.xml");
-                        projDistortionFilename = ofToDataPath("proj_distortion.xml");
-                        projExtrinsicFilename = ofToDataPath("proj_extrinsic.xml");
-                        projBoardXCount = settings.getValue("projBoardXCount",7);
-                        projBoardYCount = settings.getValue("projBoardYCount",7);
-                        projBoardSquareSize = settings.getValue("projBoardSquareSize",30.0); //in mm 
-
-
-                        if(settings.tagExists("projIntrinsicFile") && settings.tagExists("projDistortionFile") && settings.tagExists("projExtrinsicFile")){
-                            projIntrinsicFilename = settings.getValue("projIntrinsicFile","proj_intrinsic.xml");
-                            projDistortionFilename = settings.getValue("projDistortionFile","proj_distortion.xml");
-                            projExtrinsicFilename = settings.getValue("projExtrinsicFile","proj_extrinsic.xml");
-                            projCalSubstate = PROJ_CAL_LOADING;
-                        }
-                        else{
-                            
-
-                            cout << "   Using projector calibration sequence folder: " << projCalDir.path() << endl;
-                            projCalSubstate = PROJ_CAL_PROCESSING;  
-                        }
                         settings.pushTag("plane");
                             for(int i = 0; i < 4; i++){
                                 settings.pushTag("marker"+ofToString(i));
@@ -286,6 +259,50 @@ void Scan3dApp::loadSettings(){
                                 settings.popTag(); // pop markers
                             }
                         settings.popTag();
+                    settings.popTag();
+                    settings.pushTag("proj");
+                        projCalDir = ofDirectory(settings.getValue("frames",""));
+                        projCalDir.listDir();
+                        projCalDir.sort();
+                        projIntrinsicFilename = ofToDataPath("proj_intrinsic.xml");
+                        projDistortionFilename = ofToDataPath("proj_distortion.xml");
+                        projExtrinsicFilename = ofToDataPath("proj_extrinsic.xml");
+                        projBoardXCount = settings.getValue("projBoardXCount",7);
+                        projBoardYCount = settings.getValue("projBoardYCount",7);
+                        projBoardSquareSize = settings.getValue("projBoardSquareSize",30.0); //in mm 
+                        projPlaneImagePts.resize(projBoardXCount*projBoardYCount,ofPoint());
+                        projPlaneObjectPts.resize(projBoardXCount*projBoardYCount,ofPoint());
+
+                        if(settings.tagExists("projIntrinsicFile") && settings.tagExists("projDistortionFile") && settings.tagExists("projExtrinsicFile")){
+                            projIntrinsicFilename = settings.getValue("projIntrinsicFile","proj_intrinsic.xml");
+                            projDistortionFilename = settings.getValue("projDistortionFile","proj_distortion.xml");
+                            projExtrinsicFilename = settings.getValue("projExtrinsicFile","proj_extrinsic.xml");
+                            settings.pushTag("plane");
+                                
+                                for(int i = 0; i < projBoardXCount*projBoardYCount; i++){
+                                    settings.pushTag("marker"+ofToString(i));
+                                        settings.pushTag("imagePt");
+                                            projPlaneImagePts[i].set(settings.getValue("x",0.0),settings.getValue("y",0.0));
+                                            cout << "      image:[" << projPlaneImagePts[i].x << ", " << projPlaneImagePts[i].y << "]";
+                                        settings.popTag(); // pop pts
+                                        settings.pushTag("objectPt");
+                                            projPlaneObjectPts[i].set(settings.getValue("x",0.0),settings.getValue("y",0.0),settings.getValue("z",0.0));
+                                            cout << "      object:[" << projPlaneObjectPts[i].x << ", " << projPlaneObjectPts[i].y << ", " << projPlaneObjectPts[i].z << "]" << endl;
+                                        settings.popTag(); // pop pts
+                                    settings.popTag(); // pop markers
+                                }
+                            settings.popTag();
+                            projCalSubstate = PROJ_CAL_LOADING;
+                        }
+                        else{
+                            
+
+                            cout << "   Using projector calibration sequence folder: " << projCalDir.path() << endl;
+                            projCalSubstate = PROJ_CAL_PROCESSING;  
+                        }
+
+                        
+                        
                     settings.popTag();
                 settings.popTag();
                 settings.pushTag("misc");
@@ -340,6 +357,25 @@ void Scan3dApp::saveSettings(){
                     settings.setValue("camBoardSquareSize",camBoardSquareSize);
                     settings.setValue("camIntrinsicFile",camIntrinsicFilename);
                     settings.setValue("camDistortionFile",camDistortionFilename);
+                    settings.addTag("plane");
+                    settings.pushTag("plane");
+                        cout << "   Setting camera plane points as [BR,TR,TL,BL]:"<< endl;
+                        for(int i = 0; i < 4; i++){
+                            settings.addTag("marker"+ofToString(i));
+                            settings.pushTag("marker"+ofToString(i));
+                                settings.addTag("imagePt");
+                                settings.pushTag("imagePt");
+                                    settings.setValue("x",camPlaneImagePts[i].x); settings.setValue("y",camPlaneImagePts[i].y);
+                                    cout << "      image[" << camPlaneImagePts[i].x << ", " << camPlaneImagePts[i].y << "] ";
+                                settings.popTag(); // pop imagePt
+                                settings.addTag("objectPt");
+                                settings.pushTag("objectPt");
+                                    settings.setValue("x",camPlaneObjectPts[i].x); settings.setValue("y",camPlaneObjectPts[i].y); settings.setValue("z",camPlaneObjectPts[i].z);
+                                    cout << "      object[" << camPlaneObjectPts[i] << "]" << endl;
+                                settings.popTag(); // pop objectPt
+                            settings.popTag(); // pop markers
+                        }
+                    settings.popTag(); // pop plane
                 settings.popTag(); //pop cam
                 settings.addTag("proj");
                 settings.pushTag("proj");
@@ -353,17 +389,18 @@ void Scan3dApp::saveSettings(){
                     settings.addTag("plane");
                     settings.pushTag("plane");
                         cout << "   Setting projector plane points as [BR,TR,TL,BL]:"<< endl;
-                        for(int i = 0; i < 4; i++){
+                        for(int i = 0; i < projBoardPatternSize; i++){
                             settings.addTag("marker"+ofToString(i));
                             settings.pushTag("marker"+ofToString(i));
                                 settings.addTag("imagePt");
                                 settings.pushTag("imagePt");
-                                    settings.setValue("x",camPlaneImagePts[i].x); settings.setValue("y",camPlaneImagePts[i].y);
-                                    cout << "      [" << camPlaneImagePts[i].x << ", " << camPlaneImagePts[i].y << "]" << endl;
+                                    settings.setValue("x",projPlaneImagePts[i].x); settings.setValue("y",projPlaneImagePts[i].y);
+                                    cout << "      image[" << projPlaneImagePts[i].x << ", " << camPlaneImagePts[i].y << "] ";
                                 settings.popTag(); // pop imagePt
                                 settings.addTag("objectPt");
                                 settings.pushTag("objectPt");
-                                    settings.setValue("x",camPlaneObjectPts[i].x); settings.setValue("y",camPlaneObjectPts[i].y); settings.setValue("z",camPlaneObjectPts[i].z);
+                                    settings.setValue("x",projPlaneObjectPts[i].x); settings.setValue("y",projPlaneObjectPts[i].y); settings.setValue("z",projPlaneObjectPts[i].z);
+                                    cout << "      object[" << projPlaneObjectPts[i] << "]" << endl;
                                 settings.popTag(); // pop objectPt
                             settings.popTag(); // pop markers
                         }
@@ -814,7 +851,7 @@ void Scan3dApp::projCalUpdate(){
                     printf("]\n");
                 }
                 printf("\n");
-                
+  
                 proj_focal_length = ofVec2f(CV_MAT_ELEM( *proj_intrinsic_matrix, float, 0, 0 ),CV_MAT_ELEM( *proj_intrinsic_matrix, float, 1,1));
 
                 cout << "Projector Focal Length: [" << proj_focal_length << "]\n" << endl;
@@ -851,7 +888,7 @@ void Scan3dApp::projCalUpdate(){
 
 
                 bufferOfImage.loadImage(projCalDir.getPath(0));
-                colorFrame.setFromPixels(bufferOfImage.getPixels(),width,height);
+                colorFrame = generateCheckerBoardImage(width,height,projBoardXCount+1,projBoardYCount+1);
                 colorFrame.remap(projmapx,projmapy);
                 grayscaleFrame = colorFrame;
 
@@ -890,14 +927,7 @@ void Scan3dApp::projCalUpdate(){
                     projPlaneImagePts[j] = ofPoint(proj_corners[j].x,proj_corners[j].y);
                 }
 
-                cout << "Projector Extrinsic Matrix:"<< endl;
-                computeExtrinsicMatrix(projPlaneObjectPts, projPlaneImagePts, proj_intrinsic_matrix, proj_distortion_coeffs, proj_extrinsic_matrix);
 
-                cvSave(projExtrinsicFilename.c_str(),proj_extrinsic_matrix);
-
-                projPos = getPositionFromExtrinsic(proj_extrinsic_matrix);
-                cout << "Projector Position: [" << projPos << "]" << endl;
-                
                 projCalSubstate = PROJ_CAL_SET;
 
                 
@@ -977,13 +1007,14 @@ void Scan3dApp::projCalUpdate(){
 
         case PROJ_CAL_SET:
             cout << "Projectr Extrinsic Matrix:"<< endl;
-            computeExtrinsicMatrix(camPlaneObjectPts, camPlaneImagePts, proj_intrinsic_matrix, proj_distortion_coeffs, proj_extrinsic_matrix);
+            computeExtrinsicMatrix(projPlaneObjectPts, projPlaneImagePts, proj_intrinsic_matrix, proj_distortion_coeffs, proj_extrinsic_matrix);
 
             projPos = getPositionFromExtrinsic(proj_extrinsic_matrix);
-            cout << "Projector Position: [" << projPos << "]" << endl;
-            
-            ofxRay3d centerRay = pixelToRay(proj_intrinsic_matrix,proj_extrinsic_matrix, ofPoint(width/2,height/2));
+            projPos.z =-1*projPos.z;
 
+            cout << "Projector Position: [" << projPos << "]" << endl;
+
+            saveSettings();
             programState = CAPTURE;
             break;
 
@@ -991,6 +1022,31 @@ void Scan3dApp::projCalUpdate(){
 
     }
     
+}
+
+ofxCvColorImage Scan3dApp::generateCheckerBoardImage(int w, int h, int checksX, int checksY){
+    ofxCvColorImage checkerboardImg;
+    checkerboardImg.allocate(w,h);
+    int buffer = 20;
+    int xs = (w-2*buffer)/checksX;
+    int hs = (h-2*buffer)/checksY;
+
+    
+
+    for(int r = 0; r < checksY; r++){
+        for(int c = 0; c < checksX; c++){
+            checkerboardImg.setROI(c+buffer,r+buffer,xs,hs);
+            if(r%2 == c%2){
+                checkerboardImg.set(0);
+            }
+            else{
+                checkerboardImg.set(255);
+            }
+            checkerboardImg.resetROI();
+        }
+    } 
+
+    return checkerboardImg;
 }
 
 
@@ -1912,7 +1968,7 @@ void Scan3dApp::keyPressed(int key){
             if(programState ==  CAMERA_CALIBRATION){
                 setCamera();
                 programState = PROJECTOR_CALIBRATION;
-                saveSettings();
+                
             }
 
             break;
