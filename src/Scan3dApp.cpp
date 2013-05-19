@@ -1450,6 +1450,7 @@ void Scan3dApp::points3dUpdate(){
 
     unsigned short rowMappingPixel;
     unsigned short colMappingPixel;
+    int col = 0;
 
     // float rowMappingPixel = 0.0;
     switch(points3dSubstate){
@@ -1459,20 +1460,21 @@ void Scan3dApp::points3dUpdate(){
 
                         colMappingPixel = colMappingPixels[c+r*width];
                         //rowMappingPixel = rowMappingPixels[c+r*width];
-                        if(colMappingPixel == 0){
+                        if((int)colMappingPixel == 0){
                             continue;
                         }
                         else{
+                            col = colMappingPixel;
 
-                            ofxPlane plane = projcol2plane(colMappingPixel);
+                            ofxPlane plane = projcol2plane((int)colMappingPixel);
                             if(plane.isInit()){
-                                ofxRay3d ray = pixelToRay(cam_intrinsic_matrix,cam_extrinsic_matrix, ofPoint(c,r));
+                                ofxRay3d ray = campixel2ray(ofPoint(c,r));
 
                                 if(ray.dir.dot(plane.normal) < 0.1){ // too orthogonal, prone to high error
                                     continue;
                                 }
                                 
-                                ofPoint pt = ray.intersect(plane);
+                                ofPoint pt = ray.intersect(vertPlane);
                                 // cout << "Ray origin should be camera pos: " << endl;
                                 // cout << "   camPos: ";
                                 // cout << camPos << endl;
@@ -2235,6 +2237,8 @@ void Scan3dApp::addReprojection(vector<ofPoint> objectPoints, vector<ofPoint> im
         mesh->addColor(color);
         intersectPt = ray.intersect(vertPlane);
         mesh->addVertex(intersectPt);
+
+        if(!isProjector){assert(intersectPt.distance(objectPoints[i]) < 5.0);}
     }
 }
 
