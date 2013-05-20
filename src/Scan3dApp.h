@@ -5,7 +5,7 @@
 #include "ofxOpenCv.h"
 #include "cv.h"
 #include <sstream>
-
+using namespace cv;
 
 
 class Scan3dApp : public ofBaseApp{
@@ -26,11 +26,15 @@ class Scan3dApp : public ofBaseApp{
 		void windowResized(int w, int h);
 		void dragEvent(ofDragInfo dragInfo);
 
+		void loadMesh(string filename, ofMesh* mesh);
+
 		void setCamera();
 
-		void convertOfPointsToCvMat(vector<ofPoint> pts, int dimensions, CvMat* output);
+		void convertOfPointsToCvMat(vector<ofPoint> points, int dimensions, CvMat* output);
 		
-		void writePointsToFile(vector<ofPoint> pts,vector<ofColor> colors, string filename);
+		void writeMeshToFile(const ofMesh* mesh, string filename);
+
+		void transformMesh(Mat mat, ofMesh* mesh);
 
 		ofEasyCam easyCam;
 
@@ -41,6 +45,10 @@ class Scan3dApp : public ofBaseApp{
 
 		ofTrueTypeFont messageBarFont;
 		ofTrueTypeFont messageBarSubTextFont;
+
+		ofMesh mesh0;
+		ofMesh mesh1;
+		ofMesh resultMesh;
 	
         
 };
