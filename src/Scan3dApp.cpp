@@ -1052,20 +1052,20 @@ void Scan3dApp::projCalUpdate(){
 
         case PROJ_CAL_SET:
             computeExtrinsicMatrix(projPlaneObjectPts, projPlaneImagePts, proj_intrinsic_matrix, proj_distortion_coeffs, proj_extrinsic_matrix);
-            // CvMat* projExtSwap0 = cvCreateMat(3,3,CV_32FC1);
-            // CvMat* projExtSwap1 = cvCreateMat(3,3,CV_32FC1);
-            // for(int r = 0; r < 3; r++){
-            //     for(int c = 0; c < 3; c++){
-            //        CV_MAT_ELEM(*projExtSwap0,float,r,c) = CV_MAT_ELEM(*proj_extrinsic_matrix,float,r,c);
-            //     }
-            // }
+            CvMat* projExtSwap0 = cvCreateMat(3,3,CV_32FC1);
+            CvMat* projExtSwap1 = cvCreateMat(3,3,CV_32FC1);
+            for(int r = 0; r < 3; r++){
+                for(int c = 0; c < 3; c++){
+                   CV_MAT_ELEM(*projExtSwap0,float,r,c) = CV_MAT_ELEM(*proj_extrinsic_matrix,float,r,c);
+                }
+            }
 
-            // cvInv(projExtSwap0,projExtSwap1);
-            // for(int r = 0; r < 3; r++){
-            //     for(int c = 0; c < 3; c++){
-            //        CV_MAT_ELEM(*proj_extrinsic_matrix,float,r,c) = CV_MAT_ELEM(*projExtSwap1,float,r,c);
-            //     }
-            // }
+            cvInv(projExtSwap0,projExtSwap1);
+            for(int r = 0; r < 3; r++){
+                for(int c = 0; c < 3; c++){
+                   CV_MAT_ELEM(*proj_extrinsic_matrix,float,r,c) = CV_MAT_ELEM(*projExtSwap1,float,r,c);
+                }
+            }
             projPos = getPositionFromExtrinsic(proj_extrinsic_matrix);
 
             saveSettings();
