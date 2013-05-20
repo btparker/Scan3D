@@ -30,11 +30,13 @@ class Scan3dApp : public ofBaseApp{
 
 		void setCamera();
 
-		void convertOfPointsToCvMat(vector<ofPoint> points, int dimensions, CvMat* output);
+		Mat convertMeshToMat(const ofMesh* mesh);
 		
 		void writeMeshToFile(const ofMesh* mesh, string filename);
 
 		void transformMesh(Mat mat, ofMesh* mesh);
+
+		
 
 		ofEasyCam easyCam;
 

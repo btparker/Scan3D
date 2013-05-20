@@ -24,19 +24,81 @@ void Scan3dApp::setup(){
 
     mesh0.setMode(OF_PRIMITIVE_POINTS);
     mesh1.setMode(OF_PRIMITIVE_POINTS);
+    resultMesh.setMode(OF_PRIMITIVE_POINTS);
     loadMesh("cube.ply", &mesh0);
     loadMesh("cube_trans.ply", &mesh1);
 
-    float a[4][4] = {
-                        {1, 0, 0, 5},
+    float a[3][4] = {
+                        {1, 0, 0, 10},
                         {0, 1, 0, 5},
-                        {0, 0, 1, 5},
-                        {0, 0, 0, 1}
+                        {0, 0, 1, 12}
                     };
 
-    Mat A = Mat(4, 4, CV_32FC1, a);
-
+    Mat A = Mat(3, 4, CV_32FC1, a);
+ 
     transformMesh(A,&mesh1);
+
+
+    ofVec3f p = mesh0.getCentroid();
+    ofVec3f pPrime = mesh1.getCentroid();
+    ofVec3f q;
+    ofVec3f qPrime;
+
+    int meshSize = mesh0.getVertices().size();
+    float b[3][3] = {
+                        {0, 0, 0},
+                        {0, 0, 0},
+                        {0, 0, 0}
+                    };
+    for(int i = 0; i < meshSize; i++){
+        q = mesh0.getVertex(i)-p;
+        qPrime = mesh1.getVertex(i)-pPrime;
+        b[0][0] = b[0][0]+q.x*qPrime.x; b[0][1] = b[0][1]+q.x*qPrime.y; b[0][2] = b[0][2]+q.x*qPrime.z;
+        b[1][0] = b[1][0]+q.y*qPrime.x; b[1][1] = b[1][1]+q.y*qPrime.y; b[1][2] = b[1][2]+q.y*qPrime.z;
+        b[2][0] = b[2][0]+q.z*qPrime.x; b[2][1] = b[2][1]+q.z*qPrime.y; b[2][2] = b[2][2]+q.z*qPrime.z;
+        
+    }
+ 
+
+    Mat H = Mat(3,3, CV_32FC1,b);
+
+    Mat u = Mat(3,3, CV_32FC1);
+    Mat s = Mat(3,3, CV_32FC1);
+    Mat vt = Mat(3,3, CV_32FC1);
+
+
+    SVD::compute(H,s,vt,u);
+
+    Mat v = vt.t();
+    Mat ut = u.t();
+
+
+
+    Mat R = v*ut;
+
+    
+
+
+    if(determinant(R) <= 0){
+        R.at<float>(0,2) = -1*R.at<float>(0,2);
+        R.at<float>(1,2) = -1*R.at<float>(1,2);
+        R.at<float>(2,2) = -1*R.at<float>(2,2);
+    }
+
+    Mat pMat = Mat(3, 1, CV_32FC1); 
+    Mat pPrimeMat = Mat(3, 1, CV_32FC1); 
+    pMat.at<float>(0,0) = p.x;
+    pMat.at<float>(1,0) = p.y;
+    pMat.at<float>(2,0) = p.z;
+
+    pPrimeMat.at<float>(0,0) = pPrime.x;
+    pPrimeMat.at<float>(1,0) = pPrime.y;
+    pPrimeMat.at<float>(2,0) = pPrime.z;
+
+    Mat T = pPrimeMat-R*pMat;
+
+    cout << R << endl;
+    cout << T << endl;
 }
 
 void Scan3dApp::transformMesh(Mat mat, ofMesh* mesh){
@@ -70,28 +132,18 @@ void Scan3dApp::update(){
 
 }
 
-void Scan3dApp::convertOfPointsToCvMat(vector<ofPoint> points, int dimensions, CvMat* output){
-    if(points.size() == 0){
-        return;
+Mat Scan3dApp::convertMeshToMat(const ofMesh* mesh){
+    int meshSize = mesh->getVertices().size();
+    float a[4][meshSize];
+    for(int i = 0; i < meshSize; i++){
+        a[0][i] = mesh->getVertex(i).x;
+        a[1][i] = mesh->getVertex(i).y;
+        a[2][i] = mesh->getVertex(i).z;
+        a[3][i] = 1.0;
     }
-    for(int i = 0; i < points.size(); i++){
-        for(int j = 0; j < dimensions; j++){
-            float value = 0;
-            switch(j){
-                case 0:
-                    value = points[i].x;
-                    break;
-                case 1:
-                    value = points[i].y;
-                    break;
-                case 2:
-                    value = points[i].z;
-                    break;
-            }
-            CV_MAT_ELEM( *output, float, i, j ) = value;
-        }
-    }
+    return Mat(4, meshSize, CV_32FC1,a);
 }
+
 
 void Scan3dApp::loadMesh(string filename, ofMesh* mesh){
     ofBuffer buffer = ofBufferFromFile(ofToDataPath(filename)); // reading into the buffer
