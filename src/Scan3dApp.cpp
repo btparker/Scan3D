@@ -9,7 +9,7 @@ void Scan3dApp::setup(){
     ofSetWindowTitle("Merging Point Clouds");
     ofSetFrameRate(15);
     ofSetWindowShape(1024,768);
-
+    displayState = DEFAULT;
 
     /*
         Initializing the text for the bottom message bar
@@ -25,8 +25,17 @@ void Scan3dApp::setup(){
     mesh0.setMode(OF_PRIMITIVE_POINTS);
     mesh1.setMode(OF_PRIMITIVE_POINTS);
     resultMesh.setMode(OF_PRIMITIVE_POINTS);
+    transLine.setMode(OF_PRIMITIVE_LINES);
     loadMesh("cube.ply", &mesh0);
+    loadMesh("cube.ply", &resultMesh);
     loadMesh("cube_trans.ply", &mesh1);
+
+    int meshSize = mesh0.getVertices().size();
+    vector<int> correspondences;
+    
+    for(int i = 0; i < meshSize; i++){
+        correspondences.push_back(i);
+    }
 
     float a[3][4] = {
                         {1, 0, 0, 10},
@@ -35,24 +44,37 @@ void Scan3dApp::setup(){
                     };
 
     Mat A = Mat(3, 4, CV_32FC1, a);
+
+    cout << "A:\n" << A << endl;
  
     transformMesh(A,&mesh1);
+    Mat trans = Mat(3, 4, CV_32FC1);
 
+    align(&mesh0,&mesh1, correspondences, &trans);
 
+    cout << "Trans:\n" << trans << endl;
+
+    transformMesh(trans,&resultMesh);
+
+    
+    transLine.addColor(ofColor(0,0,255));
+    transLine.addVertex(ofVec3f(mesh0.getCentroid()));
+    transLine.addColor(ofColor(0,0,255));
+    transLine.addVertex(ofVec3f(mesh1.getCentroid()));
+    
+}
+
+void Scan3dApp::align(const ofMesh* meshA, const ofMesh* meshB, const vector<int> correspondences, Mat* trans){
     ofVec3f p = mesh0.getCentroid();
     ofVec3f pPrime = mesh1.getCentroid();
     ofVec3f q;
     ofVec3f qPrime;
 
     int meshSize = mesh0.getVertices().size();
-    float b[3][3] = {
-                        {0, 0, 0},
-                        {0, 0, 0},
-                        {0, 0, 0}
-                    };
+    float b[3][3];
     for(int i = 0; i < meshSize; i++){
         q = mesh0.getVertex(i)-p;
-        qPrime = mesh1.getVertex(i)-pPrime;
+        qPrime = mesh1.getVertex(correspondences[i])-pPrime;
         b[0][0] = b[0][0]+q.x*qPrime.x; b[0][1] = b[0][1]+q.x*qPrime.y; b[0][2] = b[0][2]+q.x*qPrime.z;
         b[1][0] = b[1][0]+q.y*qPrime.x; b[1][1] = b[1][1]+q.y*qPrime.y; b[1][2] = b[1][2]+q.y*qPrime.z;
         b[2][0] = b[2][0]+q.z*qPrime.x; b[2][1] = b[2][1]+q.z*qPrime.y; b[2][2] = b[2][2]+q.z*qPrime.z;
@@ -97,8 +119,15 @@ void Scan3dApp::setup(){
 
     Mat T = pPrimeMat-R*pMat;
 
-    cout << R << endl;
-    cout << T << endl;
+    cout << "Rotation:\n" << R << endl;
+    cout << "Translation:\n" << T << endl;
+
+    
+    trans->at<float>(0,0) = R.at<float>(0,0); trans->at<float>(0,1) = R.at<float>(0,1); trans->at<float>(0,2) = R.at<float>(0,2); trans->at<float>(0,3) = T.at<float>(0,0);
+    trans->at<float>(1,0) = R.at<float>(1,0); trans->at<float>(1,1) = R.at<float>(1,1); trans->at<float>(1,2) = R.at<float>(1,2); trans->at<float>(1,3) = T.at<float>(1,0);
+    trans->at<float>(2,0) = R.at<float>(2,0); trans->at<float>(2,1) = R.at<float>(2,1); trans->at<float>(2,2) = R.at<float>(2,2); trans->at<float>(2,3) = T.at<float>(2,0);
+
+    cout << "INTERNAL TRANS:\n" << *trans << endl;
 }
 
 void Scan3dApp::transformMesh(Mat mat, ofMesh* mesh){
@@ -228,15 +257,36 @@ void Scan3dApp::draw(){
 
     easyCam.begin();
     //ofDrawGrid();
+    switch(displayState){
+        case DEFAULT:
+            glPointSize(10);
+            ofPushMatrix();
+            glEnable(GL_DEPTH_TEST);
+            mesh0.drawVertices();
+            mesh1.drawVertices();
+            glDisable(GL_DEPTH_TEST);
+            ofPopMatrix();
+            break;
+
+        case TRANSFORMATION:
+            glPointSize(10);
+            ofPushMatrix();
+            glEnable(GL_DEPTH_TEST);
+            resultMesh.drawVertices();
+            glDisable(GL_DEPTH_TEST);
+            ofPopMatrix();
+          
+
+            glPointSize(15);
+            ofPushMatrix();
+            glEnable(GL_DEPTH_TEST);
+            transLine.drawVertices();
+            glDisable(GL_DEPTH_TEST);
+            ofPopMatrix();
+            break;
+    }
     
-    glPointSize(10);
-    ofPushMatrix();
-    glEnable(GL_DEPTH_TEST);
-    mesh0.drawVertices();
-    mesh1.drawVertices();
-    resultMesh.drawVertices();
-    glDisable(GL_DEPTH_TEST);
-    ofPopMatrix();
+    
     
     easyCam.end();
 
@@ -262,10 +312,10 @@ void Scan3dApp::keyPressed(int key){
             
             break;
         case 49: // 1
-            
+            displayState = DEFAULT;
             break;
         case 50: // 2
-            
+            displayState = TRANSFORMATION;
             break;
         case 51: // 3
             

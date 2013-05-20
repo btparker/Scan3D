@@ -9,7 +9,7 @@ using namespace cv;
 
 
 class Scan3dApp : public ofBaseApp{
-
+	enum{DEFAULT,TRANSFORMATION};
 	public:
 		void setup();
 		void update();
@@ -36,7 +36,7 @@ class Scan3dApp : public ofBaseApp{
 
 		void transformMesh(Mat mat, ofMesh* mesh);
 
-		
+		void align(const ofMesh* meshA, const ofMesh* meshB, const vector<int> correspondences, Mat* trans);
 
 		ofEasyCam easyCam;
 
@@ -51,6 +51,7 @@ class Scan3dApp : public ofBaseApp{
 		ofMesh mesh0;
 		ofMesh mesh1;
 		ofMesh resultMesh;
-	
+		ofMesh transLine;
+		int displayState;
         
 };
