@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<opencv_storage>
+<cam_distortion type_id="opencv-matrix">
+  <rows>5</rows>
+  <cols>1</cols>
+  <dt>f</dt>
+  <data>
+    -8.726501e-02 6.0902674e-01 -6.96834e-03 -9.02777e-03 0.</data></cam_distortion>
+</opencv_storage>
+<!--
+'kc_cam': 
+[-0.08726501]
+[ 0.60902674]
+[-0.00696834]
+[-0.00902777]
+[ 0.0       ]
+-->

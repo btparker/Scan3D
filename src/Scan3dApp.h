@@ -65,6 +65,7 @@ class Scan3dApp : public ofBaseApp{
 		bool isPointInRegion(ofPoint pt, ofRectangle roi);
 		ofPoint getNearestCorner(ofxCvGrayscaleImage img, int windowSize, int x, int y);
 		void computeExtrinsicMatrix(vector<ofPoint> objectPoints, vector<ofPoint> imagePoints, const CvMat* intrinsicMatrix, const CvMat* distCoeffs, CvMat* extrinsicMatrix);
+		void computeProjExtrinsicMatrix(vector<ofPoint> objectPoints, vector<ofPoint> imagePoints, const CvMat* intrinsicMatrix, const CvMat* distCoeffs, CvMat* extrinsicMatrix);
 		void convertOfPointsToCvMat(vector<ofPoint> pts, int dimensions, CvMat* output);
 		ofxRay3d pixelToRay(const CvMat* intrinsicMat, const CvMat* extrinsicMat, ofPoint imagePt);
 		ofPoint pt3DToPixel(CvMat* intrinsicMat, CvMat* extrinsicMat, CvMat* distCoeffs, ofPoint pt3D);
@@ -102,6 +103,11 @@ class Scan3dApp : public ofBaseApp{
 		void addReprojection(vector<ofPoint> objectPoints, vector<ofPoint> imagePoints, ofMesh* mesh, ofColor color, bool isProjector);
 
 		void setCamera();
+
+		void assertCamExtrinsic();
+		void assertCamIntrinsic();
+		void assertProjExtrinsic();
+		void assertProjIntrinsic();
 
 		int sobelHorizontal[3][3];
 		int sobelVertical[3][3];
@@ -243,6 +249,7 @@ class Scan3dApp : public ofBaseApp{
 
 		string camIntrinsicFilename;
 		string camDistortionFilename;
+		string camExtrinsicFilename;
 
 		ofPoint camPos;
 

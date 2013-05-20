@@ -13,8 +13,9 @@
                 <camBoardXCount>8</camBoardXCount>
                 <camBoardYCount>6</camBoardYCount>
                 <camBoardSquareSize>30.000000000</camBoardSquareSize>
-                <camIntrinsicFile>/home/btparker/Dropbox/Projects/Active/3D Scanning/oF/apps/myApps/Scan3D/bin/data/cam_intrinsic.xml</camIntrinsicFile>
-                <camDistortionFile>/home/btparker/Dropbox/Projects/Active/3D Scanning/oF/apps/myApps/Scan3D/bin/data/cam_distortion.xml</camDistortionFile>
+                <camIntrinsicFile>/home/btparker/Dropbox/Projects/Active/3D Scanning/oF/apps/myApps/Scan3D/bin/data/pre_computed/cam_intrinsic.xml</camIntrinsicFile>
+                <camDistortionFile>/home/btparker/Dropbox/Projects/Active/3D Scanning/oF/apps/myApps/Scan3D/bin/data/pre_computed/cam_distortion.xml</camDistortionFile>
+                <camExtrinsicFile>/home/btparker/Dropbox/Projects/Active/3D Scanning/oF/apps/myApps/Scan3D/bin/data/pre_computed/cam_extrinsic.xml</camExtrinsicFile>
                 <plane>
                     <marker0>
                         <imagePt>
@@ -67,14 +68,14 @@
                 <projBoardXCount>7</projBoardXCount>
                 <projBoardYCount>7</projBoardYCount>
                 <projBoardSquareSize>38.000000000</projBoardSquareSize>
-                <projIntrinsicFile>/home/btparker/Dropbox/Projects/Active/3D Scanning/oF/apps/myApps/Scan3D/bin/data/proj_intrinsic.xml</projIntrinsicFile>
-                <projDistortionFile>/home/btparker/Dropbox/Projects/Active/3D Scanning/oF/apps/myApps/Scan3D/bin/data/proj_distortion.xml</projDistortionFile>
-                <projExtrinsicFile>/home/btparker/Dropbox/Projects/Active/3D Scanning/oF/apps/myApps/Scan3D/bin/data/proj_extrinsic.xml</projExtrinsicFile>
+                <projIntrinsicFile>/home/btparker/Dropbox/Projects/Active/3D Scanning/oF/apps/myApps/Scan3D/bin/data/pre_computed/proj_intrinsic.xml</projIntrinsicFile>
+                <projDistortionFile>/home/btparker/Dropbox/Projects/Active/3D Scanning/oF/apps/myApps/Scan3D/bin/data/pre_computed/proj_distortion.xml</projDistortionFile>
+                <projExtrinsicFile>/home/btparker/Dropbox/Projects/Active/3D Scanning/oF/apps/myApps/Scan3D/bin/data/pre_computed/proj_extrinsic.xml</projExtrinsicFile>
                 <plane>
                     <marker0>
                         <imagePt>
-                            <x>564.836181641</x>
-                            <y>936.173461914</y>
+                            <x>549.587890625</x>
+                            <y>264.032409668</y>
                         </imagePt>
                         <objectPt>
                             <x>66.402328491</x>
@@ -84,8 +85,8 @@
                     </marker0>
                     <marker1>
                         <imagePt>
-                            <x>561.745361328</x>
-                            <y>823.172424316</y>
+                            <x>673.024108887</x>
+                            <y>266.240783691</y>
                         </imagePt>
                         <objectPt>
                             <x>113.979019165</x>
@@ -95,8 +96,8 @@
                     </marker1>
                     <marker2>
                         <imagePt>
-                            <x>558.837036133</x>
-                            <y>710.336242676</y>
+                            <x>794.521179199</x>
+                            <y>268.401184082</y>
                         </imagePt>
                         <objectPt>
                             <x>161.919815063</x>
@@ -106,8 +107,8 @@
                     </marker2>
                     <marker3>
                         <imagePt>
-                            <x>556.333251953</x>
-                            <y>597.781494141</y>
+                            <x>911.102355957</x>
+                            <y>270.380981445</y>
                         </imagePt>
                         <objectPt>
                             <x>209.159500122</x>
@@ -117,8 +118,8 @@
                     </marker3>
                     <marker4>
                         <imagePt>
-                            <x>553.924194336</x>
-                            <y>485.630096436</y>
+                            <x>1024.264648438</x>
+                            <y>272.294891357</y>
                         </imagePt>
                         <objectPt>
                             <x>256.430847168</x>
@@ -128,8 +129,8 @@
                     </marker4>
                     <marker5>
                         <imagePt>
-                            <x>551.761535645</x>
-                            <y>374.226440430</y>
+                            <x>1133.739746094</x>
+                            <y>274.302886963</y>
                         </imagePt>
                         <objectPt>
                             <x>303.690185547</x>
@@ -139,8 +140,8 @@
                     </marker5>
                     <marker6>
                         <imagePt>
-                            <x>549.866210938</x>
-                            <y>263.634918213</y>
+                            <x>1237.253784180</x>
+                            <y>275.809356689</y>
                         </imagePt>
                         <objectPt>
                             <x>350.375183105</x>
@@ -150,8 +151,8 @@
                     </marker6>
                     <marker7>
                         <imagePt>
-                            <x>690.815734863</x>
-                            <y>930.151550293</y>
+                            <x>551.640380859</x>
+                            <y>374.368011475</y>
                         </imagePt>
                         <objectPt>
                             <x>65.846572876</x>
@@ -161,8 +162,8 @@
                     </marker7>
                     <marker8>
                         <imagePt>
-                            <x>687.336975098</x>
-                            <y>818.379882812</y>
+                            <x>675.433044434</x>
+                            <y>375.269592285</y>
                         </imagePt>
                         <objectPt>
                             <x>113.510650635</x>
@@ -172,8 +173,8 @@
                     </marker8>
                     <marker9>
                         <imagePt>
-                            <x>684.352844238</x>
-                            <y>706.913757324</y>
+                            <x>797.328247070</x>
+                            <y>375.909484863</y>
                         </imagePt>
                         <objectPt>
                             <x>161.522140503</x>
@@ -183,8 +184,8 @@
                     </marker9>
                     <marker10>
                         <imagePt>
-                            <x>681.235046387</x>
-                            <y>595.607971191</y>
+                            <x>914.288208008</x>
+                            <y>376.293334961</y>
                         </imagePt>
                         <objectPt>
                             <x>208.785476685</x>
@@ -194,8 +195,8 @@
                     </marker10>
                     <marker11>
                         <imagePt>
-                            <x>678.620361328</x>
-                            <y>485.057830811</y>
+                            <x>1027.915527344</x>
+                            <y>376.646331787</y>
                         </imagePt>
                         <objectPt>
                             <x>256.211181641</x>
@@ -205,8 +206,8 @@
                     </marker11>
                     <marker12>
                         <imagePt>
-                            <x>675.985961914</x>
-                            <y>374.837066650</y>
+                            <x>1137.553955078</x>
+                            <y>376.764526367</y>
                         </imagePt>
                         <objectPt>
                             <x>303.497497559</x>
@@ -216,8 +217,8 @@
                     </marker12>
                     <marker13>
                         <imagePt>
-                            <x>673.739257812</x>
-                            <y>265.513885498</y>
+                            <x>1241.427368164</x>
+                            <y>376.634582520</y>
                         </imagePt>
                         <objectPt>
                             <x>350.297180176</x>
@@ -227,8 +228,8 @@
                     </marker13>
                     <marker14>
                         <imagePt>
-                            <x>814.750244141</x>
-                            <y>923.429931641</y>
+                            <x>553.896789551</x>
+                            <y>485.653930664</y>
                         </imagePt>
                         <objectPt>
                             <x>65.358886719</x>
@@ -238,8 +239,8 @@
                     </marker14>
                     <marker15>
                         <imagePt>
-                            <x>811.284973145</x>
-                            <y>813.342590332</y>
+                            <x>678.207641602</x>
+                            <y>485.172302246</y>
                         </imagePt>
                         <objectPt>
                             <x>113.108428955</x>
@@ -249,8 +250,8 @@
                     </marker15>
                     <marker16>
                         <imagePt>
-                            <x>807.754150391</x>
-                            <y>703.235229492</y>
+                            <x>800.384582520</x>
+                            <y>484.188659668</y>
                         </imagePt>
                         <objectPt>
                             <x>161.158325195</x>
@@ -260,8 +261,8 @@
                     </marker16>
                     <marker17>
                         <imagePt>
-                            <x>804.548828125</x>
-                            <y>593.548950195</y>
+                            <x>917.608886719</x>
+                            <y>483.347564697</y>
                         </imagePt>
                         <objectPt>
                             <x>208.519607544</x>
@@ -271,8 +272,8 @@
                     </marker17>
                     <marker18>
                         <imagePt>
-                            <x>801.675781250</x>
-                            <y>483.905792236</y>
+                            <x>1031.436279297</x>
+                            <y>481.681640625</y>
                         </imagePt>
                         <objectPt>
                             <x>255.921279907</x>
@@ -282,8 +283,8 @@
                     </marker18>
                     <marker19>
                         <imagePt>
-                            <x>798.722045898</x>
-                            <y>375.274200439</y>
+                            <x>1141.406005859</x>
+                            <y>480.139678955</y>
                         </imagePt>
                         <objectPt>
                             <x>303.331359863</x>
@@ -293,8 +294,8 @@
                     </marker19>
                     <marker20>
                         <imagePt>
-                            <x>796.103454590</x>
-                            <y>267.326507568</y>
+                            <x>1245.286865234</x>
+                            <y>478.219421387</y>
                         </imagePt>
                         <objectPt>
                             <x>350.166259766</x>
@@ -304,8 +305,8 @@
                     </marker20>
                     <marker21>
                         <imagePt>
-                            <x>934.131530762</x>
-                            <y>916.384460449</y>
+                            <x>556.284240723</x>
+                            <y>597.755554199</y>
                         </imagePt>
                         <objectPt>
                             <x>64.935607910</x>
@@ -315,8 +316,8 @@
                     </marker21>
                     <marker22>
                         <imagePt>
-                            <x>930.433471680</x>
-                            <y>807.844848633</y>
+                            <x>680.801818848</x>
+                            <y>595.562988281</y>
                         </imagePt>
                         <objectPt>
                             <x>112.717269897</x>
@@ -326,8 +327,8 @@
                     </marker22>
                     <marker23>
                         <imagePt>
-                            <x>927.033752441</x>
-                            <y>699.303161621</y>
+                            <x>803.289916992</x>
+                            <y>593.487548828</y>
                         </imagePt>
                         <objectPt>
                             <x>160.825881958</x>
@@ -337,8 +338,8 @@
                     </marker23>
                     <marker24>
                         <imagePt>
-                            <x>923.549865723</x>
-                            <y>590.729064941</y>
+                            <x>920.871643066</x>
+                            <y>590.570129395</y>
                         </imagePt>
                         <objectPt>
                             <x>208.250045776</x>
@@ -348,8 +349,8 @@
                     </marker24>
                     <marker25>
                         <imagePt>
-                            <x>920.297363281</x>
-                            <y>482.965972900</y>
+                            <x>1035.049682617</x>
+                            <y>587.539733887</y>
                         </imagePt>
                         <objectPt>
                             <x>255.740036011</x>
@@ -359,8 +360,8 @@
                     </marker25>
                     <marker26>
                         <imagePt>
-                            <x>917.045837402</x>
-                            <y>375.352691650</y>
+                            <x>1144.912841797</x>
+                            <y>584.126647949</y>
                         </imagePt>
                         <objectPt>
                             <x>303.154357910</x>
@@ -370,8 +371,8 @@
                     </marker26>
                     <marker27>
                         <imagePt>
-                            <x>913.992797852</x>
-                            <y>268.899017334</y>
+                            <x>1249.091918945</x>
+                            <y>580.003601074</y>
                         </imagePt>
                         <objectPt>
                             <x>350.074584961</x>
@@ -381,8 +382,8 @@
                     </marker27>
                     <marker28>
                         <imagePt>
-                            <x>1050.284667969</x>
-                            <y>908.665771484</y>
+                            <x>558.725769043</x>
+                            <y>710.365966797</y>
                         </imagePt>
                         <objectPt>
                             <x>64.542175293</x>
@@ -392,8 +393,8 @@
                     </marker28>
                     <marker29>
                         <imagePt>
-                            <x>1046.910400391</x>
-                            <y>801.757019043</y>
+                            <x>683.861022949</x>
+                            <y>706.768493652</y>
                         </imagePt>
                         <objectPt>
                             <x>112.420852661</x>
@@ -403,8 +404,8 @@
                     </marker29>
                     <marker30>
                         <imagePt>
-                            <x>1043.355834961</x>
-                            <y>694.912353516</y>
+                            <x>806.485778809</x>
+                            <y>702.869079590</y>
                         </imagePt>
                         <objectPt>
                             <x>160.556625366</x>
@@ -414,8 +415,8 @@
                     </marker30>
                     <marker31>
                         <imagePt>
-                            <x>1039.768310547</x>
-                            <y>587.836120605</y>
+                            <x>924.332519531</x>
+                            <y>698.615112305</y>
                         </imagePt>
                         <objectPt>
                             <x>208.038955688</x>
@@ -425,8 +426,8 @@
                     </marker31>
                     <marker32>
                         <imagePt>
-                            <x>1036.128295898</x>
-                            <y>481.287689209</y>
+                            <x>1038.569824219</x>
+                            <y>693.902709961</y>
                         </imagePt>
                         <objectPt>
                             <x>255.574447632</x>
@@ -436,8 +437,8 @@
                     </marker32>
                     <marker33>
                         <imagePt>
-                            <x>1032.636108398</x>
-                            <y>375.539123535</y>
+                            <x>1148.478759766</x>
+                            <y>688.394226074</y>
                         </imagePt>
                         <objectPt>
                             <x>303.004028320</x>
@@ -447,8 +448,8 @@
                     </marker33>
                     <marker34>
                         <imagePt>
-                            <x>1029.024658203</x>
-                            <y>270.447509766</y>
+                            <x>1252.494750977</x>
+                            <y>682.049743652</y>
                         </imagePt>
                         <objectPt>
                             <x>349.963256836</x>
@@ -458,8 +459,8 @@
                     </marker34>
                     <marker35>
                         <imagePt>
-                            <x>1162.999023438</x>
-                            <y>900.502441406</y>
+                            <x>561.473632812</x>
+                            <y>823.381469727</y>
                         </imagePt>
                         <objectPt>
                             <x>64.206924438</x>
@@ -469,8 +470,8 @@
                     </marker35>
                     <marker36>
                         <imagePt>
-                            <x>1159.622802734</x>
-                            <y>795.197875977</y>
+                            <x>686.700988770</x>
+                            <y>818.227233887</y>
                         </imagePt>
                         <objectPt>
                             <x>112.096679688</x>
@@ -480,8 +481,8 @@
                     </marker36>
                     <marker37>
                         <imagePt>
-                            <x>1156.120117188</x>
-                            <y>690.065673828</y>
+                            <x>809.847534180</x>
+                            <y>812.751464844</y>
                         </imagePt>
                         <objectPt>
                             <x>160.334884644</x>
@@ -491,8 +492,8 @@
                     </marker37>
                     <marker38>
                         <imagePt>
-                            <x>1152.473144531</x>
-                            <y>584.770385742</y>
+                            <x>927.596130371</x>
+                            <y>806.812500000</y>
                         </imagePt>
                         <objectPt>
                             <x>207.822250366</x>
@@ -502,8 +503,8 @@
                     </marker38>
                     <marker39>
                         <imagePt>
-                            <x>1148.841796875</x>
-                            <y>479.814575195</y>
+                            <x>1042.014526367</x>
+                            <y>800.109497070</y>
                         </imagePt>
                         <objectPt>
                             <x>255.434646606</x>
@@ -513,8 +514,8 @@
                     </marker39>
                     <marker40>
                         <imagePt>
-                            <x>1144.957641602</x>
-                            <y>375.495300293</y>
+                            <x>1151.801269531</x>
+                            <y>792.589782715</y>
                         </imagePt>
                         <objectPt>
                             <x>302.867553711</x>
@@ -524,8 +525,8 @@
                     </marker40>
                     <marker41>
                         <imagePt>
-                            <x>1141.085083008</x>
-                            <y>272.133911133</y>
+                            <x>1255.612670898</x>
+                            <y>784.589050293</y>
                         </imagePt>
                         <objectPt>
                             <x>349.838867188</x>
@@ -535,8 +536,8 @@
                     </marker41>
                     <marker42>
                         <imagePt>
-                            <x>1270.423217773</x>
-                            <y>891.601013184</y>
+                            <x>564.302001953</x>
+                            <y>936.583679199</y>
                         </imagePt>
                         <objectPt>
                             <x>63.972946167</x>
@@ -546,8 +547,8 @@
                     </marker42>
                     <marker43>
                         <imagePt>
-                            <x>1267.295654297</x>
-                            <y>788.398986816</y>
+                            <x>690.045288086</x>
+                            <y>930.088745117</y>
                         </imagePt>
                         <objectPt>
                             <x>111.915664673</x>
@@ -557,8 +558,8 @@
                     </marker43>
                     <marker44>
                         <imagePt>
-                            <x>1263.971069336</x>
-                            <y>684.549865723</y>
+                            <x>813.195678711</x>
+                            <y>922.800964355</y>
                         </imagePt>
                         <objectPt>
                             <x>160.105697632</x>
@@ -568,8 +569,8 @@
                     </marker44>
                     <marker45>
                         <imagePt>
-                            <x>1260.392333984</x>
-                            <y>581.205932617</y>
+                            <x>931.165283203</x>
+                            <y>915.059448242</y>
                         </imagePt>
                         <objectPt>
                             <x>207.675064087</x>
@@ -579,8 +580,8 @@
                     </marker45>
                     <marker46>
                         <imagePt>
-                            <x>1256.397827148</x>
-                            <y>478.163421631</y>
+                            <x>1045.244506836</x>
+                            <y>906.427429199</y>
                         </imagePt>
                         <objectPt>
                             <x>255.244308472</x>
@@ -590,8 +591,8 @@
                     </marker46>
                     <marker47>
                         <imagePt>
-                            <x>1252.355224609</x>
-                            <y>375.407287598</y>
+                            <x>1155.023925781</x>
+                            <y>897.026550293</y>
                         </imagePt>
                         <objectPt>
                             <x>302.759704590</x>
@@ -601,8 +602,8 @@
                     </marker47>
                     <marker48>
                         <imagePt>
-                            <x>1247.938232422</x>
-                            <y>273.471160889</y>
+                            <x>1258.596313477</x>
+                            <y>886.553344727</y>
                         </imagePt>
                         <objectPt>
                             <x>349.749450684</x>

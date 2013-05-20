@@ -184,7 +184,7 @@ void Scan3dApp::setup(){
 
     paused = false;
 
-    points3dSubstate = POINTS3D_WAITING;
+    points3dSubstate = POINTS3D_PROCESSING;
 
     bufferOfImage.loadImage(projCalDir.getPath(projCalDir.numFiles()-1));
     colorFrame.setFromPixels(bufferOfImage.getPixels(),width,height);
@@ -237,12 +237,14 @@ void Scan3dApp::loadSettings(){
                         camCalDir.sort();
                         camIntrinsicFilename = ofToDataPath("cam_intrinsic.xml");
                         camDistortionFilename = ofToDataPath("cam_distortion.xml");
+                        camExtrinsicFilename = ofToDataPath("cam_extrinsic.xml");
                         camBoardXCount = settings.getValue("camBoardXCount",8);
                         camBoardYCount = settings.getValue("camBoardYCount",6);
                         camBoardSquareSize = settings.getValue("camBoardSquareSize",30.0); //in mm 
-                        if(settings.tagExists("camIntrinsicFile") && settings.tagExists("camDistortionFile")){
+                        if(settings.tagExists("camIntrinsicFile") && settings.tagExists("camDistortionFile") && settings.tagExists("camExtrinsicFile") ){
                             camIntrinsicFilename = settings.getValue("camIntrinsicFile","cam_intrinsic.xml");
                             camDistortionFilename = settings.getValue("camDistortionFile","cam_distortion.xml");
+                            camExtrinsicFilename = settings.getValue("camExtrinsicFile","cam_extrinsic.xml");
                             camCalSubstate = CAM_CAL_LOADING;
                         }
                         else{
@@ -282,6 +284,7 @@ void Scan3dApp::loadSettings(){
                         if(settings.tagExists("projIntrinsicFile") && settings.tagExists("projDistortionFile") && settings.tagExists("projExtrinsicFile")){
                             projIntrinsicFilename = settings.getValue("projIntrinsicFile","proj_intrinsic.xml");
                             projDistortionFilename = settings.getValue("projDistortionFile","proj_distortion.xml");
+                            projExtrinsicFilename = settings.getValue("projExtrinsicFile","proj_extrinsic.xml");
                             
                             settings.pushTag("plane");
                                 
@@ -329,6 +332,15 @@ void Scan3dApp::loadSettings(){
     Saves settings to 'settings.xml', located in the data folder of the project
 */
 void Scan3dApp::saveSettings(){
+     // SAVE THE INTRINSICS AND DISTORTIONS
+    cvSave("cam_intrinsic.xml",cam_intrinsic_matrix);
+    cvSave("cam_distortion.xml",cam_distortion_coeffs);
+    cvSave("cam_extrinsic.xml",cam_extrinsic_matrix);
+
+    cvSave("proj_intrinsic.xml",proj_intrinsic_matrix);
+    cvSave("proj_distortion.xml",proj_distortion_coeffs);
+    cvSave("proj_extrinsic.xml",proj_extrinsic_matrix);
+
     ofxXmlSettings settings;
     cout << "** Saving Settings File **" << endl;
     settings.addTag("settings");
@@ -363,6 +375,7 @@ void Scan3dApp::saveSettings(){
                     settings.setValue("camBoardSquareSize",camBoardSquareSize);
                     settings.setValue("camIntrinsicFile",camIntrinsicFilename);
                     settings.setValue("camDistortionFile",camDistortionFilename);
+                    settings.setValue("camExtrinsicFile",camExtrinsicFilename);
                     settings.addTag("plane");
                     settings.pushTag("plane");
                         cout << "   Setting camera plane points as [BR,TR,TL,BL]:"<< endl;
@@ -471,6 +484,7 @@ void Scan3dApp::update(){
 void Scan3dApp::camCalUpdate(){
     ofFile camIntrinsicFile;
     ofFile camDistortionFile;
+    ofFile camExtrinsicFile;
     messageBarText = "CAMERA CALIBRATION";
     switch(camCalSubstate){
         case CAM_CAL_PROCESSING:
@@ -613,9 +627,7 @@ void Scan3dApp::camCalUpdate(){
                 }
                 printf("\n");
                 
-                // SAVE THE INTRINSICS AND DISTORTIONS
-                cvSave(camIntrinsicFilename.c_str(),cam_intrinsic_matrix);
-                cvSave(camDistortionFilename.c_str(),cam_distortion_coeffs);
+               
 
                 cammapx = cvCreateImage( cvGetSize(colorFrame.getCvImage()), IPL_DEPTH_32F, 1 );
                 cammapy = cvCreateImage( cvGetSize(colorFrame.getCvImage()), IPL_DEPTH_32F, 1 );
@@ -649,8 +661,16 @@ void Scan3dApp::camCalUpdate(){
                 camCalSubstate = CAM_CAL_PROCESSING;
                 update();
             }
+
+            camExtrinsicFile.open(camExtrinsicFilename, ofFile::ReadWrite, false);
+            if(!camExtrinsicFile.exists()){
+                camCalSubstate = CAM_CAL_PROCESSING;
+                update();
+            }
+
             cam_intrinsic_matrix = (CvMat*)cvLoad(camIntrinsicFilename.c_str());
             cam_distortion_coeffs = (CvMat*)cvLoad(camDistortionFilename.c_str());
+            cam_extrinsic_matrix = (CvMat*)cvLoad(camExtrinsicFilename.c_str());
             
             printf("\n");
             printf("Camera Intrinsic Matrix: \n");
@@ -778,9 +798,9 @@ void Scan3dApp::projCalUpdate(){
                 if( proj_corner_count == projBoardPatternSize ) {
                     int step = projSuccesses*projBoardPatternSize;
                     for( int i=step, j=0; j<projBoardPatternSize; ++i,++j ) {
-                        CV_MAT_ELEM(*proj_image_points, float,i,0) = (j)/projBoardXCount;//proj_corners[j].x;
-                        CV_MAT_ELEM(*proj_image_points, float,i,1) = (j)%projBoardXCount;//proj_corners[j].y;
-                        ray = pixelToRay(cam_intrinsic_matrix,cam_extrinsic_matrix,ofPoint(proj_corners[j].x,proj_corners[j].y));
+                        CV_MAT_ELEM(*proj_image_points, float,i,0) = (j/projBoardXCount);//proj_corners[j].x;
+                        CV_MAT_ELEM(*proj_image_points, float,i,1) = (j%projBoardXCount);//proj_corners[j].y;
+                        ray = campixel2ray(ofPoint(proj_corners[j].x,proj_corners[j].y));
                         intersectPt = ray.intersect(vertPlane);
                         CV_MAT_ELEM(*proj_object_points,float,i,0) = intersectPt.x;
                         CV_MAT_ELEM(*proj_object_points,float,i,1) = intersectPt.y;
@@ -877,11 +897,7 @@ void Scan3dApp::projCalUpdate(){
                         printf( "[%f]\n", scal.val[0]); 
                 }
                 printf("\n");
-                
-                // SAVE THE INTRINSICS AND DISTORTIONS
-                cvSave(projIntrinsicFilename.c_str(),proj_intrinsic_matrix);
-                cvSave(projDistortionFilename.c_str(),proj_distortion_coeffs);
-
+               
                 projmapx = cvCreateImage( cvGetSize(colorFrame.getCvImage()), IPL_DEPTH_32F, 1 );
                 projmapy = cvCreateImage( cvGetSize(colorFrame.getCvImage()), IPL_DEPTH_32F, 1 );
                 cvInitUndistortMap(
@@ -939,6 +955,13 @@ void Scan3dApp::projCalUpdate(){
                 
                 cvReleaseMat(&proj_image_points);
             }
+            cout << "Projector Extrinsic Matrix:"<< endl;
+            computeProjExtrinsicMatrix(projPlaneObjectPts, projPlaneImagePts, proj_intrinsic_matrix, proj_distortion_coeffs, proj_extrinsic_matrix);
+
+            projPos = getPositionFromExtrinsic(proj_extrinsic_matrix);
+            
+
+            cout << "Projector Position: [" << projPos << "]" << endl;
             break;
 
         case PROJ_CAL_LOADING:
@@ -956,10 +979,15 @@ void Scan3dApp::projCalUpdate(){
                 update();
             }
 
-           
+            projExtrinsicFile.open(projExtrinsicFilename, ofFile::ReadWrite, false);
+            if(!projExtrinsicFile.exists()){
+                projCalSubstate = PROJ_CAL_PROCESSING;
+                update();
+            }
 
             proj_intrinsic_matrix = (CvMat*)cvLoad(projIntrinsicFilename.c_str());
             proj_distortion_coeffs = (CvMat*)cvLoad(projDistortionFilename.c_str());
+            proj_extrinsic_matrix = (CvMat*)cvLoad(projExtrinsicFilename.c_str());
             
             printf("\n");
             printf("Projector Intrinsic Matrix: \n");
@@ -1004,26 +1032,26 @@ void Scan3dApp::projCalUpdate(){
             );
 
             projCalSubstate = PROJ_CAL_SET;
-            break;
 
-        case PROJ_CAL_SET:
             cout << "Projector Extrinsic Matrix:"<< endl;
-            cout << projPlaneObjectPts.size() << endl;
-            cout << projPlaneImagePts.size() << endl;
-            cout << CV_MAT_ELEM( *proj_intrinsic_matrix, float, 0,0 ) << endl; 
-            cout << CV_MAT_ELEM( *proj_distortion_coeffs, float, 0,0 ) << endl; 
-            cout << CV_MAT_ELEM( *proj_extrinsic_matrix, float, 0,0 ) << endl; 
-            computeExtrinsicMatrix(projPlaneObjectPts, projPlaneImagePts, proj_intrinsic_matrix, proj_distortion_coeffs, proj_extrinsic_matrix);
-
-            // CvMat* flip = cvCreateMat(3,4,CV_32FC1);
-            // cvScale(proj_extrinsic_matrix,flip,-1);
-            // cvScale(flipproj_extrinsic_matrix,1);
+            printf("\n");
+            for(int r = 0; r < 3; r++){
+                cout << "[";
+                for(int c = 0; c < 3; c++){
+                    CvScalar scal = cvGet2D(proj_extrinsic_matrix,r,c); 
+                    printf( "%f,\t", scal.val[0]); 
+                }
+                printf("]\n");
+            }
+            printf("\n");
 
             projPos = getPositionFromExtrinsic(proj_extrinsic_matrix);
-            
 
             cout << "Projector Position: [" << projPos << "]" << endl;
 
+            break;
+
+        case PROJ_CAL_SET:
             saveSettings();
             programState = CAPTURE;
             break;
@@ -1034,10 +1062,91 @@ void Scan3dApp::projCalUpdate(){
     
 }
 
+void Scan3dApp::assertCamExtrinsic(){
+
+    cout << "Camera rotmat[0,0]: expected[0.97056346] got[" << CV_MAT_ELEM(*cam_extrinsic_matrix,float,0,0) << "]";
+    assert(abs(1-(CV_MAT_ELEM(*cam_extrinsic_matrix,float,0,0)/0.97056346)) < 0.1 || abs((CV_MAT_ELEM(*cam_extrinsic_matrix,float,0,0)-0.97056346) ) < 0.1);
+    cout << " ... passed!" << endl;
+
+    cout << "Camera rotmat[0,1]: expected[-0.01662106] got[" << CV_MAT_ELEM(*cam_extrinsic_matrix,float,0,1) << "]";
+    assert(abs(1-(CV_MAT_ELEM(*cam_extrinsic_matrix,float,0,1)/-0.01662106)) < 0.1 || abs((CV_MAT_ELEM(*cam_extrinsic_matrix,float,0,1)+0.01662106) ) < 0.1);
+    cout << " ... passed!" << endl;
+
+    cout << "Camera rotmat[0,2]: expected[0.24027134] got[" << CV_MAT_ELEM(*cam_extrinsic_matrix,float,0,2) << "]";
+    assert(abs(1-(CV_MAT_ELEM(*cam_extrinsic_matrix,float,0,2)/0.24027134)) < 0.1 || abs((CV_MAT_ELEM(*cam_extrinsic_matrix,float,0,2)-0.24027134) ) < 0.1);
+    cout << " ... passed!" << endl;
+
+    cout << "Camera rotmat[1,0]: expected[-0.02349328] got[" << CV_MAT_ELEM(*cam_extrinsic_matrix,float,1,0) << "]";
+    assert(abs(1-(CV_MAT_ELEM(*cam_extrinsic_matrix,float,1,0)/-0.02349328)) < 0.1 || abs((CV_MAT_ELEM(*cam_extrinsic_matrix,float,1,0)+0.02349328) ) < 0.1);
+    cout << " ... passed!" << endl;
+
+    cout << "Camera rotmat[1,1]: expected[-0.99939191] got[" << CV_MAT_ELEM(*cam_extrinsic_matrix,float,1,1) << "]";
+    assert(abs(1-(CV_MAT_ELEM(*cam_extrinsic_matrix,float,1,1)/-0.99939191)) < 0.1 || abs((CV_MAT_ELEM(*cam_extrinsic_matrix,float,1,1)+0.99939191) ) < 0.1);
+    cout << " ... passed!" << endl;
+
+    cout << "Camera rotmat[1,2]: expected[0.02576574] got[" << CV_MAT_ELEM(*cam_extrinsic_matrix,float,1,2) << "]";
+    assert(abs(1-(CV_MAT_ELEM(*cam_extrinsic_matrix,float,1,2)/0.02576574)) < 0.1 || abs((CV_MAT_ELEM(*cam_extrinsic_matrix,float,1,2)-0.02576574) ) < 0.1);
+    cout << " ... passed!" << endl;
+
+    cout << "Camera rotmat[2,0]: expected[0.23969698] got[" << CV_MAT_ELEM(*cam_extrinsic_matrix,float,2,0) << "]";
+    assert(abs(1-(CV_MAT_ELEM(*cam_extrinsic_matrix,float,2,0)/0.23969698)) < 0.1 || abs((CV_MAT_ELEM(*cam_extrinsic_matrix,float,2,0)-0.23969698) ) < 0.1);
+    cout << " ... passed!" << endl;
+
+    cout << "Camera rotmat[2,1]: expected[-0.03065205] got[" << CV_MAT_ELEM(*cam_extrinsic_matrix,float,2,1) << "]";
+    assert(abs(1-(CV_MAT_ELEM(*cam_extrinsic_matrix,float,2,1)/-0.03065205)) < 0.1 || abs((CV_MAT_ELEM(*cam_extrinsic_matrix,float,2,1)+0.03065205) ) < 0.1);
+    cout << " ... passed!" << endl;
+
+    cout << "Camera rotmat[2,2]: expected[-0.97036375] got[" << CV_MAT_ELEM(*cam_extrinsic_matrix,float,2,2) << "]";
+    assert(abs(1-(CV_MAT_ELEM(*cam_extrinsic_matrix,float,2,2)/-0.97036375)) < 0.1 || abs((CV_MAT_ELEM(*cam_extrinsic_matrix,float,2,2)+0.97036375) ) < 0.1);
+    cout << " ... passed!" << endl;
+
+}
+
+void Scan3dApp::assertCamIntrinsic(){
+    cout << "Camera fx: expected[2862.80250225] got[" << CV_MAT_ELEM(*cam_intrinsic_matrix,float,0,0) << "]";
+    assert(abs(1-(CV_MAT_ELEM(*cam_intrinsic_matrix,float,0,0)/2862.80250225)) < 0.1 || abs((CV_MAT_ELEM(*cam_intrinsic_matrix,float,0,0)-2862.80250225) ) < 0.1);
+    cout << " ... passed!" << endl;
+
+    cout << "Camera fy: expected[2866.80127883] got[" << CV_MAT_ELEM(*cam_intrinsic_matrix,float,1,1) << "]";
+    assert(abs(1-(CV_MAT_ELEM(*cam_intrinsic_matrix,float,1,1)/2866.80127883)) < 0.1 || abs((CV_MAT_ELEM(*cam_intrinsic_matrix,float,1,1)-2866.80127883) ) < 0.1);
+    cout << " ... passed!" << endl;
+
+    cout << "Camera cx: expected[738.22413391] got[" << CV_MAT_ELEM(*cam_intrinsic_matrix,float,0,2) << "]";
+    assert(abs(1-(CV_MAT_ELEM(*cam_intrinsic_matrix,float,0,2)/738.22413391)) < 0.1 || abs((CV_MAT_ELEM(*cam_intrinsic_matrix,float,0,2)-738.22413391) ) < 0.1);
+    cout << " ... passed!" << endl;
+
+    cout << "Camera cy: expected[568.19085523] got[" << CV_MAT_ELEM(*cam_intrinsic_matrix,float,1,2) << "]";
+    assert(abs(1-(CV_MAT_ELEM(*cam_intrinsic_matrix,float,1,2)/568.19085523)) < 0.1 || abs((CV_MAT_ELEM(*cam_intrinsic_matrix,float,1,2)-568.19085523) ) < 0.1);
+    cout << " ... passed!" << endl;
+}
+
+
+void Scan3dApp::assertProjExtrinsic(){
+    
+}
+
+void Scan3dApp::assertProjIntrinsic(){
+    cout << "Projector fx: expected[1699.63400002] got[" << CV_MAT_ELEM(*proj_intrinsic_matrix,float,0,0) << "]";
+    assert(abs(1-(CV_MAT_ELEM(*proj_intrinsic_matrix,float,0,0)/1699.63400002)) < 0.1 || abs((CV_MAT_ELEM(*proj_intrinsic_matrix,float,0,0)-1699.63400002) ) < 0.1);
+    cout << " ... passed!" << endl;
+
+    cout << "Projector fy: expected[1886.39918076] got[" << CV_MAT_ELEM(*proj_intrinsic_matrix,float,1,1) << "]";
+    assert(abs(1-(CV_MAT_ELEM(*proj_intrinsic_matrix,float,1,1)/1886.39918076)) < 0.1 || abs((CV_MAT_ELEM(*proj_intrinsic_matrix,float,1,1)-1886.39918076) ) < 0.1);
+    cout << " ... passed!" << endl;
+
+    cout << "Projector cx: expected[476.89817283] got[" << CV_MAT_ELEM(*proj_intrinsic_matrix,float,0,2) << "]";
+    assert(abs(1-(CV_MAT_ELEM(*proj_intrinsic_matrix,float,0,2)/476.89817283)) < 0.1 || abs((CV_MAT_ELEM(*proj_intrinsic_matrix,float,0,2)-476.89817283) ) < 0.1);
+    cout << " ... passed!" << endl;
+
+    cout << "Projector cy: expected[777.23754558] got[" << CV_MAT_ELEM(*proj_intrinsic_matrix,float,1,2) << "]";
+    assert(abs(1-(CV_MAT_ELEM(*proj_intrinsic_matrix,float,1,2)/777.23754558)) < 0.1 || abs((CV_MAT_ELEM(*proj_intrinsic_matrix,float,1,2)-777.23754558) ) < 0.1);
+    cout << " ... passed!" << endl;   
+}
+
 ofxCvColorImage Scan3dApp::generateCheckerBoardImage(int w, int h, int checksX, int checksY){
     ofxCvColorImage checkerboardImg;
     checkerboardImg.allocate(w,h);
-    int buffer = 20;
+    int buffer = 0;
     int xs = (w-2*buffer)/checksX;
     int hs = (h-2*buffer)/checksY;
 
@@ -1060,8 +1169,6 @@ ofxCvColorImage Scan3dApp::generateCheckerBoardImage(int w, int h, int checksX, 
 }
 
 ofPoint Scan3dApp::pt3DToPixel(CvMat* intrinsicMatrix, CvMat* extrinsicMatrix,  CvMat* distCoeffs, ofPoint pt3D){
-    
-  
     CvMat* A = cvCreateMat( 3, 4, CV_32FC1 );
     cvMatMul(intrinsicMatrix,extrinsicMatrix,A); //combining into one matrix
     
@@ -1417,6 +1524,7 @@ ofxRay3d Scan3dApp::campixel2ray(ofPoint pixel){
 }
 
 ofxRay3d Scan3dApp::projpixel2ray(ofPoint pixel){
+
     return pixelToRay(proj_intrinsic_matrix,proj_extrinsic_matrix, pixel);
 }
 
@@ -1438,8 +1546,8 @@ ofxPlane Scan3dApp::projrow2plane(int row){
 
 
 void Scan3dApp::points3dUpdate(){
-    points.resize(width*height,ofPoint(5,5,5));
-    colors.resize(width*height,ofColor(255,255,255));
+    points.resize(width*height,ofPoint(0,0,0));
+    colors.resize(width*height,ofColor(0,0,0));
     int numPoints = 0;
 
     unsigned char* temporalImgPixels = temporalImg.getPixels(); 
@@ -1451,6 +1559,7 @@ void Scan3dApp::points3dUpdate(){
     unsigned short rowMappingPixel;
     unsigned short colMappingPixel;
     int col = 0;
+    int row = 0;
 
     // float rowMappingPixel = 0.0;
     switch(points3dSubstate){
@@ -1459,22 +1568,29 @@ void Scan3dApp::points3dUpdate(){
                     for(int c = 0; c < width; c++){ 
 
                         colMappingPixel = colMappingPixels[c+r*width];
+                        col = colMappingPixel;
+                        rowMappingPixel = rowMappingPixels[c+r*width];
+                        row = rowMappingPixel;
                         //rowMappingPixel = rowMappingPixels[c+r*width];
-                        if((int)colMappingPixel == 0){
+                        if(col == -1){
                             continue;
                         }
                         else{
-                            col = colMappingPixel;
+                            
+                            assert(col >= 0 && col <= projWidth);
+                            assert(row >= 0 && row <= projHeight);
 
                             ofxPlane plane = projcol2plane((int)colMappingPixel);
                             if(plane.isInit()){
                                 ofxRay3d ray = campixel2ray(ofPoint(c,r));
+                                ofxRay3d ray0 = projpixel2ray(ofPoint(0,row));
+                                ofxRay3d ray1 = projpixel2ray(ofPoint(projWidth,row));
+                                // if(ray.dir.dot(plane.normal) < 0.01){ // too orthogonal, prone to high error
 
-                                if(ray.dir.dot(plane.normal) < 0.1){ // too orthogonal, prone to high error
-                                    continue;
-                                }
+                                //     continue;
+                                // }
                                 
-                                ofPoint pt = ray.intersect(vertPlane);
+                                ofPoint pt = col%2 == 0 ? ray0.intersect(vertPlane) : ray1.intersect(vertPlane);
                                 // cout << "Ray origin should be camera pos: " << endl;
                                 // cout << "   camPos: ";
                                 // cout << camPos << endl;
@@ -1501,12 +1617,13 @@ void Scan3dApp::points3dUpdate(){
                                     ofPoint pixelPt = pt3DToPixel(cam_intrinsic_matrix,cam_extrinsic_matrix,cam_distortion_coeffs, pt);
                                     points[numPoints] = pt;
                                     
-                                    ofColor pixelColor = ofColor(   (int)colorImgPixels[3*((int)pixelPt.x+(int)pixelPt.y*width)],(int)colorImgPixels[3*((int)pixelPt.x+(int)pixelPt.y*width)+1],
-                                                                    (int)colorImgPixels[3*((int)pixelPt.x+(int)pixelPt.y*width)+2]
-                                                                );
+                                    // ofColor pixelColor = ofColor(   (int)colorImgPixels[3*((int)pixelPt.x+(int)pixelPt.y*width)],(int)colorImgPixels[3*((int)pixelPt.x+(int)pixelPt.y*width)+1],
+                                    //                                 (int)colorImgPixels[3*((int)pixelPt.x+(int)pixelPt.y*width)+2]
+                                    //                             );
+                                    ofColor intersectColor = ofColor(255,255,255);
+                                    intersectColor.setHsb(ofMap(row,0,projHeight,0,255),255,255);
 
-
-                                    colors[numPoints] = pixelColor;
+                                    colors[numPoints] = intersectColor;//pixelColor;
                                     numPoints++;
                                 }
                                 
@@ -1846,6 +1963,75 @@ void Scan3dApp::computeExtrinsicMatrix(vector<ofPoint> objectPoints, vector<ofPo
     cvReleaseMat(&rotmat);   
 }
 
+
+void Scan3dApp::computeProjExtrinsicMatrix(vector<ofPoint> objectPoints, vector<ofPoint> imagePoints, const CvMat* intrinsicMatrix, const CvMat* distCoeffs, CvMat* extrinsicMatrix){
+  
+    CvMat* cvObjectPoints = cvCreateMat(objectPoints.size(), 3, CV_32FC1 );
+    CvMat* cvImagePoints = cvCreateMat(imagePoints.size(), 2, CV_32FC1 );
+    CvMat* tvec = cvCreateMat(3,1, CV_32FC1); 
+    CvMat* rvec = cvCreateMat(3,1, CV_32FC1); 
+    convertOfPointsToCvMat(objectPoints,3, cvObjectPoints);
+    convertOfPointsToCvMat(imagePoints,2, cvImagePoints);
+    cvFindExtrinsicCameraParams2(cvObjectPoints,cvImagePoints, intrinsicMatrix, distCoeffs,rvec,tvec);
+    cvReleaseMat(&cvObjectPoints);
+    cvReleaseMat(&cvImagePoints);
+
+    // printf("tvec: [%f,%f,%f]\n",
+    //     CV_MAT_ELEM(*tvec,float,0,0),
+    //     CV_MAT_ELEM(*tvec,float,1,0),
+    //     CV_MAT_ELEM(*tvec,float,2,0));
+
+    CvMat* rotmat = cvCreateMat( 3,3, CV_32FC1 );
+
+
+    cvRodrigues2(rvec,rotmat);
+
+    // printf("rotmat: \n[%f,%f,%f]\n[%f,%f,%f]\n[%f,%f,%f]\n\n",
+    //     CV_MAT_ELEM(*rotmat,float,0,0),
+    //     CV_MAT_ELEM(*rotmat,float,0,1),
+    //     CV_MAT_ELEM(*rotmat,float,0,2),
+    //     CV_MAT_ELEM(*rotmat,float,1,0),s
+    //     CV_MAT_ELEM(*rotmat,float,1,1),
+    //     CV_MAT_ELEM(*rotmat,float,1,2),
+    //     CV_MAT_ELEM(*rotmat,float,2,0),
+    //     CV_MAT_ELEM(*rotmat,float,2,1),
+    //     CV_MAT_ELEM(*rotmat,float,2,2)
+    // );
+
+    for(int i = 0; i < 3; i++){
+        for(int j = 0; j < 3; j++){
+            CV_MAT_ELEM(*extrinsicMatrix,float,i,j) = CV_MAT_ELEM(*rotmat,float,j,i);
+        }  
+    }
+
+    for(int i = 0; i < 3; i++){
+        CV_MAT_ELEM(*extrinsicMatrix,float,i,3) = CV_MAT_ELEM(*tvec,float,i,0); 
+    }
+
+
+    printf("[%f,\t%f,\t%f,\t%f]\n[%f,\t%f,\t%f,\t%f]\n[%f,\t%f,\t%f,\t%f]\n\n",
+        CV_MAT_ELEM(*extrinsicMatrix,float,0,0),
+        CV_MAT_ELEM(*extrinsicMatrix,float,0,1),
+        CV_MAT_ELEM(*extrinsicMatrix,float,0,2),
+        CV_MAT_ELEM(*extrinsicMatrix,float,0,3),
+
+        CV_MAT_ELEM(*extrinsicMatrix,float,1,0),
+        CV_MAT_ELEM(*extrinsicMatrix,float,1,1),
+        CV_MAT_ELEM(*extrinsicMatrix,float,1,2),
+        CV_MAT_ELEM(*extrinsicMatrix,float,1,3),
+
+        CV_MAT_ELEM(*extrinsicMatrix,float,2,0),
+        CV_MAT_ELEM(*extrinsicMatrix,float,2,1),
+        CV_MAT_ELEM(*extrinsicMatrix,float,2,2),
+        CV_MAT_ELEM(*extrinsicMatrix,float,2,3)
+
+    );
+
+    cvReleaseMat(&tvec);
+    cvReleaseMat(&rvec);
+    cvReleaseMat(&rotmat);   
+}
+
 ofxRay3d Scan3dApp::pixelToRay(const CvMat* intrinsicMat, const CvMat* extrinsicMatrix, ofPoint imagePt){
     CvMat* homoImgPt = cvCreateMat(3,1, CV_32FC1); 
 
@@ -1910,7 +2096,7 @@ ofPoint Scan3dApp::getPositionFromExtrinsic(const CvMat* extrinsicMatrix){
     cvMatMul(invRotmat,tvec,position);
 
 
-    return ofPoint(-1*CV_MAT_ELEM(*position,float,0,0),-1*CV_MAT_ELEM(*position,float,1,0),-1*CV_MAT_ELEM(*position,float,2,0));
+    return ofPoint(CV_MAT_ELEM(*position,float,0,0),CV_MAT_ELEM(*position,float,1,0),CV_MAT_ELEM(*position,float,2,0));
 }
 
 void Scan3dApp::setCamera(){
@@ -2270,19 +2456,19 @@ void Scan3dApp::drawPointCloud() {
                 reprojectionMesh.setMode(OF_PRIMITIVE_LINES);
                 cameraPlaneMesh.setMode(OF_PRIMITIVE_POINTS);
                 projectorPlaneMesh.setMode(OF_PRIMITIVE_POINTS);
-                cout << "Camera Position: ["<< camPos << "]" << endl;
+                // cout << "Camera Position: ["<< camPos << "]" << endl;
                 ofxRay3d centerRay = campixel2ray(cam_principal_point);
                 ofVec3f centerPt = (ofVec3f)centerRay.intersect(vertPlane);
-                cout << "Camera Ray: ["<< centerRay.dir << "]" << endl;
+                // cout << "Camera Ray: ["<< centerRay.dir << "]" << endl;
 
                 addRayGeometry(&cameraMesh, centerRay, ofColor(255,0,0));
                 
                 
 
-                cout << "Projector Position: ["<< projPos << "]" << endl;
+                // cout << "Projector Position: ["<< projPos << "]" << endl;
                 centerRay = projpixel2ray(proj_principal_point);
                 centerPt = (ofVec3f)centerRay.intersect(vertPlane);
-                cout << "Projector Ray: ["<< centerRay.dir << "]" << endl;
+                // cout << "Projector Ray: ["<< centerRay.dir << "]" << endl;
 
                 addRayGeometry(&projectorMesh, centerRay, ofColor(0,255,0));
 
@@ -2377,11 +2563,12 @@ ofxCvGrayscaleImage Scan3dApp::computeBinCodeImage(int w, int h, int power, bool
     ofxCvGrayscaleImage output;
     output.allocate(w,h);
     output.set(0);
-    if(power == 0){ //Skipping all the other nonsense
+    if(power <= 0){ //Skipping all the other nonsense
         return output;
     }
     else{
         stepSize = (type == HORIZONTAL) ? (int)(w/pow(2,power)) : (int)(h/pow(2,power));
+        cout << stepSize << endl;
         numSteps = (int)(w/stepSize);
         for(int step = 1; step < numSteps; step+= 2){
 

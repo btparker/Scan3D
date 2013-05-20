@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<opencv_storage>
+<cam_intrinsic type_id="opencv-matrix">
+  <rows>3</rows>
+  <cols>3</cols>
+  <dt>f</dt>
+  <data>
+    2.86280250225e+03 0. 7.3822413391e+02 0. 2.86680127883e+03 5.6819085523e+02 0.
+    0. 1.</data></cam_intrinsic>
+</opencv_storage>
+<!--
+'fc_cam': 
+[ 2862.80250225]
+[ 2866.80127883]
+
+'cc_cam':
+[ 738.22413391]
+[ 568.19085523]
+-->
