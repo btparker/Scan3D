@@ -2,7 +2,6 @@
 #define _OFX_RAY_3D
 
 #include "ofMain.h"
-#include "ofxPlane.h"
 
 class ofxRay3d{
 	public:
