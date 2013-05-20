@@ -9,7 +9,7 @@ using namespace cv;
 
 
 class Scan3dApp : public ofBaseApp{
-	enum{DEFAULT,TRANSFORMATION};
+	enum{DEFAULT,SECOND,TRANSFORMATION};
 	public:
 		void setup();
 		void update();

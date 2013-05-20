@@ -17,8 +17,9 @@ void Scan3dApp::setup(){
     mesh1.setMode(OF_PRIMITIVE_POINTS);
     resultMesh.setMode(OF_PRIMITIVE_POINTS);
     transLine.setMode(OF_PRIMITIVE_LINES);
+
     loadMesh("teapot.ply", &mesh0);
-    loadMesh("teapot.ply", &resultMesh);
+    loadMesh("teapot.ply", &resultMesh); // This is to show (and be transformed into) the result
     loadMesh("teapot.ply", &mesh1);
 
     int meshSize = mesh0.getVertices().size();
@@ -29,10 +30,19 @@ void Scan3dApp::setup(){
     }
 
     float a[3][4] = {
-                        {1,0,0, -10},
-                        {0,0,-1, 0},
-                        {0,1,0, 17}
+                        /*
+                        {0.36,0.48,-0.8, -12},
+                        {-0.8,0.6,0, 5},
+                        {0.48,0.64,0.6, 2}
+                        */
+                        
+                        {1,0,0, 5},
+                        {0,0,-1, 5},
+                        {0,1,0, 5}
+                        /**/
                     };
+
+
 
     Mat A = Mat(3, 4, CV_32FC1, a);
 
@@ -80,7 +90,7 @@ void Scan3dApp::align(const ofMesh* meshA, const ofMesh* meshB, const vector<int
     Mat vt = Mat(3,3, CV_32FC1);
 
 
-    SVD::compute(H,s,vt,u);
+    SVD::compute(H,s,u,vt);
 
     Mat v = vt.t();
     Mat ut = u.t();
