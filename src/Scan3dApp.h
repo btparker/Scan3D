@@ -10,7 +10,7 @@
 #include "ofxPlane.h"
 #include <sstream>
 
-enum {CAMERA_CALIBRATION, PROJECTOR_CALIBRATION, SETUP, CAPTURE, PROCESSING,RECONSTRUCTION,POINTS3D};
+enum {CAMERA_CALIBRATION, PROJECTOR_CALIBRATION, SETUP, CAPTURE, PROCESSING,RECONSTRUCTION,POINTS3D, VISUALIZATION};
 
 
 enum Setup{TOP_SECTION, BOTTOM_SECTION, T_TL, T_TR, T_BL, T_BR, B_TL, B_TR, B_BL, B_BR,ESTIMATE_CAMERA, WAITING};
@@ -297,5 +297,13 @@ class Scan3dApp : public ofBaseApp{
 		ofVec2f proj_focal_length;
 		ofVec2f proj_principal_point;
 		float proj_skew_coeff;
+
+		ofMesh mesh;
+	    ofMesh planePts;
+	    ofMesh cameraMesh;
+	    ofMesh projectorMesh;
+	    ofMesh cameraPlaneMesh;
+	    ofMesh projectorPlaneMesh;
+	    ofMesh reprojectionMesh;
         
 };

@@ -472,7 +472,6 @@ void Scan3dApp::update(){
                 points3dUpdate();
                 break;
             }
-
         }
     }
 
@@ -1052,6 +1051,23 @@ void Scan3dApp::projCalUpdate(){
             break;
 
         case PROJ_CAL_SET:
+            computeExtrinsicMatrix(projPlaneObjectPts, projPlaneImagePts, proj_intrinsic_matrix, proj_distortion_coeffs, proj_extrinsic_matrix);
+            // CvMat* projExtSwap0 = cvCreateMat(3,3,CV_32FC1);
+            // CvMat* projExtSwap1 = cvCreateMat(3,3,CV_32FC1);
+            // for(int r = 0; r < 3; r++){
+            //     for(int c = 0; c < 3; c++){
+            //        CV_MAT_ELEM(*projExtSwap0,float,r,c) = CV_MAT_ELEM(*proj_extrinsic_matrix,float,r,c);
+            //     }
+            // }
+
+            // cvInv(projExtSwap0,projExtSwap1);
+            // for(int r = 0; r < 3; r++){
+            //     for(int c = 0; c < 3; c++){
+            //        CV_MAT_ELEM(*proj_extrinsic_matrix,float,r,c) = CV_MAT_ELEM(*projExtSwap1,float,r,c);
+            //     }
+            // }
+            projPos = getPositionFromExtrinsic(proj_extrinsic_matrix);
+
             saveSettings();
             programState = CAPTURE;
             break;
@@ -1546,6 +1562,10 @@ ofxPlane Scan3dApp::projrow2plane(int row){
 
 
 void Scan3dApp::points3dUpdate(){
+    int step = 1;
+    ofxPlane plane;
+    ofVec3f vec;
+
     points.resize(width*height,ofPoint(0,0,0));
     colors.resize(width*height,ofColor(0,0,0));
     int numPoints = 0;
@@ -1583,26 +1603,14 @@ void Scan3dApp::points3dUpdate(){
                             ofxPlane plane = projcol2plane((int)colMappingPixel);
                             if(plane.isInit()){
                                 ofxRay3d ray = campixel2ray(ofPoint(c,r));
-                                ofxRay3d ray0 = projpixel2ray(ofPoint(0,row));
-                                ofxRay3d ray1 = projpixel2ray(ofPoint(projWidth,row));
+                                
                                 // if(ray.dir.dot(plane.normal) < 0.01){ // too orthogonal, prone to high error
 
                                 //     continue;
                                 // }
                                 
-                                ofPoint pt = col%2 == 0 ? ray0.intersect(vertPlane) : ray1.intersect(vertPlane);
-                                // cout << "Ray origin should be camera pos: " << endl;
-                                // cout << "   camPos: ";
-                                // cout << camPos << endl;
-                                // cout << "   ray.origin: ";
-                                // cout << ray.origin << endl;
-                                // cout << "Ray dir and tes vec (intersect pt minus ray.origin, normalized) should be the same: " << endl;
-                                // cout << "   ray.dir: ";
-                                // cout << ray.dir << endl;
-                                // ofVec3f testVec = pt-ray.origin;
-                                // testVec.normalize();
-                                // cout << "   testVec: ";
-                                // cout << testVec << endl;
+                                ofPoint pt = ray.intersect(plane);//col%2 == 0 ? ray0.intersect(vertPlane) : ray1.intersect(vertPlane);
+                              
                                 if(pt.y <= 0){
                                     pt.y = 0;
                                 }
@@ -1617,13 +1625,13 @@ void Scan3dApp::points3dUpdate(){
                                     ofPoint pixelPt = pt3DToPixel(cam_intrinsic_matrix,cam_extrinsic_matrix,cam_distortion_coeffs, pt);
                                     points[numPoints] = pt;
                                     
-                                    // ofColor pixelColor = ofColor(   (int)colorImgPixels[3*((int)pixelPt.x+(int)pixelPt.y*width)],(int)colorImgPixels[3*((int)pixelPt.x+(int)pixelPt.y*width)+1],
-                                    //                                 (int)colorImgPixels[3*((int)pixelPt.x+(int)pixelPt.y*width)+2]
-                                    //                             );
-                                    ofColor intersectColor = ofColor(255,255,255);
-                                    intersectColor.setHsb(ofMap(row,0,projHeight,0,255),255,255);
+                                    ofColor pixelColor = ofColor(   (int)colorImgPixels[3*((int)pixelPt.x+(int)pixelPt.y*width)],(int)colorImgPixels[3*((int)pixelPt.x+(int)pixelPt.y*width)+1],
+                                                                    (int)colorImgPixels[3*((int)pixelPt.x+(int)pixelPt.y*width)+2]
+                                                                );
+                                    // ofColor intersectColor = ofColor(255,255,255);
+                                    // intersectColor.setHsb(ofMap(row,0,projHeight,0,255),255,255);
 
-                                    colors[numPoints] = intersectColor;//pixelColor;
+                                    colors[numPoints] = pixelColor;
                                     numPoints++;
                                 }
                                 
@@ -1652,7 +1660,51 @@ void Scan3dApp::points3dUpdate(){
             }
         }
 
+        mesh.setMode(OF_PRIMITIVE_POINTS);
+        for(int i =0; i < points.size(); i += step){  
+            mesh.addColor(colors[i]);
+            mesh.addVertex((ofVec3f)points[i]);
+        }
+
+        cameraMesh.setMode(OF_PRIMITIVE_LINES);
+        projectorMesh.setMode(OF_PRIMITIVE_LINES);
+        reprojectionMesh.setMode(OF_PRIMITIVE_LINES);
+        cameraPlaneMesh.setMode(OF_PRIMITIVE_POINTS);
+        projectorPlaneMesh.setMode(OF_PRIMITIVE_POINTS);
+        // cout << "Camera Position: ["<< camPos << "]" << endl;
+        ofxRay3d centerRay = campixel2ray(cam_principal_point);
+        ofVec3f centerPt = (ofVec3f)centerRay.intersect(vertPlane);
+        // cout << "Camera Ray: ["<< centerRay.dir << "]" << endl;
+
+        addRayGeometry(&cameraMesh, centerRay, ofColor(255,0,0));
         
+        
+
+        // cout << "Projector Position: ["<< projPos << "]" << endl;
+        centerRay = projpixel2ray(proj_principal_point);
+        centerPt = (ofVec3f)centerRay.intersect(vertPlane);
+        // cout << "Projector Ray: ["<< centerRay.dir << "]" << endl;
+
+        addRayGeometry(&projectorMesh, centerRay, ofColor(0,255,0));
+
+        for(int i =0; i < 4; i += step){ 
+            ofVec3f vec0;
+            cameraPlaneMesh.addColor(ofColor(255,0,0));
+            vec0 = (ofVec3f)camPlaneObjectPts[i];
+
+            cameraPlaneMesh.addVertex(vec0);
+        }
+
+        for(int j = 0; j < projBoardPatternSize; ++j){
+            ofVec3f vec0;
+            projectorPlaneMesh.addColor(ofColor(0,255,0));
+            vec0 = (ofVec3f)projPlaneObjectPts[j];
+
+            projectorPlaneMesh.addVertex(vec0);
+        }
+
+        addReprojection(projPlaneObjectPts, projPlaneImagePts, &reprojectionMesh,ofColor(0,255,128), true);
+        addReprojection(camPlaneObjectPts, camPlaneImagePts, &reprojectionMesh,ofColor(255,0,128), false);
    
 
     //do nothing
@@ -1745,11 +1797,16 @@ void Scan3dApp::draw(){
             captureDraw();
             break; 
         case POINTS3D:
-            if(bDrawPointCloud){
-                easyCam.begin();
-                drawPointCloud();
-                easyCam.end();
+            if(points3dSubstate == POINTS3D_WAITING){
+                if(bDrawPointCloud){
+                    easyCam.begin();
+                    drawPointCloud();
+                    easyCam.end();
+                }
             }
+            break;
+        case VISUALIZATION:
+
             break;
     }
 }
@@ -1860,40 +1917,6 @@ ofPoint Scan3dApp::getNearestCorner(ofxCvGrayscaleImage img, int windowSize, int
     return cornerPt;
 }
 
-/*
-
-First to understand how you calculate it, it would help you if you read some things about the pinhole camera model and simple perspective projection. For a quick glimpse, check this. I'll try to update with more.
-
-So, let's start by the opposite which describes how a camera works: project a 3d point in the world coordinate system to a 2d point in our image. According to the camera model:
-
-P_screen = I * P_world
-
-or (using homogeneous coordinates)
-
-| x_screen | = I * | x_world |
-| y_screen |       | y_world |
-|    1     |       | z_world |
-                   |    1    |
-where
-
-I = | f_x    0    c_x    0 | 
-    |  0    f_y   c_y    0 |
-    |  0     0     1     0 |
-is the 3x4 intrinsics matrix, f being the focal point and c the center of projection.
-
-If you solve the system above, you get:
-
-x_screen = (x_world/z_world)*f_x + c_x
-y_screen = (y_world/z_world)*f_y + c_y
-But, you want to do the reverse, so your answer is:
-
-x_world = (x_screen - c_x) * z_world / f_x
-y_world = (y_screen - c_y) * z_world / f_y
-
-
-
-
-*/
 
 void Scan3dApp::computeExtrinsicMatrix(vector<ofPoint> objectPoints, vector<ofPoint> imagePoints, const CvMat* intrinsicMatrix, const CvMat* distCoeffs, CvMat* extrinsicMatrix){
   
@@ -2096,7 +2119,7 @@ ofPoint Scan3dApp::getPositionFromExtrinsic(const CvMat* extrinsicMatrix){
     cvMatMul(invRotmat,tvec,position);
 
 
-    return ofPoint(CV_MAT_ELEM(*position,float,0,0),CV_MAT_ELEM(*position,float,1,0),CV_MAT_ELEM(*position,float,2,0));
+    return ofPoint(-CV_MAT_ELEM(*position,float,0,0),-CV_MAT_ELEM(*position,float,1,0),-CV_MAT_ELEM(*position,float,2,0));
 }
 
 void Scan3dApp::setCamera(){
@@ -2127,9 +2150,8 @@ void Scan3dApp::keyPressed(int key){
             if(programState ==  CAMERA_CALIBRATION){
                 setCamera();
                 programState = PROJECTOR_CALIBRATION;
-                
             }
-
+          
             break;
         case 49:
             displayState = COLOR;
@@ -2424,72 +2446,20 @@ void Scan3dApp::addReprojection(vector<ofPoint> objectPoints, vector<ofPoint> im
         intersectPt = ray.intersect(vertPlane);
         mesh->addVertex(intersectPt);
 
-        if(!isProjector){assert(intersectPt.distance(objectPoints[i]) < 5.0);}
+        //if(!isProjector){assert(intersectPt.distance(objectPoints[i]) < 5.0);}
     }
 }
 
 void Scan3dApp::drawPointCloud() {
 
     ofBackground(20);
-    ofMesh mesh;
-    ofMesh planePts;
-    ofMesh cameraMesh;
-    ofMesh projectorMesh;
-    ofMesh cameraPlaneMesh;
-    ofMesh projectorPlaneMesh;
-    ofMesh reprojectionMesh;
-    int step = 1;
-    ofxPlane plane;
-    ofVec3f vec;
+
+    
 
     if(programState == POINTS3D){
         switch(points3dSubstate){
             case POINTS3D_WAITING:
-                mesh.setMode(OF_PRIMITIVE_POINTS);
-                for(int i =0; i < points.size(); i += step){  
-                    mesh.addColor(colors[i]);
-                    mesh.addVertex((ofVec3f)points[i]);
-                }
-
-                cameraMesh.setMode(OF_PRIMITIVE_LINES);
-                projectorMesh.setMode(OF_PRIMITIVE_LINES);
-                reprojectionMesh.setMode(OF_PRIMITIVE_LINES);
-                cameraPlaneMesh.setMode(OF_PRIMITIVE_POINTS);
-                projectorPlaneMesh.setMode(OF_PRIMITIVE_POINTS);
-                // cout << "Camera Position: ["<< camPos << "]" << endl;
-                ofxRay3d centerRay = campixel2ray(cam_principal_point);
-                ofVec3f centerPt = (ofVec3f)centerRay.intersect(vertPlane);
-                // cout << "Camera Ray: ["<< centerRay.dir << "]" << endl;
-
-                addRayGeometry(&cameraMesh, centerRay, ofColor(255,0,0));
                 
-                
-
-                // cout << "Projector Position: ["<< projPos << "]" << endl;
-                centerRay = projpixel2ray(proj_principal_point);
-                centerPt = (ofVec3f)centerRay.intersect(vertPlane);
-                // cout << "Projector Ray: ["<< centerRay.dir << "]" << endl;
-
-                addRayGeometry(&projectorMesh, centerRay, ofColor(0,255,0));
-
-                for(int i =0; i < 4; i += step){ 
-                    ofVec3f vec0;
-                    cameraPlaneMesh.addColor(ofColor(255,0,0));
-                    vec0 = (ofVec3f)camPlaneObjectPts[i];
-
-                    cameraPlaneMesh.addVertex(vec0);
-                }
-
-                for(int j = 0; j < projBoardPatternSize; ++j){
-                    ofVec3f vec0;
-                    projectorPlaneMesh.addColor(ofColor(0,255,0));
-                    vec0 = (ofVec3f)projPlaneObjectPts[j];
-
-                    projectorPlaneMesh.addVertex(vec0);
-                }
-
-                addReprojection(projPlaneObjectPts, projPlaneImagePts, &reprojectionMesh,ofColor(0,255,128), true);
-                addReprojection(camPlaneObjectPts, camPlaneImagePts, &reprojectionMesh,ofColor(255,0,128), false);
                 
                 glPointSize(3);
                 ofPushMatrix();
