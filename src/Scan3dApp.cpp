@@ -17,7 +17,7 @@ void Scan3dApp::setup(){
     mesh1.setMode(OF_PRIMITIVE_POINTS);
     resultMesh.setMode(OF_PRIMITIVE_POINTS);
     transLine.setMode(OF_PRIMITIVE_LINES);
-
+    
     loadMesh("teapot.ply", &mesh0);
     loadMesh("teapot.ply", &resultMesh); // This is to show (and be transformed into) the result
     loadMesh("teapot.ply", &mesh1);
@@ -30,16 +30,14 @@ void Scan3dApp::setup(){
     }
 
     float a[3][4] = {
-                        /*
                         {0.36,0.48,-0.8, -12},
                         {-0.8,0.6,0, 5},
                         {0.48,0.64,0.6, 2}
-                        */
-                        
+                        /*
                         {1,0,0, 5},
                         {0,0,-1, 5},
                         {0,1,0, 5}
-                        /**/
+                        */
                     };
 
 
