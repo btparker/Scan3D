@@ -40,14 +40,7 @@ class Scan3dApp : public ofBaseApp{
 
 		ofEasyCam easyCam;
 
-		string messageBarText;
-		string messageBarSubText;
-
-		int messageBarHeight;
-
-		ofTrueTypeFont messageBarFont;
-		ofTrueTypeFont messageBarSubTextFont;
-
+	
 		ofMesh mesh0;
 		ofMesh mesh1;
 		ofMesh resultMesh;

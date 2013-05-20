@@ -11,24 +11,15 @@ void Scan3dApp::setup(){
     ofSetWindowShape(1024,768);
     displayState = DEFAULT;
 
-    /*
-        Initializing the text for the bottom message bar
-    */
-    messageBarText = "Hello";
-    messageBarSubText = "World";
-    messageBarHeight = 70;
-    messageBarFont.loadFont("OpenSans-Semibold.ttf", 20);
-    messageBarSubTextFont.loadFont("OpenSans-Light.ttf", 15);
-
     setCamera();
 
     mesh0.setMode(OF_PRIMITIVE_POINTS);
     mesh1.setMode(OF_PRIMITIVE_POINTS);
     resultMesh.setMode(OF_PRIMITIVE_POINTS);
     transLine.setMode(OF_PRIMITIVE_LINES);
-    loadMesh("cube.ply", &mesh0);
-    loadMesh("cube.ply", &resultMesh);
-    loadMesh("cube_trans.ply", &mesh1);
+    loadMesh("teapot.ply", &mesh0);
+    loadMesh("teapot.ply", &resultMesh);
+    loadMesh("teapot.ply", &mesh1);
 
     int meshSize = mesh0.getVertices().size();
     vector<int> correspondences;
@@ -38,9 +29,9 @@ void Scan3dApp::setup(){
     }
 
     float a[3][4] = {
-                        {1, 0, 0, 10},
-                        {0, 1, 0, 5},
-                        {0, 0, 1, 12}
+                        {1,0,0, -10},
+                        {0,0,-1, 0},
+                        {0,1,0, 17}
                     };
 
     Mat A = Mat(3, 4, CV_32FC1, a);
@@ -101,7 +92,7 @@ void Scan3dApp::align(const ofMesh* meshA, const ofMesh* meshB, const vector<int
     
 
 
-    if(determinant(R) <= 0){
+    if(determinant(R) < 0){
         R.at<float>(0,2) = -1*R.at<float>(0,2);
         R.at<float>(1,2) = -1*R.at<float>(1,2);
         R.at<float>(2,2) = -1*R.at<float>(2,2);
@@ -252,14 +243,11 @@ void Scan3dApp::draw(){
     ofSetColor(255);
     ofScale(100,100,100);
 
-    messageBarFont.drawString(messageBarText,10,ofGetHeight()+messageBarHeight/2-5);
-    messageBarSubTextFont.drawString(messageBarSubText,10,ofGetHeight()+messageBarHeight-15);
-
     easyCam.begin();
     //ofDrawGrid();
     switch(displayState){
         case DEFAULT:
-            glPointSize(10);
+            glPointSize(2);
             ofPushMatrix();
             glEnable(GL_DEPTH_TEST);
             mesh0.drawVertices();
@@ -269,7 +257,7 @@ void Scan3dApp::draw(){
             break;
 
         case TRANSFORMATION:
-            glPointSize(10);
+            glPointSize(2);
             ofPushMatrix();
             glEnable(GL_DEPTH_TEST);
             resultMesh.drawVertices();
@@ -277,7 +265,7 @@ void Scan3dApp::draw(){
             ofPopMatrix();
           
 
-            glPointSize(15);
+            glLineWidth(5);
             ofPushMatrix();
             glEnable(GL_DEPTH_TEST);
             transLine.drawVertices();
