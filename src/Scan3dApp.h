@@ -26,9 +26,11 @@ class Scan3dApp : public ofBaseApp{
 		void windowResized(int w, int h);
 		void dragEvent(ofDragInfo dragInfo);
 
+		void setCamera();
+
 		void convertOfPointsToCvMat(vector<ofPoint> pts, int dimensions, CvMat* output);
 		
-		void writePointsToFile(vector<ofPoint> pts,vector<ofPoint> colors, string filename);
+		void writePointsToFile(vector<ofPoint> pts,vector<ofColor> colors, string filename);
 
 		ofEasyCam easyCam;
 
@@ -37,8 +39,8 @@ class Scan3dApp : public ofBaseApp{
 
 		int messageBarHeight;
 
-		ofFont messageBarFont;
-		ofFont messageBarSubTextFont;
+		ofTrueTypeFont messageBarFont;
+		ofTrueTypeFont messageBarSubTextFont;
 	
         
 };

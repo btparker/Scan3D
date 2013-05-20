@@ -8,6 +8,7 @@ void Scan3dApp::setup(){
     ofBackground(0);
     ofSetWindowTitle("Merging Point Clouds");
     ofSetFrameRate(30);
+    ofSetWindowShape(1024,768);
 
 
     /*
@@ -51,7 +52,7 @@ void Scan3dApp::convertOfPointsToCvMat(vector<ofPoint> pts, int dimensions, CvMa
 }
 
 
-void Scan3dApp::writePointsToFile(vector<ofPoint> points,vector<ofPoint> colors, string filename){
+void Scan3dApp::writePointsToFile(vector<ofPoint> points,vector<ofColor> colors, string filename){
     ofFile outputFile(filename.c_str(), ofFile::WriteOnly);
     outputFile <<"ply\n";
     outputFile <<"format ascii 1.0\n";
@@ -99,8 +100,8 @@ void Scan3dApp::draw(){
     ofBackground(60);
     ofSetColor(255);
 
-    messageBarFont.drawString(messageBarText,10,screenScale*height+messageBarHeight/2-5);
-    messageBarSubTextFont.drawString(messageBarSubText,10,screenScale*height+messageBarHeight-15);
+    messageBarFont.drawString(messageBarText,10,ofGetHeight()+messageBarHeight/2-5);
+    messageBarSubTextFont.drawString(messageBarSubText,10,ofGetHeight()+messageBarHeight-15);
 
     easyCam.begin();
     ofDrawGrid();
@@ -127,7 +128,7 @@ void Scan3dApp::setCamera(){
 
     lookat.setPosition(ofPoint(0,0,0));
 
-    ofVec3f easyCamPos = ofVec3f(50,50,50);
+    ofVec3f easyCamPos = ofVec3f(5,5,5);
     
     easyCam.setPosition(easyCamPos);
     easyCam.setTarget(lookat);
@@ -179,11 +180,6 @@ void Scan3dApp::mouseReleased(int x, int y, int button){
 
 //--------------------------------------------------------------
 void Scan3dApp::windowResized(int w, int h){
-
-}
-
-//--------------------------------------------------------------
-void Scan3dApp::gotMessage(ofMessage msg){
 
 }
 
