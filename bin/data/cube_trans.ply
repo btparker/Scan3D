@@ -1,0 +1,20 @@
+ply
+format ascii 1.0
+element vertex 8
+property float32 x
+property float32 y
+property float32 z
+property uchar red
+property uchar green
+property uchar blue
+element face 0
+property list uint8 int32 vertex_indices
+end_header
+-1 -1 -1 0 0 255
+1 -1 -1 0 0 255
+1 1 -1 0 0 255
+-1 1 -1 0 0 255
+-1 -1 1 0 0 255
+1 -1 1 0 0 255
+1 1 1 0 0 255
+-1 1 1 0 0 255
